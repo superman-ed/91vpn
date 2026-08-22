@@ -15,6 +15,7 @@
         <form method="POST" action="/user/order/create">
             @csrf
             <input type="hidden" name="plan_id" value="{{ $plan->id }}">
+            <input type="text" name="coupon" placeholder="优惠码(选填)" style="width:100%;margin-bottom:8px">
             <button class="btn" style="width:100%">购买</button>
         </form>
     </div>

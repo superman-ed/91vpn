@@ -18,22 +18,36 @@ class ShopController extends Controller
         return view('user.shop', ['plans' => $plans]);
     }
 
-    /** POST /user/order/create —— 下单（生成 pending 订单） */
+    /** POST /user/order/create —— 下单（生成 pending 订单，支持优惠券） */
     public function createOrder(Request $request)
     {
-        $data = $request->validate(['plan_id' => ['required', 'exists:plans,id']]);
+        $data = $request->validate([
+            'plan_id' => ['required', 'exists:plans,id'],
+            'coupon' => ['nullable', 'string', 'max:32'],
+        ]);
 
         $plan = Plan::findOrFail($data['plan_id']);
+        $amount = (float) $plan->price;
+
+        // 优惠券（选填）
+        if (! empty($data['coupon'])) {
+            $coupon = \App\Models\Coupon::where('code', $data['coupon'])->first();
+            if (! $coupon || ! $coupon->isUsable()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '优惠券无效或已过期']);
+            }
+            $amount = $coupon->apply($amount);
+            $coupon->increment('used');
+        }
 
         $order = Order::create([
             'user_id' => auth()->id(),
             'plan_id' => $plan->id,
-            'amount' => $plan->price,
+            'amount' => $amount,
             'status' => 'pending',
             'period' => $plan->period,
         ]);
 
-        return redirect('/user/wallet')->with('status', "订单已创建：{$plan->name} ¥{$plan->price}，请在下方完成支付");
+        return redirect('/user/wallet')->with('status', "订单已创建：{$plan->name} ¥{$amount}，请在下方完成支付");
     }
 
     /** POST /user/order/{order}/mock-pay —— 模拟支付并发货 */

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\NodeController as AdminNodeController;
@@ -88,4 +89,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('admin.tickets.show');
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply']);
     Route::post('tickets/{ticket}/close', [AdminTicketController::class, 'close']);
+    Route::get('coupons', [AdminCouponController::class, 'index'])->name('admin.coupons.index');
+    Route::get('coupons/create', [AdminCouponController::class, 'create']);
+    Route::post('coupons', [AdminCouponController::class, 'store']);
+    Route::delete('coupons/{coupon}', [AdminCouponController::class, 'destroy']);
 });

@@ -42,6 +42,7 @@
             <li><a href="/admin/plans" class="{{ request()->is('admin/plans*') ? 'active' : '' }}">套餐管理</a></li>
             <li><a href="/admin/orders" class="{{ request()->is('admin/orders*') ? 'active' : '' }}">订单管理</a></li>
             <li><a href="/admin/tickets" class="{{ request()->is('admin/tickets*') ? 'active' : '' }}">工单管理</a></li>
+            <li><a href="/admin/coupons" class="{{ request()->is('admin/coupons*') ? 'active' : '' }}">优惠券</a></li>
             <li><a href="/admin/announcements" class="{{ request()->is('admin/announcements*') ? 'active' : '' }}">公告管理</a></li>
             <li><a href="/user" style="color:#63ed7a">← 返回用户端</a></li>
         </ul>
