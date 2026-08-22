@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // 信任 Cloudflare 隧道/反代转发的头，使 HTTPS/host 识别正确
+        $middleware->alias(['node.secret' => App\Http\Middleware\NodeSecret::class]);
         $middleware->trustProxies(at: '*', headers:
             Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
             Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |

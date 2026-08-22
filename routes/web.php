@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\LoginController;
@@ -49,3 +50,10 @@ Route::middleware('auth')->group(function () {
 
 // 订阅下发（公开，客户端凭 token 拉取，不需登录）
 Route::get('/sub/{token}', [SubController::class, 'show'])->name('sub');
+
+// 节点对接 WebAPI（节点后端调用，node.secret 鉴权）
+Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
+    Route::get('/users', [ModMuUserController::class, 'index']);
+    Route::post('/users/traffic', [ModMuUserController::class, 'addTraffic']);
+    Route::get('/func/ping', [ModMuUserController::class, 'ping']);
+});
