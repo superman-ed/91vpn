@@ -1,5 +1,6 @@
 services:
   app:
+    user: "1003:1003"
     build: { context: ., dockerfile: docker/php.Dockerfile }
     volumes: [".:/var/www/html"]
     depends_on: [db, redis]
