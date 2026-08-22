@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\NodeController as AdminNodeController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\User\AnnouncementController;
 use App\Http\Controllers\User\CheckinController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\InviteController;
+use App\Http\Controllers\User\TicketController as UserTicketController;
 use App\Http\Controllers\User\NodeSettingController;
 use App\Http\Controllers\User\ShopController;
 use App\Http\Controllers\User\WalletController;
@@ -47,6 +49,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/node/reset-passwd', [NodeSettingController::class, 'resetPasswd']);
     Route::get('/user/announcement', [AnnouncementController::class, 'index'])->name('user.announcement');
     Route::get('/user/invite', [InviteController::class, 'index'])->name('user.invite');
+    Route::get('/user/ticket', [UserTicketController::class, 'index'])->name('user.ticket');
+    Route::get('/user/ticket/create', [UserTicketController::class, 'create']);
+    Route::post('/user/ticket', [UserTicketController::class, 'store']);
+    Route::get('/user/ticket/{ticket}', [UserTicketController::class, 'show']);
+    Route::post('/user/ticket/{ticket}/reply', [UserTicketController::class, 'reply']);
     Route::get('/user/shop', [ShopController::class, 'index'])->name('user.shop');
     Route::post('/user/order/create', [ShopController::class, 'createOrder']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
@@ -77,4 +84,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::put('users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
     Route::post('users/{user}/toggle-ban', [AdminUserController::class, 'toggleBan'])->name('admin.users.toggle-ban');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+    Route::get('tickets', [AdminTicketController::class, 'index'])->name('admin.tickets.index');
+    Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('admin.tickets.show');
+    Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply']);
+    Route::post('tickets/{ticket}/close', [AdminTicketController::class, 'close']);
 });

@@ -49,6 +49,7 @@
             <li><a href="/user/wallet" class="{{ request()->is('user/wallet') ? 'active' : '' }}">我的钱包</a></li>
             <li><a href="/user/invite" class="{{ request()->is('user/invite') ? 'active' : '' }}">邀请注册</a></li>
             <li class="group">使用</li>
+            <li><a href="/user/ticket" class="{{ request()->is('user/ticket*') ? 'active' : '' }}">工单支持</a></li>
             <li><a href="/user/node" class="{{ request()->is('user/node') ? 'active' : '' }}">节点设置</a></li>
             <li><a href="/user/announcement" class="{{ request()->is('user/announcement') ? 'active' : '' }}">公告</a></li>
         </ul>

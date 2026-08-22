@@ -67,6 +67,11 @@ class User extends Authenticatable
         return $this->hasMany(Payback::class);
     }
 
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
     // 已用总流量(字节)
     public function usedTraffic(): int
     {
