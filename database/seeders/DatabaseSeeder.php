@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             NodeSeeder::class,
             AdminSeeder::class,
+            AnnouncementSeeder::class,
         ]);
     }
 }
