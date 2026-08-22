@@ -16,6 +16,7 @@
         <input type="checkbox" name="remember" style="width:auto"> 记住我
     </label>
 
+    <div style="text-align:right;margin-top:8px"><a href="/password/forgot" style="font-size:13px">忘记密码？</a></div>
     <button type="submit">登录</button>
 </form>
 <div class="muted">还没账号？<a href="/register">点击注册</a></div>
