@@ -38,6 +38,20 @@
 </div>
 
 <div class="panel">
+    <h3>近7天流量</h3>
+    @php $max = max(0.01, $chart->max('gb')); @endphp
+    <div style="display:flex;align-items:flex-end;gap:12px;height:160px;padding-top:10px">
+        @foreach($chart as $c)
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+            <div style="font-size:11px;color:#6c757d;margin-bottom:4px">{{ $c['gb'] }}G</div>
+            <div style="width:70%;background:#6777ef;border-radius:4px 4px 0 0;height:{{ max(2, ($c['gb']/$max)*120) }}px"></div>
+            <div style="font-size:11px;color:#acb5c9;margin-top:6px">{{ $c['date'] }}</div>
+        </div>
+        @endforeach
+    </div>
+</div>
+
+<div class="panel">
     <h3>我的订阅</h3>
     <p style="font-size:14px;color:#6c757d">订阅链接在「<a href="/user/node">节点设置</a>」查看和导入客户端。</p>
 </div>

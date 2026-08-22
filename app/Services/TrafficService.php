@@ -33,6 +33,18 @@ class TrafficService
                     'd' => DB::raw("d + {$billedD}"),
                     'transfer_today' => DB::raw('transfer_today + '.($billedU + $billedD)),
                 ]);
+
+                // 每日流量快照（累加当天）
+                \App\Models\DailyTraffic::updateOrCreate(
+                    ['user_id' => $userId, 'date' => now()->toDateString()],
+                    []
+                );
+                \App\Models\DailyTraffic::where('user_id', $userId)
+                    ->whereDate('date', now()->toDateString())
+                    ->update([
+                        'u' => DB::raw("u + {$billedU}"),
+                        'd' => DB::raw("d + {$billedD}"),
+                    ]);
                 $count++;
             }
         });

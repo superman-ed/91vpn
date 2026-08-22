@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\DailyTraffic;
 
 class DashboardController extends Controller
 {
@@ -14,6 +15,15 @@ class DashboardController extends Controller
         $used = $user->usedTraffic();
         $remainBytes = max(0, $user->transfer_enable - $used);
 
+        // 近7天流量
+        $days = collect(range(6, 0))->map(fn ($i) => now()->subDays($i)->toDateString());
+        $rows = DailyTraffic::where('user_id', $user->id)
+            ->whereIn('date', $days->all())->get()->keyBy(fn ($r) => $r->date->toDateString());
+        $chart = $days->map(fn ($d) => [
+            'date' => substr($d, 5),   // MM-DD
+            'gb' => round(((($rows[$d]->u ?? 0) + ($rows[$d]->d ?? 0)) / (1024 ** 3)), 2),
+        ]);
+
         return view('user.dashboard', [
             'user' => $user,
             'usedGb' => bytes_to_gb($used),
@@ -21,6 +31,7 @@ class DashboardController extends Controller
             'totalGb' => bytes_to_gb($user->transfer_enable),
             'todayGb' => bytes_to_gb($user->transfer_today),
             'className' => class_name($user->class),
+            'chart' => $chart,
         ]);
     }
 }
