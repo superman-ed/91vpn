@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\NodeController as AdminNodeController;
+use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\EmailCodeController;
@@ -64,4 +68,11 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');
+    Route::resource('plans', AdminPlanController::class)->except('show')->names('admin.plans');
+    Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
+    Route::get('users', [AdminUserController::class, 'index'])->name('admin.users.index');
+    Route::get('users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
+    Route::put('users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+    Route::post('users/{user}/toggle-ban', [AdminUserController::class, 'toggleBan'])->name('admin.users.toggle-ban');
+    Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
 });
