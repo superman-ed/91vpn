@@ -11,7 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // 信任 Cloudflare 隧道/反代转发的头，使 HTTPS/host 识别正确
+        $middleware->trustProxies(at: '*', headers:
+            Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+            Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+            Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+            Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
