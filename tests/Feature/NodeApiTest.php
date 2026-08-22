@@ -53,3 +53,15 @@ it('updates node heartbeat on ping', function () {
     expect($node->online)->toBeTrue();
     expect($node->last_heartbeat)->toBeGreaterThan(0);
 });
+
+it('mod_mu traffic endpoint is exempt from CSRF (real POST)', function () {
+    $node = makeNode(['traffic_rate' => 1]);
+    $user = User::factory()->create(['u' => 0, 'd' => 0]);
+
+    // 用 post + 普通表单/json，模拟节点真实调用（无 CSRF token）
+    $this->post("/mod_mu/users/traffic?node_id={$node->id}&key=NODESECRET",
+        ['data' => [['user_id' => $user->id, 'u' => 100, 'd' => 200]]]
+    )->assertOk();
+
+    expect($user->fresh()->u)->toBe(100);
+});
