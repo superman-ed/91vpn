@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\NodeController as AdminNodeController;
 use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\EmailCodeController;
@@ -56,4 +58,10 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
     Route::get('/users', [ModMuUserController::class, 'index']);
     Route::post('/users/traffic', [ModMuUserController::class, 'addTraffic']);
     Route::get('/func/ping', [ModMuUserController::class, 'ping']);
+});
+
+// 管理后台
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');
 });
