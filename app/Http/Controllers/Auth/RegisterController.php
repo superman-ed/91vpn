@@ -51,12 +51,19 @@ class RegisterController extends Controller
             throw ValidationException::withMessages(['email_code' => '邮箱验证码错误或已过期']);
         }
 
-        // 邀请码（选填）
+        // 邀请码（选填）：支持一次性邀请码 或 用户永久推广码
         $invite = null;
+        $refByUserId = null;
         if (! empty($data['invite_code'])) {
             $invite = InviteCode::where('code', $data['invite_code'])->whereNull('used_by')->first();
-            if (! $invite) {
-                throw ValidationException::withMessages(['invite_code' => '邀请码无效或已被使用']);
+            if ($invite) {
+                $refByUserId = $invite->user_id;
+            } else {
+                $inviter = User::where('ref_code', $data['invite_code'])->first();
+                if (! $inviter) {
+                    throw ValidationException::withMessages(['invite_code' => '邀请码无效或已被使用']);
+                }
+                $refByUserId = $inviter->id;
             }
         }
 
@@ -69,9 +76,10 @@ class RegisterController extends Controller
             'transfer_enable' => 0,
             'class' => 0,
             'class_expire' => now(),
+            'ref_code' => Str::upper(Str::random(8)),
             'invite_token' => Str::random(32),
             'api_token' => Str::random(60),
-            'ref_by' => $invite?->user_id,
+            'ref_by' => $refByUserId,
         ]);
 
         if ($invite) {

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Plan;
+use App\Models\Payback;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -46,6 +47,34 @@ class BillingService
                 'paid_at' => now(),
             ]);
             $this->deliver($order->user, $order->plan);
+            $this->payback($order);
         });
+    }
+
+    /** 返利：下线付费给邀请人返佣（默认 20%，进余额） */
+    private function payback(Order $order): void
+    {
+        $downline = $order->user;
+        if (! $downline->ref_by) {
+            return;
+        }
+        $inviter = User::find($downline->ref_by);
+        if (! $inviter) {
+            return;
+        }
+
+        $rate = 0.20;
+        $amount = round($order->amount * $rate, 2);
+        if ($amount <= 0) {
+            return;
+        }
+
+        $inviter->increment('money', $amount);
+        Payback::create([
+            'user_id' => $inviter->id,
+            'from_user_id' => $downline->id,
+            'order_id' => $order->id,
+            'amount' => $amount,
+        ]);
     }
 }

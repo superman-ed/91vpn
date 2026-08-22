@@ -16,7 +16,7 @@
     <input type="text" name="name" value="{{ old('name') }}" required>
 
     <label>邀请码（选填）</label>
-    <input type="text" name="invite_code" value="{{ old('invite_code') }}">
+    <input type="text" name="invite_code" value="{{ old('invite_code', request('invite')) }}">
 
     <label>密码</label>
     <input type="password" name="password" required>

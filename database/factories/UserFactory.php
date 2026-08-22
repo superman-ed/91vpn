@@ -37,6 +37,7 @@ class UserFactory extends Factory
             'transfer_today' => 0,
             'class' => 0,
             'class_expire' => now(),
+            'ref_code' => Str::upper(Str::random(8)),
             'invite_token' => Str::random(32),
             'api_token' => Str::random(60),
         ];

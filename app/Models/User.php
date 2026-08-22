@@ -20,7 +20,7 @@ class User extends Authenticatable
         'u', 'd', 'transfer_enable', 'transfer_today',
         'class', 'class_expire',
         'node_speed_limit', 'node_ip_limit',
-        'money', 'ref_by',
+        'money', 'ref_by', 'ref_code',
         'invite_token', 'api_token',
         'is_admin', 'banned', 'last_check_in',
     ];
@@ -55,6 +55,16 @@ class User extends Authenticatable
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'ref_by');
+    }
+
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(User::class, 'ref_by');
+    }
+
+    public function paybacks(): HasMany
+    {
+        return $this->hasMany(Payback::class);
     }
 
     // 已用总流量(字节)

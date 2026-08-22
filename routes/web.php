@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\User\AnnouncementController;
 use App\Http\Controllers\User\CheckinController;
 use App\Http\Controllers\User\DashboardController;
+use App\Http\Controllers\User\InviteController;
 use App\Http\Controllers\User\NodeSettingController;
 use App\Http\Controllers\User\ShopController;
 use App\Http\Controllers\User\WalletController;
@@ -45,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/node/reset-sub', [NodeSettingController::class, 'resetSub']);
     Route::post('/user/node/reset-passwd', [NodeSettingController::class, 'resetPasswd']);
     Route::get('/user/announcement', [AnnouncementController::class, 'index'])->name('user.announcement');
+    Route::get('/user/invite', [InviteController::class, 'index'])->name('user.invite');
     Route::get('/user/shop', [ShopController::class, 'index'])->name('user.shop');
     Route::post('/user/order/create', [ShopController::class, 'createOrder']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
