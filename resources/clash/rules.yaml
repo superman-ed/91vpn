@@ -1,0 +1,36 @@
+# Clash 分流规则模板（静态部分，SubscriptionService 注入 proxies 后拼接）
+# 精简自 socloud 真实配置，结构一致；完整700条可后续补充
+proxy-groups:
+  - name: Proxy
+    type: select
+    __inject_all_nodes: true   # 占位：SubscriptionService 会替换为全部节点名
+  - name: 国际流媒体
+    type: select
+    proxies: [Proxy, DIRECT]
+  - name: OpenAI
+    type: select
+    proxies: [Proxy, DIRECT]
+  - name: 国内
+    type: select
+    proxies: [DIRECT, Proxy]
+  - name: 其他
+    type: select
+    proxies: [Proxy, DIRECT]
+rules:
+  - DOMAIN-SUFFIX,openai.com,OpenAI
+  - DOMAIN-SUFFIX,chatgpt.com,OpenAI
+  - DOMAIN-SUFFIX,anthropic.com,OpenAI
+  - DOMAIN-SUFFIX,claude.ai,OpenAI
+  - DOMAIN-KEYWORD,google,Proxy
+  - DOMAIN-KEYWORD,youtube,国际流媒体
+  - DOMAIN-SUFFIX,netflix.com,国际流媒体
+  - DOMAIN-SUFFIX,telegram.org,Proxy
+  - DOMAIN-KEYWORD,facebook,Proxy
+  - DOMAIN-SUFFIX,twitter.com,Proxy
+  - DOMAIN-SUFFIX,github.com,Proxy
+  - DOMAIN-SUFFIX,qq.com,国内
+  - DOMAIN-SUFFIX,baidu.com,国内
+  - DOMAIN-SUFFIX,taobao.com,国内
+  - DOMAIN-SUFFIX,bilibili.com,国内
+  - GEOIP,CN,国内
+  - MATCH,其他

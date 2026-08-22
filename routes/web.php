@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
@@ -45,3 +46,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/order/{order}/pay-balance', [WalletController::class, 'payBalance']);
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 });
+
+// 订阅下发（公开，客户端凭 token 拉取，不需登录）
+Route::get('/sub/{token}', [SubController::class, 'show'])->name('sub');
