@@ -3,7 +3,7 @@
 @section('head')
 <style>
 .stat-row > [class*="col-"] { display: flex; }
-.stat-row .card-statistic-1 { height: 100%; min-height: 168px; }
+.stat-row .card-statistic-1 { height: 100%; min-height: 148px; }
 </style>
 @endsection
 @section('content')
