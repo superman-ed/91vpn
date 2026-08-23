@@ -3,17 +3,39 @@
 @section('head')<meta name="turbo-cache-control" content="no-cache">@endsection
 @section('content')
 <div class="card">
-    <div class="card-header"><h4>客户端下载</h4></div>
+    <div class="card-header"><h4>91VPN 官方客户端</h4><div class="card-header-action"><span class="badge badge-warning">即将推出</span></div></div>
     <div class="card-body">
-        <p class="text-muted">下载对应平台客户端，安装后用下方的一键导入或扫码即可使用。</p>
+        <p class="text-muted">官方定制客户端，登录账号即用，无需手动导入订阅。正在开发中，敬请期待。</p>
         <div class="row">
-            @foreach($downloads as $d)
+            @foreach($official as $d)
+            <div class="col-6 col-md-3 mb-3">
+                <div class="text-center p-3" style="border:1px solid #eee;border-radius:8px">
+                    <i class="{{ $d['icon'] }}" style="font-size:36px;color:#6777ef"></i>
+                    <div class="mt-2 font-weight-bold">91VPN For {{ $d['os'] }}</div>
+                    @if($d['url'])
+                        <a href="{{ $d['url'] }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm mt-2">下载</a>
+                    @else
+                        <button class="btn btn-light btn-sm mt-2" disabled>即将推出</button>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h4>通用客户端（现在可用）</h4></div>
+    <div class="card-body">
+        <p class="text-muted">官方客户端上线前，可先用以下第三方客户端，安装后用下方的一键导入或扫码即可使用。</p>
+        <div class="row">
+            @foreach($thirdParty as $d)
             <div class="col-6 col-md-3 mb-3">
                 <div class="text-center p-3" style="border:1px solid #eee;border-radius:8px">
                     <i class="{{ $d['icon'] }}" style="font-size:36px;color:#6777ef"></i>
                     <div class="mt-2 font-weight-bold">{{ $d['os'] }}</div>
                     <div class="text-muted mb-2" style="font-size:13px">{{ $d['name'] }}</div>
-                    <a href="{{ $d['url'] }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">下载</a>
+                    <a href="{{ $d['url'] }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">下载</a>
                 </div>
             </div>
             @endforeach
