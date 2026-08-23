@@ -15,7 +15,7 @@
                 <div class="card-header"><h4>会员时长</h4></div>
                 <div class="card-body">
                     {{ $membership }}
-                    <small class="text-muted d-block" style="font-weight:400;font-size:11px;white-space:nowrap">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</small>
+                    <small class="text-muted d-block" style="font-weight:400;font-size:12px;white-space:nowrap">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</small>
                 </div>
             </div>
         </div>
@@ -31,7 +31,7 @@
                         @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
                         <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
                     </div>
-                    <small class="text-muted d-block" style="font-weight:400;font-size:11px;white-space:nowrap">已用 {{ $usagePercent }}%</small>
+                    <small class="text-muted d-block" style="font-weight:400;font-size:12px;white-space:nowrap">已用 {{ $usagePercent }}%</small>
                 </div>
             </div>
         </div>
@@ -43,8 +43,8 @@
                 <div class="card-header"><h4>钱包余额</h4></div>
                 <div class="card-body">
                     ¥{{ number_format($user->money, 2) }}
-                    <small class="text-muted d-block" style="font-weight:400;font-size:11px;white-space:nowrap">累计获得返利 {{ number_format($rebateTotal, 2) }} 元</small>
-                    <small class="d-block" style="font-size:11px;white-space:nowrap;font-weight:400">
+                    <small class="text-muted d-block" style="font-weight:400;font-size:12px;white-space:nowrap">累计获得返利 {{ number_format($rebateTotal, 2) }} 元</small>
+                    <small class="d-block" style="font-size:12px;white-space:nowrap;font-weight:400">
                         <a href="{{ route('user.wallet') }}">我的钱包</a> | <a href="{{ route('user.shop') }}">购买套餐</a>
                     </small>
                 </div>
