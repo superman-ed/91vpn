@@ -25,6 +25,8 @@ class DashboardController extends Controller
             'gb' => round(((($rows[$d]->u ?? 0) + ($rows[$d]->d ?? 0)) / (1024 ** 3)), 2),
         ]);
 
+        $links = ClientLinks::for($user);
+
         return view('user.dashboard', [
             'user' => $user,
             'usedGb' => bytes_to_gb($used),
@@ -38,8 +40,8 @@ class DashboardController extends Controller
             'usagePercent' => $user->usagePercent(),
             'checkedIn' => $user->checkedInToday(),
             'chart' => $chart,
-            'subUrl' => ClientLinks::for($user)['subUrl'],
-            'clashScheme' => ClientLinks::for($user)['clashScheme'],
+            'subUrl' => $links['subUrl'],
+            'clashScheme' => $links['clashScheme'],
         ]);
     }
 }

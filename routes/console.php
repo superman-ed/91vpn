@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // 每 5 分钟清理过期在线 IP，防止 alive_ips 表无限膨胀
 Schedule::command('alive-ips:prune')->everyFiveMinutes();
+
+// 每日 0 点清零今日已用流量
+Schedule::command('traffic:reset-daily')->dailyAt('00:00');
