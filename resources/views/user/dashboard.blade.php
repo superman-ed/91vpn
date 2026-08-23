@@ -3,60 +3,73 @@
 @section('head')
 <style>
 .stat-row > [class*="col-"] { display: flex; margin-bottom: 30px; }
-.stat-row .card-statistic-1 { height: 100%; min-height: 130px; margin-bottom: 0; }
+.stat-row .stat-card { width: 100%; height: 100%; margin-bottom: 0; }
+.stat-card .card-body { padding: 18px 20px; }
+.stat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.stat-head .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0; }
+.stat-head .stat-title { margin: 0; font-size: 15px; font-weight: 600; color: #6c757d; }
+.stat-value { background: #f4f6f9; border-radius: 10px; padding: 16px; font-size: 30px; font-weight: 700; color: #34395e; line-height: 1.2; }
+.stat-value .stat-sub { display: block; font-size: 13px; font-weight: 400; color: #6c757d; white-space: nowrap; margin-top: 6px; }
+.stat-value .stat-sub a { color: #6777ef; }
 </style>
 @endsection
 @section('content')
 <div class="row stat-row">
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
-        <div class="card card-statistic-1">
-            <div class="card-icon bg-primary"><i class="fas fa-clock"></i></div>
-            <div class="card-wrap">
-                <div class="card-header"><h4>会员时长</h4></div>
-                <div class="card-body">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-head">
+                    <span class="stat-icon bg-primary"><i class="fas fa-clock"></i></span>
+                    <h4 class="stat-title">会员时长</h4>
+                </div>
+                <div class="stat-value">
                     {{ $membership }}
-                    <small class="text-muted d-block" style="font-weight:400;font-size:12px;white-space:nowrap">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</small>
+                    <span class="stat-sub">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</span>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
-        <div class="card card-statistic-1">
-            <div class="card-icon bg-success"><i class="fas fa-signal"></i></div>
-            <div class="card-wrap">
-                <div class="card-header"><h4>剩余流量</h4></div>
-                <div class="card-body">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-head">
+                    <span class="stat-icon bg-success"><i class="fas fa-signal"></i></span>
+                    <h4 class="stat-title">剩余流量</h4>
+                </div>
+                <div class="stat-value">
                     {{ number_format($remainGb, 1) }} GB
                     <div class="progress mt-2" style="height:6px">
                         @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
                         <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
                     </div>
-                    <small class="text-muted d-block" style="font-weight:400;font-size:12px;white-space:nowrap">已用 {{ $usagePercent }}%</small>
+                    <span class="stat-sub">已用 {{ $usagePercent }}%</span>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
-        <div class="card card-statistic-1">
-            <div class="card-icon bg-warning"><i class="fas fa-wallet"></i></div>
-            <div class="card-wrap">
-                <div class="card-header"><h4>钱包余额</h4></div>
-                <div class="card-body">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-head">
+                    <span class="stat-icon bg-warning"><i class="fas fa-wallet"></i></span>
+                    <h4 class="stat-title">钱包余额</h4>
+                </div>
+                <div class="stat-value">
                     ¥{{ number_format($user->money, 2) }}
-                    <small class="text-muted d-block" style="font-weight:400;font-size:12px;white-space:nowrap">累计获得返利 {{ number_format($rebateTotal, 2) }} 元</small>
-                    <small class="d-block" style="font-size:12px;white-space:nowrap;font-weight:400">
-                        <a href="{{ route('user.wallet') }}">我的钱包</a> | <a href="{{ route('user.shop') }}">购买套餐</a>
-                    </small>
+                    <span class="stat-sub">累计获得返利 {{ number_format($rebateTotal, 2) }} 元</span>
+                    <span class="stat-sub"><a href="{{ route('user.wallet') }}">我的钱包</a> | <a href="{{ route('user.shop') }}">购买套餐</a></span>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
-        <div class="card card-statistic-1">
-            <div class="card-icon bg-info"><i class="fas fa-mobile-alt"></i></div>
-            <div class="card-wrap">
-                <div class="card-header"><h4>设备上限</h4></div>
-                <div class="card-body">{{ $user->node_ip_limit ?: '∞' }}</div>
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-head">
+                    <span class="stat-icon bg-info"><i class="fas fa-mobile-alt"></i></span>
+                    <h4 class="stat-title">设备上限</h4>
+                </div>
+                <div class="stat-value">{{ $user->node_ip_limit ?: '∞' }}</div>
             </div>
         </div>
     </div>
