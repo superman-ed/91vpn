@@ -117,17 +117,14 @@
         <div class="card">
             <div class="card-header"><h4>客户端下载和教程</h4></div>
             <div class="card-body">
-                <div class="row text-center">
+                <div class="row">
                     @foreach([['Windows','fab fa-windows'],['macOS','fab fa-apple'],['Android','fab fa-android'],['iOS','fab fa-app-store-ios']] as $p)
-                    <div class="col-3 mb-2">
-                        <a href="/user/downloads" style="color:#6777ef;text-decoration:none">
-                            <i class="{{ $p[1] }}" style="font-size:26px"></i>
-                            <div class="text-muted" style="font-size:12px;margin-top:4px">{{ $p[0] }}</div>
-                        </a>
+                    <div class="col-6 mb-2">
+                        <a href="/user/downloads" class="btn btn-outline-primary btn-block btn-sm"><i class="{{ $p[1] }}"></i> {{ $p[0] }}</a>
                     </div>
                     @endforeach
                 </div>
-                <a href="/user/downloads" class="btn btn-light btn-block mt-2"><i class="fas fa-book"></i> 查看下载和教程</a>
+                <a href="/user/downloads" class="btn btn-light btn-block mt-1"><i class="fas fa-book"></i> 使用教程</a>
             </div>
         </div>
     </div>
