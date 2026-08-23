@@ -9,7 +9,7 @@
                 <div class="card-header"><h4>会员时长</h4></div>
                 <div class="card-body">
                     {{ $membership }}
-                    <small class="text-muted d-block" style="font-weight:400">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</small>
+                    <small class="text-muted d-block" style="font-weight:400;font-size:11px;white-space:nowrap">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</small>
                 </div>
             </div>
         </div>
