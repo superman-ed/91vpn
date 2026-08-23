@@ -24,10 +24,10 @@
                 </ul>
             </form>
             <ul class="navbar-nav navbar-right" style="display:flex;align-items:center;gap:10px">
-                <li class="nav-item"><span class="d-none d-lg-inline text-muted">Hi, {{ auth()->user()->name }}</span></li>
+                <li class="nav-item"><span class="d-none d-lg-inline" style="color:#fff">Hi, {{ auth()->user()->name }}</span></li>
                 <li class="nav-item">
                     <form method="POST" action="/logout">@csrf
-                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-sign-out-alt"></i> 退出登录</button>
+                        <button class="btn btn-sm" style="background:#fff;color:#6777ef;border:none;font-weight:600"><i class="fas fa-sign-out-alt"></i> 退出登录</button>
                     </form>
                 </li>
             </ul>
