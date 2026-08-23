@@ -26,6 +26,15 @@ it('shows 未开通 for user without active plan', function () {
     $this->actingAs($user)->get('/user')->assertOk()->assertSee('未开通');
 });
 
+it('shows accumulated rebate total on wallet card', function () {
+    $user = User::factory()->create([
+        'class' => 1, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3,
+    ]);
+    \App\Models\Payback::create(['user_id' => $user->id, 'from_user_id' => $user->id, 'amount' => 100.50]);
+    \App\Models\Payback::create(['user_id' => $user->id, 'from_user_id' => $user->id, 'amount' => 30.09]);
+    $this->actingAs($user)->get('/user')->assertOk()->assertSee('累计获得返利 130.59 元');
+});
+
 it('shows checked-in state when already checked in today', function () {
     $user = User::factory()->create([
         'class' => 1, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3,

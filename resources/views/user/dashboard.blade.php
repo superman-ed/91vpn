@@ -35,7 +35,13 @@
             <div class="card-icon bg-warning"><i class="fas fa-wallet"></i></div>
             <div class="card-wrap">
                 <div class="card-header"><h4>钱包余额</h4></div>
-                <div class="card-body">¥{{ number_format($user->money, 2) }}</div>
+                <div class="card-body">
+                    ¥{{ number_format($user->money, 2) }}
+                    <small class="text-muted d-block" style="font-weight:400;font-size:11px;white-space:nowrap">累计获得返利 {{ number_format($rebateTotal, 2) }} 元</small>
+                    <small class="d-block" style="font-size:11px;white-space:nowrap;font-weight:400">
+                        <a href="{{ route('user.wallet') }}">我的钱包</a> | <a href="{{ route('user.shop') }}">购买套餐</a>
+                    </small>
+                </div>
             </div>
         </div>
     </div>

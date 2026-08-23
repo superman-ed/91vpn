@@ -31,6 +31,7 @@ class DashboardController extends Controller
             'remainGb' => bytes_to_gb($remainBytes),
             'totalGb' => bytes_to_gb($user->transfer_enable),
             'todayGb' => bytes_to_gb($user->transfer_today),
+            'rebateTotal' => $user->paybacks()->sum('amount'),
             'membership' => $user->membershipText(),
             'className' => class_name($user->class),
             'expireDate' => $user->class > 0 && $user->class_expire ? $user->class_expire->format('Y-m-d H:i') : null,
