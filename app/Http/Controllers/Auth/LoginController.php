@@ -50,6 +50,7 @@ class LoginController extends Controller
         \App\Models\LoginLog::create([
             'user_id' => Auth::id(),
             'ip' => $request->ip(),
+            'location' => \App\Support\GeoIp::locate($request->ip()),
             'user_agent' => substr((string) $request->userAgent(), 0, 255),
             'logged_at' => now(),
         ]);
