@@ -23,12 +23,11 @@
                     <li><a href="#" data-toggle="sidebar" class="nav-link nav-link-lg collapse-btn"><i class="fas fa-bars"></i></a></li>
                 </ul>
             </form>
-            <ul class="navbar-nav navbar-right">
-                <li class="dropdown"><a href="#" class="nav-link nav-link-lg nav-link-user">
-                    <span class="d-sm-none d-lg-inline-block">Hi, {{ auth()->user()->name }}</span></a></li>
-                <li>
-                    <form method="POST" action="/logout" class="ml-2">@csrf
-                        <button class="btn btn-outline-primary btn-sm">退出登录</button>
+            <ul class="navbar-nav navbar-right" style="display:flex;align-items:center;gap:10px">
+                <li class="nav-item"><span class="d-none d-lg-inline text-muted">Hi, {{ auth()->user()->name }}</span></li>
+                <li class="nav-item">
+                    <form method="POST" action="/logout">@csrf
+                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-sign-out-alt"></i> 退出登录</button>
                     </form>
                 </li>
             </ul>
