@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AliveIp;
 use App\Models\Node;
+use App\Models\User;
 
 class AliveIpService
 {
@@ -31,5 +32,42 @@ class AliveIpService
         }
 
         return $count;
+    }
+
+    /**
+     * 计算这些用户中超出设备上限、应被节点踢下线的 IP。
+     * 策略：先到先得——按首次上报顺序保留 ip_limit 个，其余判定为超限。
+     *
+     * @param  array<int>  $userIds
+     * @return array<int, array{user_id:int, ips:array<string>}>
+     */
+    public function blockedIps(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+
+        $window = now()->subSeconds(AliveIp::ONLINE_WINDOW);
+        $out = [];
+
+        $users = User::whereIn('id', $userIds)
+            ->where('node_ip_limit', '>', 0)   // 0 = 不限
+            ->get(['id', 'node_ip_limit']);
+
+        foreach ($users as $user) {
+            $ips = AliveIp::where('user_id', $user->id)
+                ->where('last_seen', '>=', $window)
+                ->orderBy('id')            // 首次上报者 id 更小，优先保留
+                ->pluck('ip');
+
+            if ($ips->count() > $user->node_ip_limit) {
+                $out[] = [
+                    'user_id' => $user->id,
+                    'ips' => $ips->slice($user->node_ip_limit)->values()->all(),
+                ];
+            }
+        }
+
+        return $out;
     }
 }

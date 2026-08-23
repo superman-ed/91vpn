@@ -32,15 +32,19 @@ class UserController extends Controller
         return response()->json(['ret' => 1, 'count' => $count]);
     }
 
-    /** POST /mod_mu/users/aliveip —— 节点上报在线 IP */
+    /** POST /mod_mu/users/aliveip —— 节点上报在线 IP，返回应踢下线的超限 IP */
     public function aliveIp(Request $request, AliveIpService $service)
     {
         $node = $request->attributes->get('node');
         $logs = $request->input('data', []);
+        $logs = is_array($logs) ? $logs : [];
 
-        $count = $service->record($node, is_array($logs) ? $logs : []);
+        $count = $service->record($node, $logs);
 
-        return response()->json(['ret' => 1, 'count' => $count]);
+        $userIds = collect($logs)->pluck('user_id')->filter()->unique()->values()->all();
+        $blocked = $service->blockedIps($userIds);
+
+        return response()->json(['ret' => 1, 'count' => $count, 'blocked' => $blocked]);
     }
 
     /** GET /mod_mu/func/ping —— 节点心跳 */
