@@ -1,5 +1,6 @@
 @extends('layouts.user')
 @section('title', '账号设置')
+@section('head')<meta name="turbo-cache-control" content="no-cache">@endsection
 @section('content')
 <div class="row">
     <div class="col-12 col-lg-6">

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/stisla/assets/css/style.css">
     <link rel="stylesheet" href="/stisla/assets/css/components.css">
     <meta name="turbo-prefetch" content="true">
+    @yield('head')
     <script src="/js/turbo.min.js" defer></script>
 </head>
 <body>
