@@ -5,12 +5,14 @@
 .stat-row > [class*="col-"] { display: flex; margin-bottom: 30px; }
 .stat-row .stat-card { width: 100%; height: 100%; margin-bottom: 0; }
 .stat-card .card-body { padding: 18px 20px; }
-.stat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.stat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .stat-head .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0; }
 .stat-head .stat-title { margin: 0; font-size: 15px; font-weight: 600; color: #6c757d; }
-.stat-value { background: #f4f6f9; border-radius: 10px; padding: 16px; font-size: 30px; font-weight: 700; color: #34395e; line-height: 1.2; }
-.stat-value .stat-sub { display: block; font-size: 13px; font-weight: 400; color: #6c757d; white-space: nowrap; margin-top: 6px; }
-.stat-value .stat-sub a { color: #6777ef; }
+.stat-value { font-size: 30px; font-weight: 700; color: #34395e; line-height: 1.2; }
+.stat-sub-box { background: #f4f6f9; border-radius: 10px; padding: 10px 14px; margin-top: 12px; }
+.stat-sub-box .stat-sub { display: block; font-size: 13px; font-weight: 400; color: #6c757d; white-space: nowrap; }
+.stat-sub-box .stat-sub + .stat-sub { margin-top: 4px; }
+.stat-sub-box a { color: #6777ef; }
 </style>
 @endsection
 @section('content')
@@ -22,8 +24,8 @@
                     <span class="stat-icon bg-primary"><i class="fas fa-clock"></i></span>
                     <h4 class="stat-title">会员时长</h4>
                 </div>
-                <div class="stat-value">
-                    {{ $membership }}
+                <div class="stat-value">{{ $membership }}</div>
+                <div class="stat-sub-box">
                     <span class="stat-sub">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</span>
                 </div>
             </div>
@@ -36,10 +38,10 @@
                     <span class="stat-icon bg-success"><i class="fas fa-signal"></i></span>
                     <h4 class="stat-title">剩余流量</h4>
                 </div>
-                <div class="stat-value">
-                    {{ number_format($remainGb, 1) }} GB
-                    <div class="progress mt-2" style="height:6px">
-                        @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
+                <div class="stat-value">{{ number_format($remainGb, 1) }} GB</div>
+                <div class="stat-sub-box">
+                    @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
+                    <div class="progress" style="height:6px;margin-bottom:6px">
                         <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
                     </div>
                     <span class="stat-sub">已用 {{ $usagePercent }}%</span>
@@ -54,8 +56,8 @@
                     <span class="stat-icon bg-warning"><i class="fas fa-wallet"></i></span>
                     <h4 class="stat-title">钱包余额</h4>
                 </div>
-                <div class="stat-value">
-                    ¥{{ number_format($user->money, 2) }}
+                <div class="stat-value">¥{{ number_format($user->money, 2) }}</div>
+                <div class="stat-sub-box">
                     <span class="stat-sub">累计获得返利 {{ number_format($rebateTotal, 2) }} 元</span>
                     <span class="stat-sub"><a href="{{ route('user.wallet') }}">我的钱包</a> | <a href="{{ route('user.shop') }}">购买套餐</a></span>
                 </div>
@@ -70,6 +72,9 @@
                     <h4 class="stat-title">设备上限</h4>
                 </div>
                 <div class="stat-value">{{ $user->node_ip_limit ?: '∞' }}</div>
+                <div class="stat-sub-box">
+                    <span class="stat-sub">同时在线设备数上限</span>
+                </div>
             </div>
         </div>
     </div>
