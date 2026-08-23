@@ -129,15 +129,13 @@
                 <a href="/user/downloads" class="btn btn-light btn-block mt-2"><i class="fas fa-book"></i> 查看下载和教程</a>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header"><h4>快速导入</h4></div>
-    <div class="card-body">
-        <a href="{{ $clashScheme }}" data-turbo="false" rel="nofollow" class="btn btn-primary mb-2"><i class="fas fa-bolt"></i> 一键导入 Clash</a>
-        <button class="btn btn-outline-primary mb-2" onclick="copySub('{{ $subUrl }}')"><i class="fas fa-copy"></i> 复制订阅链接</button>
-        <a href="/user/downloads" class="btn btn-light mb-2"><i class="fas fa-download"></i> 客户端下载</a>
+        <div class="card">
+            <div class="card-header"><h4>快速导入</h4></div>
+            <div class="card-body">
+                <a href="{{ $clashScheme }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-block mb-2"><i class="fas fa-bolt"></i> 一键导入 Clash</a>
+                <button class="btn btn-outline-primary btn-block" onclick="copySub('{{ $subUrl }}')"><i class="fas fa-copy"></i> 复制订阅链接</button>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
