@@ -1,7 +1,13 @@
 @extends('layouts.user')
 @section('title', '首页')
+@section('head')
+<style>
+.stat-row > [class*="col-"] { display: flex; }
+.stat-row .card-statistic-1 { height: 100%; min-height: 168px; }
+</style>
+@endsection
 @section('content')
-<div class="row">
+<div class="row stat-row">
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
         <div class="card card-statistic-1">
             <div class="card-icon bg-primary"><i class="fas fa-clock"></i></div>
