@@ -13,7 +13,7 @@
                     <img src="{{ $c['qr'] }}" alt="{{ $c['name'] }} 订阅二维码" style="width:150px;height:150px;max-width:100%;background:#fff;border:1px solid #f0f0f0;border-radius:6px;padding:6px">
                     <div class="mt-2">
                         @if($c['qr_target'] === 'scheme')
-                            <a href="{{ $c['scheme'] }}" class="btn btn-primary btn-sm btn-block"><i class="fas fa-bolt"></i> 一键导入</a>
+                            <a href="{{ $c['scheme'] }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-sm btn-block"><i class="fas fa-bolt"></i> 一键导入</a>
                         @else
                             <button class="btn btn-outline-primary btn-sm btn-block" onclick="navigator.clipboard.writeText('{{ $c['url'] }}');this.textContent='已复制订阅'">复制订阅链接</button>
                         @endif
