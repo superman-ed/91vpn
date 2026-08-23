@@ -13,9 +13,36 @@ class ShopController extends Controller
     /** GET /user/shop */
     public function index()
     {
-        $plans = Plan::where('on_sale', true)->orderBy('sort')->get();
+        $periodLabels = ['month' => '1月', 'quarter' => '3月', 'half_year' => '6月', 'year' => '12月'];
 
-        return view('user.shop', ['plans' => $plans]);
+        // 同名套餐归为一组，组内按 1/3/6/12 月排列各时长价格
+        $groups = Plan::where('on_sale', true)->orderBy('sort')->get()
+            ->groupBy('name')
+            ->map(function ($rows) use ($periodLabels) {
+                $durations = collect($periodLabels)
+                    ->map(function ($label, $period) use ($rows) {
+                        $row = $rows->firstWhere('period', $period);
+                        if (! $row) {
+                            return null;
+                        }
+
+                        return [
+                            'plan_id' => $row->id,
+                            'label' => $label,
+                            'price' => rtrim(rtrim(number_format($row->price, 2), '0'), '.'),
+                            'days' => $row->duration_days,
+                            'stock' => $row->stock,
+                            'sold_out' => $row->stock === 0,
+                        ];
+                    })
+                    ->filter()->values();
+
+                return ['benefits' => $rows->first(), 'durations' => $durations];
+            })
+            ->filter(fn ($g) => $g['durations']->isNotEmpty())
+            ->values();
+
+        return view('user.shop', ['groups' => $groups]);
     }
 
     /** POST /user/order/create —— 下单（生成 pending 订单，支持优惠券） */
