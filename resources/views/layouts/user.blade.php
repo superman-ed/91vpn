@@ -60,7 +60,10 @@
 
         <div class="main-content">
             <section class="section">
-                <div class="section-header"><h1>@yield('title', '用户中心')</h1></div>
+                <div class="section-header" style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+                    <h1 style="margin:0">@yield('title', '用户中心')</h1>
+                    @hasSection('header-action')<div style="margin-left:auto">@yield('header-action')</div>@endif
+                </div>
                 <div class="section-body">
                     @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
                     @if ($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif

@@ -15,6 +15,15 @@
 .stat-sub-box a { color: #6777ef; }
 </style>
 @endsection
+@section('header-action')
+<form method="POST" action="/user/checkin">@csrf
+    @if($checkedIn)
+        <button class="btn btn-light" disabled><i class="fas fa-check"></i> 今日已签到</button>
+    @else
+        <button class="btn btn-primary"><i class="fas fa-calendar-check"></i> 每日签到领流量</button>
+    @endif
+</form>
+@endsection
 @section('content')
 <div class="row stat-row">
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
@@ -108,14 +117,6 @@
         <div class="card">
             <div class="card-header"><h4>客户端下载和教程</h4></div>
             <div class="card-body">
-                <form method="POST" action="/user/checkin">@csrf
-                    @if($checkedIn)
-                        <button class="btn btn-light btn-block" disabled><i class="fas fa-check"></i> 今日已签到</button>
-                    @else
-                        <button class="btn btn-primary btn-block"><i class="fas fa-calendar-check"></i> 每日签到领流量</button>
-                    @endif
-                </form>
-                <hr>
                 <div class="row text-center">
                     @foreach([['Windows','fab fa-windows'],['macOS','fab fa-apple'],['Android','fab fa-android'],['iOS','fab fa-app-store-ios']] as $p)
                     <div class="col-3 mb-2">
