@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\DailyTraffic;
+use App\Models\Announcement;
 use App\Support\ClientLinks;
 
 class DashboardController extends Controller
@@ -16,14 +16,9 @@ class DashboardController extends Controller
         $used = $user->usedTraffic();
         $remainBytes = max(0, $user->transfer_enable - $used);
 
-        // 近7天流量
-        $days = collect(range(6, 0))->map(fn ($i) => now()->subDays($i)->toDateString());
-        $rows = DailyTraffic::where('user_id', $user->id)
-            ->whereIn('date', $days->all())->get()->keyBy(fn ($r) => $r->date->toDateString());
-        $chart = $days->map(fn ($d) => [
-            'date' => substr($d, 5),   // MM-DD
-            'gb' => round(((($rows[$d]->u ?? 0) + ($rows[$d]->d ?? 0)) / (1024 ** 3)), 2),
-        ]);
+        // 最近公告
+        $announcements = Announcement::where('published', true)
+            ->orderByDesc('sort')->orderByDesc('created_at')->limit(5)->get();
 
         $links = ClientLinks::for($user);
 
@@ -39,7 +34,7 @@ class DashboardController extends Controller
             'expireDate' => $user->class > 0 && $user->class_expire ? $user->class_expire->format('Y-m-d H:i') : null,
             'usagePercent' => $user->usagePercent(),
             'checkedIn' => $user->checkedInToday(),
-            'chart' => $chart,
+            'announcements' => $announcements,
             'subUrl' => $links['subUrl'],
             'clashScheme' => $links['clashScheme'],
         ]);

@@ -18,10 +18,3 @@ it('records daily traffic snapshot on report', function () {
     expect($row->u)->toBe(1500);
     expect($row->d)->toBe(2500);
 });
-
-it('shows traffic chart data on dashboard', function () {
-    $user = User::factory()->create(['class' => 1, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3]);
-    DailyTraffic::create(['user_id' => $user->id, 'date' => now()->toDateString(), 'u' => 1024 ** 3, 'd' => 1024 ** 3]);
-
-    $this->actingAs($user)->get('/user')->assertOk()->assertSee('近7天流量');
-});

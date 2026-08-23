@@ -88,18 +88,19 @@
 <div class="row">
     <div class="col-12 col-lg-8">
         <div class="card">
-            <div class="card-header"><h4>近7天流量</h4></div>
+            <div class="card-header"><h4>公告</h4>
+                <div class="card-header-action"><a href="/user/announcement" class="btn btn-primary btn-sm">全部公告</a></div>
+            </div>
             <div class="card-body">
-                @php $max = max(0.01, $chart->max('gb')); @endphp
-                <div style="display:flex;align-items:flex-end;gap:14px;height:180px">
-                    @foreach($chart as $c)
-                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
-                        <div class="text-muted" style="font-size:12px;margin-bottom:6px">{{ $c['gb'] }}G</div>
-                        <div style="width:60%;background:#6777ef;border-radius:4px 4px 0 0;height:{{ max(3, ($c['gb']/$max)*130) }}px"></div>
-                        <div class="text-muted" style="font-size:12px;margin-top:8px">{{ $c['date'] }}</div>
+                @forelse($announcements as $a)
+                    <div class="pb-3 mb-3" @if(!$loop->last) style="border-bottom:1px solid #f2f4f6" @endif>
+                        <div style="font-weight:600;color:#34395e">{{ $a->title }}</div>
+                        <div class="text-muted" style="font-size:12px;margin:2px 0 6px">{{ $a->created_at->format('Y-m-d H:i') }}</div>
+                        <div class="text-muted" style="font-size:13px">{{ \Illuminate\Support\Str::limit(strip_tags($a->content), 120) }}</div>
                     </div>
-                    @endforeach
-                </div>
+                @empty
+                    <p class="text-muted mb-0">暂无公告</p>
+                @endforelse
             </div>
         </div>
     </div>
