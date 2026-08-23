@@ -32,6 +32,17 @@ it('marks a sold-out plan and blocks purchase', function () {
         ->assertSessionHasErrors('plan_id');
 });
 
+it('groups plans into 1/3/6/12-month tabs by period', function () {
+    shopPlan(['name' => '月付套餐', 'period' => 'month']);
+    shopPlan(['name' => '季付套餐', 'period' => 'quarter']);
+    shopPlan(['name' => '年付套餐', 'period' => 'year']);
+
+    $this->actingAs(User::factory()->create())->get('/user/shop')->assertOk()
+        ->assertSee('1月')->assertSee('3月')->assertSee('12月')
+        ->assertSee('月付套餐')->assertSee('季付套餐')->assertSee('年付套餐')
+        ->assertDontSee('6月');   // 无半年套餐则不显示该标签
+});
+
 it('shows remaining stock for limited plans', function () {
     shopPlan(['stock' => 5]);
     $this->actingAs(User::factory()->create())->get('/user/shop')
