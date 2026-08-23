@@ -20,17 +20,8 @@ class DownloadController extends Controller
             ['os' => 'iOS', 'icon' => 'fab fa-app-store-ios', 'url' => null],
         ];
 
-        // 通用第三方客户端（现阶段可用，导入订阅即可）
-        $thirdParty = [
-            ['os' => 'Windows', 'icon' => 'fab fa-windows', 'name' => 'Clash Verge Rev', 'url' => 'https://github.com/clash-verge-rev/clash-verge-rev/releases'],
-            ['os' => 'macOS', 'icon' => 'fab fa-apple', 'name' => 'Clash Verge Rev', 'url' => 'https://github.com/clash-verge-rev/clash-verge-rev/releases'],
-            ['os' => 'Android', 'icon' => 'fab fa-android', 'name' => 'FlClash', 'url' => 'https://github.com/chen08209/FlClash/releases'],
-            ['os' => 'iOS', 'icon' => 'fab fa-app-store-ios', 'name' => 'Shadowrocket', 'url' => 'https://apps.apple.com/app/shadowrocket/id932747118'],
-        ];
-
         return view('user.downloads', array_merge($links, [
             'official' => $official,
-            'thirdParty' => $thirdParty,
         ]));
     }
 }

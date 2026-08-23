@@ -25,25 +25,6 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h4>通用客户端（现在可用）</h4></div>
-    <div class="card-body">
-        <p class="text-muted">官方客户端上线前，可先用以下第三方客户端，安装后用下方的一键导入或扫码即可使用。</p>
-        <div class="row">
-            @foreach($thirdParty as $d)
-            <div class="col-6 col-md-3 mb-3">
-                <div class="text-center p-3" style="border:1px solid #eee;border-radius:8px">
-                    <i class="{{ $d['icon'] }}" style="font-size:36px;color:#6777ef"></i>
-                    <div class="mt-2 font-weight-bold">{{ $d['os'] }}</div>
-                    <div class="text-muted mb-2" style="font-size:13px">{{ $d['name'] }}</div>
-                    <a href="{{ $d['url'] }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">下载</a>
-                </div>
-            </div>
-            @endforeach
-        </div>
-    </div>
-</div>
-
-<div class="card">
     <div class="card-header"><h4>一键导入 / 扫码导入</h4></div>
     <div class="card-body">
         <p class="text-muted">点按钮直接唤起客户端导入，或用对应 App 扫二维码（需已安装客户端）。</p>
