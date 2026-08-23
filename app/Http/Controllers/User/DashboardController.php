@@ -16,9 +16,9 @@ class DashboardController extends Controller
         $used = $user->usedTraffic();
         $remainBytes = max(0, $user->transfer_enable - $used);
 
-        // 最近公告
+        // 公告（全部已发布）
         $announcements = Announcement::where('published', true)
-            ->orderByDesc('sort')->orderByDesc('created_at')->limit(5)->get();
+            ->orderByDesc('sort')->orderByDesc('created_at')->get();
 
         $links = ClientLinks::for($user);
 

@@ -97,9 +97,7 @@
 <div class="row">
     <div class="col-12 col-lg-8">
         <div class="card">
-            <div class="card-header"><h4>公告</h4>
-                <div class="card-header-action"><a href="/user/announcement" class="btn btn-primary btn-sm">全部公告</a></div>
-            </div>
+            <div class="card-header"><h4>公告</h4></div>
             <div class="card-body">
                 @forelse($announcements as $a)
                     <div class="pb-3 mb-3" @if(!$loop->last) style="border-bottom:1px solid #f2f4f6" @endif>

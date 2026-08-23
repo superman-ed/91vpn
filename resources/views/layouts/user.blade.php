@@ -53,7 +53,6 @@
                     <li class="{{ request()->is('user/subscribe-log') ? 'active' : '' }}"><a class="nav-link" href="/user/subscribe-log"><i class="fas fa-history"></i><span>订阅记录</span></a></li>
                     <li class="{{ request()->is('user/downloads') ? 'active' : '' }}"><a class="nav-link" href="/user/downloads"><i class="fas fa-download"></i><span>下载和教程</span></a></li>
                     <li class="{{ request()->is('user/ticket*') ? 'active' : '' }}"><a class="nav-link" href="/user/ticket"><i class="far fa-comments"></i><span>工单支持</span></a></li>
-                    <li class="{{ request()->is('user/announcement') ? 'active' : '' }}"><a class="nav-link" href="/user/announcement"><i class="fas fa-bullhorn"></i><span>公告</span></a></li>
                 </ul>
             </aside>
         </div>
