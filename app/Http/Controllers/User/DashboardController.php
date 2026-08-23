@@ -32,6 +32,8 @@ class DashboardController extends Controller
             'totalGb' => bytes_to_gb($user->transfer_enable),
             'todayGb' => bytes_to_gb($user->transfer_today),
             'membership' => $user->membershipText(),
+            'className' => class_name($user->class),
+            'expireDate' => $user->class > 0 && $user->class_expire ? $user->class_expire->format('Y-m-d') : null,
             'usagePercent' => $user->usagePercent(),
             'checkedIn' => $user->checkedInToday(),
             'chart' => $chart,

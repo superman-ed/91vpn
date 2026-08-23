@@ -16,7 +16,7 @@ it('shows membership remaining days instead of vip tier', function () {
         'class' => 2, 'class_expire' => now()->addDays(30), 'transfer_enable' => 1024 ** 3,
     ]);
     $this->actingAs($user)->get('/user')->assertOk()
-        ->assertSee('会员时长')->assertSee('剩余 30 天')->assertDontSee('VIP');
+        ->assertSee('会员时长')->assertSee('剩余 30 天');
 });
 
 it('shows 未开通 for user without active plan', function () {

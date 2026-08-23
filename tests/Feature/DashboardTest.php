@@ -18,7 +18,9 @@ it('shows traffic, expire, class, balance on dashboard', function () {
 
     $res = $this->actingAs($user)->get('/user');
     $res->assertOk();
-    $res->assertSee('剩余 20 天');      // 会员时长
+    $res->assertSee('剩余 20 天');                        // 会员时长
+    $res->assertSee('VIP②');                             // 等级名
+    $res->assertSee(now()->addDays(20)->format('Y-m-d')); // 到期日期
     $res->assertSee('220');            // 剩余 220 GB (300-80)
     $res->assertSee('12.50');          // 余额
 });

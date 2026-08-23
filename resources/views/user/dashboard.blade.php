@@ -7,7 +7,10 @@
             <div class="card-icon bg-primary"><i class="fas fa-clock"></i></div>
             <div class="card-wrap">
                 <div class="card-header"><h4>会员时长</h4></div>
-                <div class="card-body">{{ $membership }}</div>
+                <div class="card-body">
+                    {{ $membership }}
+                    <small class="text-muted d-block" style="font-weight:400">{{ $className }}@if($expireDate) · {{ $expireDate }} 到期@endif</small>
+                </div>
             </div>
         </div>
     </div>
