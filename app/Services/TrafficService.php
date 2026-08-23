@@ -32,6 +32,7 @@ class TrafficService
                     'u' => DB::raw("u + {$billedU}"),
                     'd' => DB::raw("d + {$billedD}"),
                     'transfer_today' => DB::raw('transfer_today + '.($billedU + $billedD)),
+                    'last_used_at' => now(),
                 ]);
 
                 // 每日流量快照（累加当天）

@@ -22,7 +22,7 @@ class User extends Authenticatable
         'node_speed_limit', 'node_ip_limit',
         'money', 'ref_by', 'ref_code',
         'invite_token', 'api_token',
-        'is_admin', 'banned', 'last_check_in',
+        'is_admin', 'banned', 'last_check_in', 'last_used_at',
     ];
 
     protected $hidden = [
@@ -35,6 +35,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'class_expire' => 'datetime',
+            'last_used_at' => 'datetime',
             'money' => 'decimal:2',
             'is_admin' => 'boolean',
             'banned' => 'boolean',
@@ -110,6 +111,12 @@ class User extends Authenticatable
     public function onlineDevices(): int
     {
         return 0;
+    }
+
+    // 上次使用时间展示文本（m-d H:i），从未使用返回“—”
+    public function lastUsedText(): string
+    {
+        return $this->last_used_at ? $this->last_used_at->format('m-d H:i') : '—';
     }
 
     // 会员剩余时长(天)，未开通或已过期返回 0

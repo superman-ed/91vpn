@@ -73,7 +73,7 @@
                 </div>
                 <div class="stat-value text-info">{{ $user->onlineDevices() }} / {{ $user->node_ip_limit ?: '∞' }}</div>
                 <div class="stat-sub-box">
-                    <span class="stat-sub">当前在线 / 设备上限</span>
+                    <span class="stat-sub">上次使用时间: {{ $user->lastUsedText() }}</span>
                 </div>
             </div>
         </div>
