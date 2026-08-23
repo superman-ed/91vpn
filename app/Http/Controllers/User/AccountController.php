@@ -12,7 +12,10 @@ class AccountController extends Controller
     /** GET /user/account */
     public function index()
     {
-        return view('user.account', ['user' => auth()->user()]);
+        return view('user.account', [
+            'user' => auth()->user(),
+            'loginLogs' => auth()->user()->loginLogs()->latest('logged_at')->limit(10)->get(),
+        ]);
     }
 
     /** POST /user/account/password —— 改登录密码 */

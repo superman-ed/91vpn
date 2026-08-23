@@ -22,4 +22,13 @@
         </div></div>
     </div>
 </div>
+
+<div class="card"><div class="card-header"><h4>最近登录记录</h4></div>
+<div class="card-body p-0"><div class="table-responsive"><table class="table table-striped mb-0">
+<thead><tr><th>IP</th><th>地点</th><th>时间</th></tr></thead><tbody>
+@forelse($loginLogs as $log)
+<tr><td>{{ $log->ip }}</td><td>{{ $log->location ?: '—' }}</td><td>{{ $log->logged_at?->format('Y-m-d H:i:s') }}</td></tr>
+@empty<tr><td colspan="3" class="text-muted">暂无登录记录</td></tr>@endforelse
+</tbody></table></div></div>
+<div class="card-footer text-muted"><small>如发现陌生 IP 登录，请立即修改密码。</small></div></div>
 @endsection
