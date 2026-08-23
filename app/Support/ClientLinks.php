@@ -54,7 +54,7 @@ class ClientLinks
             ['name' => 'V2rayN / NG（base64）', 'url' => $subUrl.'?flag=v2ray'],
             ['name' => 'Quantumult X（base64）', 'url' => $subUrl.'?flag=sub'],
             ['name' => '小火箭 / 通用 base64', 'url' => $subUrl.'?flag=sub'],
-            ['name' => '自动识别（按客户端返回对应格式）', 'url' => $subUrl],
+            ['name' => '通用订阅（多数客户端自动适配，不确定时用上方对应格式）', 'url' => $subUrl],
         ];
 
         return [
