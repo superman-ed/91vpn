@@ -83,6 +83,7 @@ Route::get('/sub/{token}', [SubController::class, 'show'])->name('sub');
 Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
     Route::get('/users', [ModMuUserController::class, 'index']);
     Route::post('/users/traffic', [ModMuUserController::class, 'addTraffic']);
+    Route::post('/users/aliveip', [ModMuUserController::class, 'aliveIp']);
     Route::get('/func/ping', [ModMuUserController::class, 'ping']);
 });
 

@@ -107,10 +107,17 @@ class User extends Authenticatable
         return (int) min(100, round($this->usedTraffic() / $this->transfer_enable * 100));
     }
 
-    // 当前在线设备数（占位）：mod_mu 尚未上报 alive IP，接入前恒为 0
+    public function aliveIps(): HasMany
+    {
+        return $this->hasMany(AliveIp::class);
+    }
+
+    // 当前在线设备数：最近 ONLINE_WINDOW 秒内上报的去重 IP 数
     public function onlineDevices(): int
     {
-        return 0;
+        return $this->aliveIps()
+            ->where('last_seen', '>=', now()->subSeconds(AliveIp::ONLINE_WINDOW))
+            ->count();
     }
 
     // 上次使用时间展示文本（m-d H:i），从未使用返回“—”

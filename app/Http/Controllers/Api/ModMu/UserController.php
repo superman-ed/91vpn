@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\ModMu;
 
 use App\Http\Controllers\Controller;
+use App\Services\AliveIpService;
 use App\Services\NodeUserService;
 use App\Services\TrafficService;
 use Illuminate\Http\Request;
@@ -22,6 +23,17 @@ class UserController extends Controller
 
     /** POST /mod_mu/users/traffic —— 节点上报流量 */
     public function addTraffic(Request $request, TrafficService $service)
+    {
+        $node = $request->attributes->get('node');
+        $logs = $request->input('data', []);
+
+        $count = $service->record($node, is_array($logs) ? $logs : []);
+
+        return response()->json(['ret' => 1, 'count' => $count]);
+    }
+
+    /** POST /mod_mu/users/aliveip —— 节点上报在线 IP */
+    public function aliveIp(Request $request, AliveIpService $service)
     {
         $node = $request->attributes->get('node');
         $logs = $request->input('data', []);
