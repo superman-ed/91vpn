@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Support\QrCode;
 use Illuminate\Support\Str;
 
 class NodeSettingController extends Controller
@@ -12,14 +13,45 @@ class NodeSettingController extends Controller
     {
         $user = auth()->user();
         $subUrl = url('/sub/'.$user->invite_token);
-        $enc = urlencode($subUrl);
+
+        // 各客户端的一键导入 scheme（二维码里装的就是它，扫码即跳 App 自动导入）
+        $clients = [
+            [
+                'key' => 'clash',
+                'name' => 'Clash / Verge',
+                'icon' => 'fas fa-bolt',
+                'scheme' => 'clash://install-config?url='.urlencode($subUrl).'&name=91VPN',
+            ],
+            [
+                'key' => 'shadowrocket',
+                'name' => '小火箭 Shadowrocket',
+                'icon' => 'fas fa-rocket',
+                'scheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
+            ],
+            [
+                'key' => 'sing-box',
+                'name' => 'sing-box',
+                'icon' => 'fas fa-box',
+                'scheme' => 'sing-box://import-remote-profile?url='.urlencode($subUrl).'#91VPN',
+            ],
+            [
+                'key' => 'quantumultx',
+                'name' => 'Quantumult X',
+                'icon' => 'fas fa-atom',
+                'scheme' => 'quantumult-x://add-resource?remote-resource='.urlencode('{"server_remote":["'.$subUrl.', tag=91VPN"]}'),
+            ],
+        ];
+
+        // 给每个客户端生成"装了 scheme 的二维码"
+        foreach ($clients as &$c) {
+            $c['qr'] = QrCode::dataUri($c['scheme']);
+        }
+        unset($c);
 
         return view('user.node', [
             'user' => $user,
             'subUrl' => $subUrl,
-            'qr' => \App\Support\QrCode::dataUri($subUrl),
-            'clashScheme' => 'clash://install-config?url='.$enc.'&name=91VPN',
-            'shadowrocketScheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
+            'clients' => $clients,
         ]);
     }
 
