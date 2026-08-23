@@ -25,7 +25,7 @@
                         @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
                         <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
                     </div>
-                    <small class="text-muted" style="font-weight:400">已用 {{ $usagePercent }}%</small>
+                    <small class="text-muted d-block" style="font-weight:400;font-size:11px;white-space:nowrap">已用 {{ $usagePercent }}%</small>
                 </div>
             </div>
         </div>
