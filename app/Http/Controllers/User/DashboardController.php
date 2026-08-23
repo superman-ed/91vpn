@@ -32,6 +32,8 @@ class DashboardController extends Controller
             'totalGb' => bytes_to_gb($user->transfer_enable),
             'todayGb' => bytes_to_gb($user->transfer_today),
             'className' => class_name($user->class),
+            'usagePercent' => $user->usagePercent(),
+            'checkedIn' => $user->checkedInToday(),
             'chart' => $chart,
             'subUrl' => ClientLinks::for($user)['subUrl'],
             'clashScheme' => ClientLinks::for($user)['clashScheme'],

@@ -89,6 +89,23 @@ class User extends Authenticatable
         return $this->usedTraffic() >= $this->transfer_enable;
     }
 
+    // 今天是否已签到
+    public function checkedInToday(): bool
+    {
+        return $this->last_check_in > 0
+            && \Illuminate\Support\Carbon::createFromTimestamp($this->last_check_in)->isToday();
+    }
+
+    // 流量已用百分比(0-100)
+    public function usagePercent(): int
+    {
+        if ($this->transfer_enable <= 0) {
+            return 0;
+        }
+
+        return (int) min(100, round($this->usedTraffic() / $this->transfer_enable * 100));
+    }
+
     // 是否等级有效(未过期)
     public function isActive(): bool
     {

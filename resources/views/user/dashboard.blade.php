@@ -16,7 +16,14 @@
             <div class="card-icon bg-success"><i class="fas fa-signal"></i></div>
             <div class="card-wrap">
                 <div class="card-header"><h4>剩余流量</h4></div>
-                <div class="card-body">{{ number_format($remainGb, 1) }} GB</div>
+                <div class="card-body">
+                    {{ number_format($remainGb, 1) }} GB
+                    <div class="progress mt-2" style="height:6px">
+                        @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
+                        <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
+                    </div>
+                    <small class="text-muted" style="font-weight:400">已用 {{ $usagePercent }}%</small>
+                </div>
             </div>
         </div>
     </div>
@@ -70,7 +77,11 @@
                     <li class="media"><div class="media-body"><div class="text-small text-muted">端口限速</div>{{ $user->node_speed_limit ? $user->node_speed_limit.' Mbps' : '不限速' }}</div></li>
                 </ul>
                 <form method="POST" action="/user/checkin">@csrf
-                    <button class="btn btn-primary btn-block"><i class="fas fa-calendar-check"></i> 每日签到领流量</button>
+                    @if($checkedIn)
+                        <button class="btn btn-light btn-block" disabled><i class="fas fa-check"></i> 今日已签到</button>
+                    @else
+                        <button class="btn btn-primary btn-block"><i class="fas fa-calendar-check"></i> 每日签到领流量</button>
+                    @endif
                 </form>
             </div>
         </div>
