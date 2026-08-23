@@ -2,8 +2,8 @@
 @section('title', '首页')
 @section('head')
 <style>
-.stat-row > [class*="col-"] { display: flex; }
-.stat-row .card-statistic-1 { height: 100%; min-height: 130px; }
+.stat-row > [class*="col-"] { display: flex; margin-bottom: 30px; }
+.stat-row .card-statistic-1 { height: 100%; min-height: 130px; margin-bottom: 0; }
 </style>
 @endsection
 @section('content')
