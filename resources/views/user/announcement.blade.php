@@ -2,12 +2,12 @@
 @section('title', '公告')
 @section('content')
 @forelse ($announcements as $a)
-    <div class="panel">
-        <h3>{{ $a->title }}</h3>
-        <div style="font-size:14px;color:#6c757d;line-height:1.7">{!! nl2br(e($a->content)) !!}</div>
-        <div style="font-size:12px;color:#acb5c9;margin-top:12px">{{ $a->created_at?->format('Y-m-d H:i') }}</div>
+<div class="card">
+    <div class="card-header"><h4>{{ $a->title }}</h4></div>
+    <div class="card-body">
+        <div style="line-height:1.8">{!! nl2br(e($a->content)) !!}</div>
+        <div class="text-muted mt-3" style="font-size:12px">{{ $a->created_at?->format('Y-m-d H:i') }}</div>
     </div>
-@empty
-    <div class="panel"><p style="color:#6c757d">暂无公告</p></div>
-@endforelse
+</div>
+@empty<div class="card"><div class="card-body text-muted">暂无公告</div></div>@endforelse
 @endsection

@@ -1,64 +1,86 @@
 @extends('layouts.user')
 @section('title', '首页')
 @section('content')
-<div class="cards">
-    <div class="stat">
-        <div class="icon primary">👑</div>
-        <div class="wrap">
-            <h4>会员等级</h4>
-            <div class="num">{{ $className }}</div>
-            <div class="sub">@if($user->class > 0 && $user->class_expire){{ $user->class_expire->format('Y-m-d') }} 到期 @else 未开通套餐 @endif</div>
+<div class="row">
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="card card-statistic-1">
+            <div class="card-icon bg-primary"><i class="fas fa-crown"></i></div>
+            <div class="card-wrap">
+                <div class="card-header"><h4>会员等级</h4></div>
+                <div class="card-body">{{ $className }}</div>
+            </div>
         </div>
     </div>
-    <div class="stat">
-        <div class="icon success">📶</div>
-        <div class="wrap">
-            <h4>剩余流量</h4>
-            <div class="num">{{ number_format($remainGb, 2) }} <small>GB</small></div>
-            <div class="sub">今日 {{ number_format($todayGb, 2) }}G / 共 {{ number_format($totalGb, 2) }}G</div>
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="card card-statistic-1">
+            <div class="card-icon bg-success"><i class="fas fa-signal"></i></div>
+            <div class="card-wrap">
+                <div class="card-header"><h4>剩余流量</h4></div>
+                <div class="card-body">{{ number_format($remainGb, 1) }} GB</div>
+            </div>
         </div>
     </div>
-    <div class="stat">
-        <div class="icon warning">💰</div>
-        <div class="wrap">
-            <h4>钱包余额</h4>
-            <div class="num"><small>¥</small> {{ number_format($user->money, 2) }}</div>
-            <div class="sub"><a href="/user/wallet">充值 / 购买套餐</a></div>
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="card card-statistic-1">
+            <div class="card-icon bg-warning"><i class="fas fa-wallet"></i></div>
+            <div class="card-wrap">
+                <div class="card-header"><h4>钱包余额</h4></div>
+                <div class="card-body">¥{{ number_format($user->money, 2) }}</div>
+            </div>
         </div>
     </div>
-    <div class="stat">
-        <div class="icon info">📱</div>
-        <div class="wrap">
-            <h4>设备上限</h4>
-            <div class="num">{{ $user->node_ip_limit ?: '∞' }}</div>
-            <div class="sub">限速 {{ $user->node_speed_limit ? $user->node_speed_limit.' Mbps' : '不限' }}</div>
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+        <div class="card card-statistic-1">
+            <div class="card-icon bg-info"><i class="fas fa-mobile-alt"></i></div>
+            <div class="card-wrap">
+                <div class="card-header"><h4>设备上限</h4></div>
+                <div class="card-body">{{ $user->node_ip_limit ?: '∞' }}</div>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="panel">
-    <h3>每日签到</h3>
-    <form method="POST" action="/user/checkin">@csrf
-        <button class="btn">签到领流量</button>
-    </form>
-</div>
-
-<div class="panel">
-    <h3>近7天流量</h3>
-    @php $max = max(0.01, $chart->max('gb')); @endphp
-    <div style="display:flex;align-items:flex-end;gap:12px;height:160px;padding-top:10px">
-        @foreach($chart as $c)
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
-            <div style="font-size:11px;color:#6c757d;margin-bottom:4px">{{ $c['gb'] }}G</div>
-            <div style="width:70%;background:#6777ef;border-radius:4px 4px 0 0;height:{{ max(2, ($c['gb']/$max)*120) }}px"></div>
-            <div style="font-size:11px;color:#acb5c9;margin-top:6px">{{ $c['date'] }}</div>
+<div class="row">
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header"><h4>近7天流量</h4></div>
+            <div class="card-body">
+                @php $max = max(0.01, $chart->max('gb')); @endphp
+                <div style="display:flex;align-items:flex-end;gap:14px;height:180px">
+                    @foreach($chart as $c)
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+                        <div class="text-muted" style="font-size:12px;margin-bottom:6px">{{ $c['gb'] }}G</div>
+                        <div style="width:60%;background:#6777ef;border-radius:4px 4px 0 0;height:{{ max(3, ($c['gb']/$max)*130) }}px"></div>
+                        <div class="text-muted" style="font-size:12px;margin-top:8px">{{ $c['date'] }}</div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
         </div>
-        @endforeach
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card">
+            <div class="card-header"><h4>账户信息</h4></div>
+            <div class="card-body">
+                <ul class="list-unstyled list-unstyled-border">
+                    <li class="media"><div class="media-body"><div class="text-small text-muted">到期时间</div>
+                        {{ $user->class > 0 && $user->class_expire ? $user->class_expire->format('Y-m-d H:i') : '未开通套餐' }}</div></li>
+                    <li class="media"><div class="media-body"><div class="text-small text-muted">今日已用</div>{{ number_format($todayGb, 2) }} GB</div></li>
+                    <li class="media"><div class="media-body"><div class="text-small text-muted">总流量</div>{{ number_format($totalGb, 2) }} GB</div></li>
+                    <li class="media"><div class="media-body"><div class="text-small text-muted">端口限速</div>{{ $user->node_speed_limit ? $user->node_speed_limit.' Mbps' : '不限速' }}</div></li>
+                </ul>
+                <form method="POST" action="/user/checkin">@csrf
+                    <button class="btn btn-primary btn-block"><i class="fas fa-calendar-check"></i> 每日签到领流量</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="panel">
-    <h3>我的订阅</h3>
-    <p style="font-size:14px;color:#6c757d">订阅链接在「<a href="/user/node">节点设置</a>」查看和导入客户端。</p>
+<div class="card">
+    <div class="card-header"><h4>我的订阅</h4></div>
+    <div class="card-body">
+        订阅链接在「<a href="/user/node">节点设置</a>」查看并导入客户端（Clash / v2rayN）。
+    </div>
 </div>
 @endsection

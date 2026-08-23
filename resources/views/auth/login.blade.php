@@ -1,23 +1,12 @@
 @extends('layouts.guest')
 @section('title', '登录')
 @section('content')
-<form method="POST" action="/login">
-    @csrf
-    <label>邮箱</label>
-    <input type="email" name="email" value="{{ old('email') }}" required>
-
-    <label>密码</label>
-    <input type="password" name="password" required>
-
-    <label>验证码：{{ $captchaQuestion }}</label>
-    <input type="text" name="captcha" required>
-
-    <label style="display:flex;align-items:center;gap:6px;margin-top:14px">
-        <input type="checkbox" name="remember" style="width:auto"> 记住我
-    </label>
-
-    <div style="text-align:right;margin-top:8px"><a href="/password/forgot" style="font-size:13px">忘记密码？</a></div>
-    <button type="submit">登录</button>
+<form method="POST" action="/login">@csrf
+    <div class="form-group"><label>邮箱</label><input type="email" name="email" value="{{ old('email') }}" class="form-control" required autofocus></div>
+    <div class="form-group"><label>密码</label><input type="password" name="password" class="form-control" required></div>
+    <div class="form-group"><label>验证码：{{ $captchaQuestion }}</label><input type="text" name="captcha" class="form-control" required></div>
+    <div class="form-group"><div class="custom-control custom-checkbox"><input type="checkbox" name="remember" class="custom-control-input" id="remember"><label class="custom-control-label" for="remember">记住我</label></div></div>
+    <div class="form-group"><button class="btn btn-primary btn-lg btn-block">登录</button></div>
+    <div class="text-center"><a href="/password/forgot">忘记密码？</a> · <a href="/register">注册新账号</a></div>
 </form>
-<div class="muted">还没账号？<a href="/register">点击注册</a></div>
 @endsection
