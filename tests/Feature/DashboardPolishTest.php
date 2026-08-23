@@ -11,6 +11,22 @@ it('computes usage percent on dashboard', function () {
     $this->actingAs($user)->get('/user')->assertOk()->assertSee('50%');
 });
 
+it('shows 未开通 traffic for a user without a plan', function () {
+    $user = User::factory()->create([
+        'class' => 0, 'class_expire' => null, 'transfer_enable' => 0, 'u' => 0, 'd' => 0,
+    ]);
+    $this->actingAs($user)->get('/user')->assertOk()
+        ->assertSee('暂无流量套餐')->assertDontSee('已用 ');
+});
+
+it('shows 已用尽 when traffic is exhausted', function () {
+    $user = User::factory()->create([
+        'class' => 1, 'class_expire' => now()->addDay(),
+        'transfer_enable' => 10 * 1024 ** 3, 'u' => 10 * 1024 ** 3, 'd' => 0,
+    ]);
+    $this->actingAs($user)->get('/user')->assertOk()->assertSee('已用尽');
+});
+
 it('shows membership remaining days instead of vip tier', function () {
     $user = User::factory()->create([
         'class' => 2, 'class_expire' => now()->addDays(30), 'transfer_enable' => 1024 ** 3,

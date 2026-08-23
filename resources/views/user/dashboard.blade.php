@@ -38,14 +38,19 @@
                     <span class="stat-icon bg-success"><i class="fas fa-signal"></i></span>
                     <h4 class="stat-title">剩余流量</h4>
                 </div>
-                <div class="stat-value text-success">{{ number_format($remainGb, 1) }} GB</div>
-                <div class="stat-sub-box">
-                    @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
-                    <div class="progress" style="height:6px;margin-bottom:6px">
-                        <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
+                @if($user->transfer_enable <= 0)
+                    <div class="stat-value text-success">未开通</div>
+                    <div class="stat-sub-box"><span class="stat-sub">暂无流量套餐</span></div>
+                @else
+                    <div class="stat-value text-success">{{ number_format($remainGb, 1) }} GB</div>
+                    <div class="stat-sub-box">
+                        @php $barColor = $usagePercent >= 90 ? 'bg-danger' : ($usagePercent >= 70 ? 'bg-warning' : 'bg-success'); @endphp
+                        <div class="progress" style="height:6px;margin-bottom:6px">
+                            <div class="progress-bar {{ $barColor }}" role="progressbar" style="width:{{ $usagePercent }}%"></div>
+                        </div>
+                        <span class="stat-sub">{{ $usagePercent >= 100 ? '已用尽' : '已用 '.$usagePercent.'%' }}</span>
                     </div>
-                    <span class="stat-sub">已用 {{ $usagePercent }}%</span>
-                </div>
+                @endif
             </div>
         </div>
     </div>
