@@ -14,37 +14,36 @@ class NodeSettingController extends Controller
         $user = auth()->user();
         $subUrl = url('/sub/'.$user->invite_token);
 
-        // 各客户端的一键导入 scheme（二维码里装的就是它，扫码即跳 App 自动导入）
+        // 各客户端导入方式。
+        // 有 scheme 的：二维码/按钮装 scheme，扫码即唤起 App 自动导入。
+        // 无 scheme 的(如 V2rayNG)：二维码装订阅 URL，在 App"扫码添加订阅"里识别。
         $clients = [
             [
-                'key' => 'clash',
-                'name' => 'Clash / Verge',
-                'icon' => 'fas fa-bolt',
+                'key' => 'clash', 'name' => 'Clash / Verge', 'icon' => 'fas fa-bolt',
                 'scheme' => 'clash://install-config?url='.urlencode($subUrl).'&name=91VPN',
+                'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
-                'key' => 'shadowrocket',
-                'name' => '小火箭 Shadowrocket',
-                'icon' => 'fas fa-rocket',
+                'key' => 'shadowrocket', 'name' => '小火箭 Shadowrocket', 'icon' => 'fas fa-rocket',
                 'scheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
+                'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
-                'key' => 'sing-box',
-                'name' => 'sing-box',
-                'icon' => 'fas fa-box',
+                'key' => 'sing-box', 'name' => 'sing-box', 'icon' => 'fas fa-box',
                 'scheme' => 'sing-box://import-remote-profile?url='.urlencode($subUrl).'#91VPN',
+                'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
-                'key' => 'quantumultx',
-                'name' => 'Quantumult X',
-                'icon' => 'fas fa-atom',
-                'scheme' => 'quantumult-x://add-resource?remote-resource='.urlencode('{"server_remote":["'.$subUrl.', tag=91VPN"]}'),
+                'key' => 'v2rayng', 'name' => 'V2rayNG（安卓）', 'icon' => 'fab fa-android',
+                'scheme' => null,                              // V2rayNG 无 URL scheme
+                'url' => $subUrl.'?flag=v2ray',
+                'qr_target' => 'url', 'tip' => '在「订阅设置→扫码添加」里扫',
             ],
         ];
 
-        // 给每个客户端生成"装了 scheme 的二维码"
+        // 二维码内容：有 scheme 装 scheme，无 scheme 装订阅 URL
         foreach ($clients as &$c) {
-            $c['qr'] = QrCode::dataUri($c['scheme']);
+            $c['qr'] = QrCode::dataUri($c['qr_target'] === 'scheme' ? $c['scheme'] : $c['url']);
         }
         unset($c);
 

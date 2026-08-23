@@ -12,8 +12,13 @@
                     <div class="font-weight-bold mb-2"><i class="{{ $c['icon'] }}" style="color:#6777ef"></i> {{ $c['name'] }}</div>
                     <img src="{{ $c['qr'] }}" alt="{{ $c['name'] }} 订阅二维码" style="width:150px;height:150px;max-width:100%;background:#fff;border:1px solid #f0f0f0;border-radius:6px;padding:6px">
                     <div class="mt-2">
-                        <a href="{{ $c['scheme'] }}" class="btn btn-primary btn-sm btn-block"><i class="fas fa-bolt"></i> 一键导入</a>
+                        @if($c['qr_target'] === 'scheme')
+                            <a href="{{ $c['scheme'] }}" class="btn btn-primary btn-sm btn-block"><i class="fas fa-bolt"></i> 一键导入</a>
+                        @else
+                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="navigator.clipboard.writeText('{{ $c['url'] }}');this.textContent='已复制订阅'">复制订阅链接</button>
+                        @endif
                     </div>
+                    <div class="text-muted mt-1"><small>{{ $c['tip'] }}</small></div>
                 </div>
             </div>
             @endforeach
@@ -43,10 +48,13 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h4>连接密码</h4></div>
+    <div class="card-header"><h4>连接凭证</h4></div>
     <div class="card-body">
-        <p class="text-muted">当前连接密码：<code>{{ $user->passwd }}</code>。⚠️ 重置会同时变更 UUID，需重新导入订阅。</p>
-        <form method="POST" action="/user/node/reset-passwd" onsubmit="return confirm('重置会同时变更 UUID，确认？')">@csrf<button class="btn btn-primary">随机重置连接密码</button></form>
+        <p class="text-muted">
+            当前 UUID：<code>{{ $user->uuid }}</code><br>
+            这是你连接节点的身份凭证（VMess 用 UUID）。若怀疑订阅被盗用，重置后旧订阅立即失效。
+        </p>
+        <form method="POST" action="/user/node/reset-passwd" onsubmit="return confirm('重置后需在所有客户端重新导入订阅，确认？')">@csrf<button class="btn btn-primary">重置连接凭证（UUID）</button></form>
     </div>
 </div>
 @endsection
