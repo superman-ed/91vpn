@@ -4,12 +4,12 @@
 <style>
 .stat-row > [class*="col-"] { display: flex; margin-bottom: 30px; }
 .stat-row .stat-card { width: 100%; height: 100%; margin-bottom: 0; }
-.stat-card .card-body { padding: 18px 20px; }
+.stat-card .card-body { padding: 18px 20px; display: flex; flex-direction: column; }
 .stat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .stat-head .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; flex-shrink: 0; }
 .stat-head .stat-title { margin: 0; font-size: 15px; font-weight: 600; color: #6c757d; }
 .stat-value { font-size: 24px; font-weight: 700; line-height: 1.2; }
-.stat-sub-box { background: #f4f6f9; border-radius: 10px; padding: 10px 14px; margin-top: 12px; }
+.stat-sub-box { background: #f4f6f9; border-radius: 10px; padding: 10px 14px; margin-top: auto; min-height: 60px; display: flex; flex-direction: column; justify-content: center; }
 .stat-sub-box .stat-sub { display: block; font-size: 13px; font-weight: 400; color: #6c757d; white-space: nowrap; }
 .stat-sub-box .stat-sub + .stat-sub { margin-top: 4px; }
 .stat-sub-box a { color: #6777ef; }
