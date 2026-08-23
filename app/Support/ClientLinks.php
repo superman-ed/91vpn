@@ -50,9 +50,10 @@ class ClientLinks
         unset($c);
 
         $formatLinks = [
-            ['name' => 'Clash 格式（YAML）', 'url' => $subUrl.'?flag=clash'],
-            ['name' => 'V2rayN 格式（base64）', 'url' => $subUrl.'?flag=v2ray'],
-            ['name' => '通用 base64（多客户端可读）', 'url' => $subUrl.'?flag=sub'],
+            ['name' => 'Clash / Verge（YAML）', 'url' => $subUrl.'?flag=clash'],
+            ['name' => 'V2rayN / NG（base64）', 'url' => $subUrl.'?flag=v2ray'],
+            ['name' => 'Quantumult X（base64）', 'url' => $subUrl.'?flag=sub'],
+            ['name' => '小火箭 / 通用 base64', 'url' => $subUrl.'?flag=sub'],
             ['name' => '自动识别（按客户端返回对应格式）', 'url' => $subUrl],
         ];
 
