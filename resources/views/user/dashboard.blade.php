@@ -130,10 +130,12 @@
             </div>
         </div>
         <div class="card">
-            <div class="card-header"><h4>快速导入</h4></div>
+            <div class="card-header"><h4>订阅链接</h4></div>
             <div class="card-body">
                 <a href="{{ $clashScheme }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-block mb-2"><i class="fas fa-bolt"></i> 一键导入 Clash</a>
-                <button class="btn btn-outline-primary btn-block" onclick="copySub('{{ $subUrl }}')"><i class="fas fa-copy"></i> 复制订阅链接</button>
+                @foreach($formatLinks as $fl)
+                <button class="btn btn-outline-primary btn-block btn-sm mb-2 text-left" onclick="copySub('{{ $fl['url'] }}')"><i class="fas fa-copy"></i> {{ $fl['name'] }}</button>
+                @endforeach
             </div>
         </div>
     </div>

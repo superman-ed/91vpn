@@ -34,6 +34,7 @@ class DashboardController extends Controller
             'announcements' => $announcements,
             'subUrl' => $links['subUrl'],
             'clashScheme' => $links['clashScheme'],
+            'formatLinks' => $links['formatLinks'],
         ]);
     }
 }
