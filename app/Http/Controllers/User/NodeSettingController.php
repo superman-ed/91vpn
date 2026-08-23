@@ -12,8 +12,14 @@ class NodeSettingController extends Controller
     {
         $user = auth()->user();
         $subUrl = url('/sub/'.$user->invite_token);
+        $enc = urlencode($subUrl);
 
-        return view('user.node', ['user' => $user, 'subUrl' => $subUrl]);
+        return view('user.node', [
+            'user' => $user,
+            'subUrl' => $subUrl,
+            'clashScheme' => 'clash://install-config?url='.$enc.'&name=91VPN',
+            'shadowrocketScheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
+        ]);
     }
 
     /** POST /user/node/reset-sub —— 重置订阅链接 */

@@ -43,8 +43,11 @@
                     <li class="menu-header">我的</li>
                     <li class="{{ request()->is('user/wallet') ? 'active' : '' }}"><a class="nav-link" href="/user/wallet"><i class="fas fa-wallet"></i><span>我的钱包</span></a></li>
                     <li class="{{ request()->is('user/invite') ? 'active' : '' }}"><a class="nav-link" href="/user/invite"><i class="fas fa-gift"></i><span>邀请返利</span></a></li>
+                    <li class="{{ request()->is('user/account') ? 'active' : '' }}"><a class="nav-link" href="/user/account"><i class="fas fa-user-cog"></i><span>账号设置</span></a></li>
                     <li class="menu-header">使用</li>
+                    <li class="{{ request()->is('user/servers') ? 'active' : '' }}"><a class="nav-link" href="/user/servers"><i class="fas fa-server"></i><span>节点列表</span></a></li>
                     <li class="{{ request()->is('user/node') ? 'active' : '' }}"><a class="nav-link" href="/user/node"><i class="fas fa-link"></i><span>节点设置</span></a></li>
+                    <li class="{{ request()->is('user/traffic') ? 'active' : '' }}"><a class="nav-link" href="/user/traffic"><i class="fas fa-chart-line"></i><span>流量明细</span></a></li>
                     <li class="{{ request()->is('user/ticket*') ? 'active' : '' }}"><a class="nav-link" href="/user/ticket"><i class="far fa-comments"></i><span>工单支持</span></a></li>
                     <li class="{{ request()->is('user/announcement') ? 'active' : '' }}"><a class="nav-link" href="/user/announcement"><i class="fas fa-bullhorn"></i><span>公告</span></a></li>
                 </ul>
