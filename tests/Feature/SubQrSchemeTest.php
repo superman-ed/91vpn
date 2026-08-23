@@ -14,7 +14,7 @@ it('qr code encodes the given scheme text', function () {
 
 it('node page exposes scheme-based qr codes for each client', function () {
     $user = User::factory()->create(['invite_token' => 'QRSCHEME']);
-    $res = $this->actingAs($user)->get('/user/node');
+    $res = $this->actingAs($user)->get('/user/downloads');
     $res->assertOk();
     // 页面应包含各客户端二维码图（data uri）与对应导入按钮
     $res->assertSee('小火箭');       // Shadowrocket 区

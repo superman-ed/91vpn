@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\DailyTraffic;
+use App\Support\ClientLinks;
 
 class DashboardController extends Controller
 {
@@ -32,8 +33,8 @@ class DashboardController extends Controller
             'todayGb' => bytes_to_gb($user->transfer_today),
             'className' => class_name($user->class),
             'chart' => $chart,
-            'subUrl' => url('/sub/'.$user->invite_token),
-            'clashScheme' => 'clash://install-config?url='.urlencode(url('/sub/'.$user->invite_token)).'&name=91VPN',
+            'subUrl' => ClientLinks::for($user)['subUrl'],
+            'clashScheme' => ClientLinks::for($user)['clashScheme'],
         ]);
     }
 }

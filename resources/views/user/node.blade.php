@@ -1,49 +1,22 @@
 @extends('layouts.user')
 @section('title', '节点设置')
+@section('head')<meta name="turbo-cache-control" content="no-cache">@endsection
 @section('content')
-<div class="card">
-    <div class="card-header"><h4>一键导入 / 扫码导入</h4></div>
-    <div class="card-body">
-        <p class="text-muted">点按钮直接唤起客户端导入，或用对应 App 扫二维码（需已安装客户端）。</p>
-        <div class="row">
-            @foreach($clients as $c)
-            <div class="col-6 col-md-3 mb-3">
-                <div class="text-center p-3" style="border:1px solid #eee;border-radius:8px;height:100%">
-                    <div class="font-weight-bold mb-2"><i class="{{ $c['icon'] }}" style="color:#6777ef"></i> {{ $c['name'] }}</div>
-                    <img src="{{ $c['qr'] }}" alt="{{ $c['name'] }} 订阅二维码" style="width:150px;height:150px;max-width:100%;background:#fff;border:1px solid #f0f0f0;border-radius:6px;padding:6px">
-                    <div class="mt-2">
-                        @if($c['qr_target'] === 'scheme')
-                            <a href="{{ $c['scheme'] }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-sm btn-block"><i class="fas fa-bolt"></i> 一键导入</a>
-                        @else
-                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="navigator.clipboard.writeText('{{ $c['url'] }}');this.textContent='已复制订阅'">复制订阅链接</button>
-                        @endif
-                    </div>
-                    <div class="text-muted mt-1"><small>{{ $c['tip'] }}</small></div>
-                </div>
-            </div>
-            @endforeach
-        </div>
-        <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText('{{ $subUrl }}');this.innerHTML='<i class=\'fas fa-check\'></i> 已复制'"><i class="fas fa-copy"></i> 复制通用订阅链接</button>
-    </div>
+<div class="alert alert-info">
+    <ol class="mb-0" style="padding-left:18px;line-height:1.9">
+        <li>这里管理连接凭证。<strong>订阅链接请在「<a href="/user/downloads">下载和教程</a>」或首页获取。</strong></li>
+        <li>如要让他人无法再使用，请<strong>同时重置订阅链接和连接凭证</strong>，重置后约 <strong>10 分钟内生效</strong>。</li>
+        <li>重置后请删除原有订阅、重新导入新订阅；如使用定制客户端则无需操作，等待几分钟即可生效。</li>
+    </ol>
 </div>
 
 <div class="card">
-    <div class="card-header"><h4>订阅链接（各客户端专属）</h4></div>
+    <div class="card-header"><h4>订阅链接</h4></div>
     <div class="card-body">
-        <table class="table table-sm">
-            <tbody>
-            @foreach($formatLinks as $fl)
-            <tr>
-                <td style="white-space:nowrap;font-weight:600">{{ $fl['name'] }}</td>
-                <td style="word-break:break-all"><code style="font-size:12px">{{ $fl['url'] }}</code></td>
-                <td style="white-space:nowrap"><button class="btn btn-outline-primary btn-sm" onclick="navigator.clipboard.writeText('{{ $fl['url'] }}');this.textContent='已复制'">复制</button></td>
-            </tr>
-            @endforeach
-            </tbody>
-        </table>
-        <hr>
-        <form method="POST" action="/user/node/reset-sub" class="d-inline" onsubmit="return confirm('重置后旧链接立即失效，确认？')">@csrf<button class="btn btn-danger">重置订阅链接</button></form>
-        <small class="text-muted d-block mt-2">重置后需在客户端重新导入，旧链接立即失效。</small>
+        <div class="alert alert-light" style="word-break:break-all"><code>{{ $subUrl }}</code></div>
+        <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText('{{ $subUrl }}');this.innerHTML='<i class=\'fas fa-check\'></i> 已复制'"><i class="fas fa-copy"></i> 复制订阅链接</button>
+        <a href="/user/downloads" class="btn btn-primary"><i class="fas fa-download"></i> 前往下载 / 一键导入</a>
+        <form method="POST" action="/user/node/reset-sub" class="d-inline" onsubmit="return confirm('重置后旧链接立即失效，约10分钟后新链接生效，确认？')">@csrf<button class="btn btn-danger">重置订阅链接</button></form>
     </div>
 </div>
 
@@ -52,9 +25,9 @@
     <div class="card-body">
         <p class="text-muted">
             当前 UUID：<code>{{ $user->uuid }}</code><br>
-            这是你连接节点的身份凭证（VMess 用 UUID）。若怀疑订阅被盗用，重置后旧订阅立即失效。
+            这是连接节点的身份凭证（VMess 用 UUID）。若怀疑订阅被盗用，重置后旧订阅约 10 分钟内失效。
         </p>
-        <form method="POST" action="/user/node/reset-passwd" onsubmit="return confirm('重置后需在所有客户端重新导入订阅，确认？')">@csrf<button class="btn btn-primary">重置连接凭证（UUID）</button></form>
+        <form method="POST" action="/user/node/reset-passwd" onsubmit="return confirm('重置后需在所有客户端重新导入订阅，约10分钟生效，确认？')">@csrf<button class="btn btn-primary">重置连接凭证（UUID）</button></form>
     </div>
 </div>
 @endsection
