@@ -136,11 +136,12 @@
                 @foreach($clients as $c)
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span style="font-size:13px"><i class="{{ $c['icon'] }}" style="color:#6777ef;width:18px"></i> {{ $c['name'] }}</span>
-                    @if($c['qr_target'] === 'scheme')
-                        <a href="{{ $c['scheme'] }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-sm"><i class="fas fa-bolt"></i> 导入</a>
-                    @else
-                        <button class="btn btn-outline-primary btn-sm" onclick="copySub('{{ $c['url'] }}')"><i class="fas fa-copy"></i> 复制订阅链接</button>
-                    @endif
+                    <span class="text-nowrap">
+                        @if($c['qr_target'] === 'scheme')
+                            <a href="{{ $c['scheme'] }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-sm"><i class="fas fa-bolt"></i> 导入</a>
+                        @endif
+                        <button class="btn btn-outline-primary btn-sm" onclick="copySub('{{ $c['url'] }}')"><i class="fas fa-copy"></i> 复制</button>
+                    </span>
                 </div>
                 @endforeach
             </div>

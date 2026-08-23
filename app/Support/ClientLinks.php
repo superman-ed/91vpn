@@ -20,21 +20,25 @@ class ClientLinks
             [
                 'key' => 'clash', 'name' => 'Clash / Verge', 'icon' => 'fas fa-bolt',
                 'scheme' => 'clash://install-config?url='.$enc.'&name=91VPN',
+                'url' => $subUrl.'?flag=clash',
                 'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
                 'key' => 'shadowrocket', 'name' => '小火箭 Shadowrocket', 'icon' => 'fas fa-rocket',
                 'scheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
+                'url' => $subUrl.'?flag=sub',
                 'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
                 'key' => 'quantumultx', 'name' => 'Quantumult X', 'icon' => 'fas fa-atom',
                 'scheme' => 'quantumult-x://add-resource?remote-resource='.urlencode('{"server_remote":["'.$subUrl.'?flag=sub, tag=91VPN"]}'),
+                'url' => $subUrl.'?flag=sub',
                 'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
                 'key' => 'sing-box', 'name' => 'sing-box', 'icon' => 'fas fa-box',
                 'scheme' => 'sing-box://import-remote-profile?url='.$enc.'#91VPN',
+                'url' => $subUrl,
                 'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
