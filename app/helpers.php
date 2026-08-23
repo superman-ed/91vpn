@@ -8,6 +8,22 @@ if (! function_exists('bytes_to_gb')) {
     }
 }
 
+if (! function_exists('linkify')) {
+    /** 纯文本转安全 HTML：转义 + 网址高亮成超链接 + 保留换行 */
+    function linkify(?string $text): string
+    {
+        $escaped = e((string) $text);
+
+        $linked = preg_replace(
+            '~(https?://[^\s<]+)~',
+            '<a href="$1" target="_blank" rel="noopener" style="color:#6777ef;text-decoration:underline">$1</a>',
+            $escaped
+        );
+
+        return nl2br($linked);
+    }
+}
+
 if (! function_exists('class_name')) {
     /** 等级数字转显示名 */
     function class_name(int $class): string
