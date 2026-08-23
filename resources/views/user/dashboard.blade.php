@@ -4,10 +4,10 @@
 <div class="row">
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
         <div class="card card-statistic-1">
-            <div class="card-icon bg-primary"><i class="fas fa-crown"></i></div>
+            <div class="card-icon bg-primary"><i class="fas fa-clock"></i></div>
             <div class="card-wrap">
-                <div class="card-header"><h4>会员等级</h4></div>
-                <div class="card-body">{{ $className }}</div>
+                <div class="card-header"><h4>会员时长</h4></div>
+                <div class="card-body">{{ $membership }}</div>
             </div>
         </div>
     </div>

@@ -31,7 +31,7 @@ class DashboardController extends Controller
             'remainGb' => bytes_to_gb($remainBytes),
             'totalGb' => bytes_to_gb($user->transfer_enable),
             'todayGb' => bytes_to_gb($user->transfer_today),
-            'className' => class_name($user->class),
+            'membership' => $user->membershipText(),
             'usagePercent' => $user->usagePercent(),
             'checkedIn' => $user->checkedInToday(),
             'chart' => $chart,

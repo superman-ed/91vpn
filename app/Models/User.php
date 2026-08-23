@@ -106,6 +106,24 @@ class User extends Authenticatable
         return (int) min(100, round($this->usedTraffic() / $this->transfer_enable * 100));
     }
 
+    // 会员剩余时长(天)，未开通或已过期返回 0
+    public function membershipDaysLeft(): int
+    {
+        if ($this->class <= 0 || $this->class_expire === null || $this->class_expire->isPast()) {
+            return 0;
+        }
+
+        return (int) ceil(now()->diffInDays($this->class_expire, true));
+    }
+
+    // 会员时长展示文本
+    public function membershipText(): string
+    {
+        $days = $this->membershipDaysLeft();
+
+        return $days > 0 ? "剩余 {$days} 天" : '未开通';
+    }
+
     // 是否等级有效(未过期)
     public function isActive(): bool
     {
