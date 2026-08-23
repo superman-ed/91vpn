@@ -100,10 +100,10 @@
             <div class="card-header"><h4>公告</h4></div>
             <div class="card-body">
                 @forelse($announcements as $a)
-                    <div class="pb-3 mb-3" @if(!$loop->last) style="border-bottom:1px solid #f2f4f6" @endif>
-                        <div style="font-weight:600;color:#34395e">{{ $a->title }}</div>
-                        <div class="text-muted" style="font-size:12px;margin:2px 0 6px">{{ $a->created_at->format('Y-m-d H:i') }}</div>
-                        <div style="font-size:14px;line-height:1.8;font-weight:700;color:#191d21">{!! linkify($a->content) !!}</div>
+                    <div class="{{ $loop->last ? '' : 'mb-3' }}" style="background:#f4f6ff;border-left:3px solid #6777ef;border-radius:6px;padding:14px 16px">
+                        <div style="font-weight:700;color:#34395e;font-size:15px">{{ $a->title }}</div>
+                        <div class="text-muted" style="font-size:12px;margin:2px 0 8px">{{ $a->created_at->format('Y-m-d H:i') }}</div>
+                        <div style="font-size:14px;line-height:1.8;color:#34395e">{!! linkify($a->content) !!}</div>
                     </div>
                 @empty
                     <p class="text-muted mb-0">暂无公告</p>
