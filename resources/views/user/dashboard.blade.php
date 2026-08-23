@@ -97,7 +97,7 @@
 <div class="row">
     <div class="col-12 col-lg-8">
         <div class="card">
-            <div class="card-header"><h4>公告</h4></div>
+            <div class="card-header"><h4 style="color:#6777ef">公告</h4></div>
             <div class="card-body">
                 @forelse($announcements as $a)
                     <div class="{{ $loop->last ? '' : 'mb-3' }}" style="background:#f4f6ff;border-left:3px solid #6777ef;border-radius:6px;padding:14px 16px">
@@ -113,7 +113,7 @@
     </div>
     <div class="col-12 col-lg-4">
         <div class="card">
-            <div class="card-header"><h4>客户端下载和教程</h4></div>
+            <div class="card-header"><h4 style="color:#6777ef">客户端下载和教程</h4></div>
             <div class="card-body">
                 <div class="row text-center">
                     @foreach([['Windows','fab fa-windows'],['macOS','fab fa-apple'],['Android','fab fa-android'],['iOS','fab fa-app-store-ios']] as $p)
@@ -130,7 +130,7 @@
             </div>
         </div>
         <div class="card">
-            <div class="card-header"><h4>订阅链接</h4></div>
+            <div class="card-header"><h4 style="color:#6777ef">订阅链接</h4></div>
             <div class="card-body">
                 <p class="text-muted" style="font-size:12px;margin-bottom:12px">支持一键导入的直接点「导入」；其余点「复制订阅链接」后，在客户端里手动添加订阅。</p>
                 @foreach($clients as $c)
