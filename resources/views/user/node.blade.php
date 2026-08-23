@@ -23,9 +23,20 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h4>订阅链接</h4></div>
+    <div class="card-header"><h4>订阅链接（各客户端专属）</h4></div>
     <div class="card-body">
-        <div class="alert alert-light" style="word-break:break-all"><code>{{ $subUrl }}</code></div>
+        <table class="table table-sm">
+            <tbody>
+            @foreach($formatLinks as $fl)
+            <tr>
+                <td style="white-space:nowrap;font-weight:600">{{ $fl['name'] }}</td>
+                <td style="word-break:break-all"><code style="font-size:12px">{{ $fl['url'] }}</code></td>
+                <td style="white-space:nowrap"><button class="btn btn-outline-primary btn-sm" onclick="navigator.clipboard.writeText('{{ $fl['url'] }}');this.textContent='已复制'">复制</button></td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+        <hr>
         <form method="POST" action="/user/node/reset-sub" class="d-inline" onsubmit="return confirm('重置后旧链接立即失效，确认？')">@csrf<button class="btn btn-danger">重置订阅链接</button></form>
         <small class="text-muted d-block mt-2">重置后需在客户端重新导入，旧链接立即失效。</small>
     </div>

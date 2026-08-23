@@ -48,10 +48,18 @@ class NodeSettingController extends Controller
         }
         unset($c);
 
+        $formatLinks = [
+            ['name' => 'Clash / Verge', 'url' => $subUrl.'?flag=clash'],
+            ['name' => 'V2rayN / NG', 'url' => $subUrl.'?flag=v2ray'],
+            ['name' => '小火箭 / QuantumultX（通用）', 'url' => $subUrl.'?flag=sub'],
+            ['name' => '通用订阅（自动识别）', 'url' => $subUrl],
+        ];
+
         return view('user.node', [
             'user' => $user,
             'subUrl' => $subUrl,
             'clients' => $clients,
+            'formatLinks' => $formatLinks,
         ]);
     }
 

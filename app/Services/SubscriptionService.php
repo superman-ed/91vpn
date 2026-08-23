@@ -10,6 +10,53 @@ use Symfony\Component\Yaml\Yaml;
 class SubscriptionService
 {
     /**
+     * 统一入口：按客户端类型(flag)生成对应格式的订阅。
+     * flag: clash / v2ray(v2rayN base64) / sub(通用base64) / 其它→默认 clash
+     */
+    public function generate(User $user, string $flag = 'clash'): string
+    {
+        return match ($flag) {
+            'v2ray', 'v2rayn' => $this->generateV2rayN($user),
+            'sub', 'base64' => $this->generateBase64($user),
+            default => $this->generateClash($user),
+        };
+    }
+
+    /** 校验账号有效性（各格式共用） */
+    private function assertUsable(User $user): void
+    {
+        if (! $user->isActive()) {
+            throw new RuntimeException('账号已过期或被封禁');
+        }
+        if ($user->isTrafficExhausted()) {
+            throw new RuntimeException('流量已用尽');
+        }
+    }
+
+    /** v2rayN/NG 格式：base64( 多行 vmess://base64(JSON) ) */
+    public function generateV2rayN(User $user): string
+    {
+        $this->assertUsable($user);
+
+        $lines = $this->accessibleNodes($user)->map(function (Node $n) use ($user) {
+            $conf = [
+                'v' => '2', 'ps' => $n->name, 'add' => $n->server, 'port' => (string) $n->port,
+                'id' => $user->uuid, 'aid' => '0', 'scy' => 'auto', 'net' => $n->net,
+                'type' => 'none', 'host' => '', 'path' => '', 'tls' => '',
+            ];
+            return 'vmess://'.base64_encode(json_encode($conf, JSON_UNESCAPED_UNICODE));
+        })->implode("\n");
+
+        return base64_encode($lines);
+    }
+
+    /** 通用 base64 订阅（同 v2rayN，多客户端通吃） */
+    public function generateBase64(User $user): string
+    {
+        return $this->generateV2rayN($user);
+    }
+
+    /**
      * 为用户生成 Clash 配置（YAML）。
      * 逻辑：校验有效 → 按等级筛节点 → 生成 vmess 条目 → 注入规则模板。
      */
