@@ -32,6 +32,8 @@ class DashboardController extends Controller
             'todayGb' => bytes_to_gb($user->transfer_today),
             'className' => class_name($user->class),
             'chart' => $chart,
+            'subUrl' => url('/sub/'.$user->invite_token),
+            'clashScheme' => 'clash://install-config?url='.urlencode(url('/sub/'.$user->invite_token)).'&name=91VPN',
         ]);
     }
 }

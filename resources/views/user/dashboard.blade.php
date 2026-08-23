@@ -78,9 +78,13 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h4>我的订阅</h4></div>
+    <div class="card-header"><h4>快速导入</h4></div>
     <div class="card-body">
-        订阅链接在「<a href="/user/node">节点设置</a>」查看并导入客户端（Clash / v2rayN）。
+        <a href="{{ $clashScheme }}" class="btn btn-primary mb-2"><i class="fas fa-bolt"></i> 一键导入 Clash</a>
+        <button class="btn btn-outline-primary mb-2" onclick="navigator.clipboard.writeText('{{ $subUrl }}');this.innerHTML='<i class=\'fas fa-check\'></i> 已复制'"><i class="fas fa-copy"></i> 复制订阅链接</button>
+        <a href="/user/node" class="btn btn-light mb-2">更多导入方式</a>
+        <a href="/user/downloads" class="btn btn-light mb-2"><i class="fas fa-download"></i> 客户端下载</a>
+        <div class="alert alert-light mt-2" style="word-break:break-all;margin-bottom:0"><small class="text-muted">订阅链接：</small><code>{{ $subUrl }}</code></div>
     </div>
 </div>
 @endsection

@@ -17,6 +17,7 @@ class NodeSettingController extends Controller
         return view('user.node', [
             'user' => $user,
             'subUrl' => $subUrl,
+            'qr' => \App\Support\QrCode::dataUri($subUrl),
             'clashScheme' => 'clash://install-config?url='.$enc.'&name=91VPN',
             'shadowrocketScheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
         ]);

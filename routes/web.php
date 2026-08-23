@@ -14,6 +14,8 @@ use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\User\AccountController;
+use App\Http\Controllers\User\DownloadController;
+use App\Http\Controllers\User\SubscribeLogController;
 use App\Http\Controllers\User\ServerListController;
 use App\Http\Controllers\User\TrafficLogController;
 use App\Http\Controllers\User\AnnouncementController;
@@ -57,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/account/profile', [AccountController::class, 'updateProfile']);
     Route::get('/user/servers', [ServerListController::class, 'index'])->name('user.servers');
     Route::get('/user/traffic', [TrafficLogController::class, 'index'])->name('user.traffic');
+    Route::get('/user/downloads', [DownloadController::class, 'index'])->name('user.downloads');
+    Route::get('/user/subscribe-log', [SubscribeLogController::class, 'index'])->name('user.subscribe-log');
     Route::get('/user/invite', [InviteController::class, 'index'])->name('user.invite');
     Route::get('/user/ticket', [UserTicketController::class, 'index'])->name('user.ticket');
     Route::get('/user/ticket/create', [UserTicketController::class, 'create']);

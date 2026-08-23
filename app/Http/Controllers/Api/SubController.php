@@ -24,6 +24,14 @@ class SubController extends Controller
             abort(403, $e->getMessage());
         }
 
+        \App\Models\SubscribeLog::create([
+            'user_id' => $user->id,
+            'ip' => request()->ip(),
+            'location' => \App\Support\GeoIp::locate(request()->ip()),
+            'client' => substr((string) request()->userAgent(), 0, 255),
+            'fetched_at' => now(),
+        ]);
+
         return response($yaml, Response::HTTP_OK, [
             'Content-Type' => 'application/yaml; charset=utf-8',
             'Profile-Update-Interval' => '24',

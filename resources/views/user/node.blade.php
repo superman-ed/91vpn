@@ -8,6 +8,10 @@
         <a href="{{ $clashScheme }}" class="btn btn-primary mb-2"><i class="fas fa-bolt"></i> 一键导入 Clash</a>
         <a href="{{ $shadowrocketScheme }}" class="btn btn-primary mb-2"><i class="fas fa-bolt"></i> 导入 Shadowrocket</a>
         <button class="btn btn-outline-primary mb-2" onclick="navigator.clipboard.writeText('{{ $subUrl }}');this.innerHTML='<i class=\'fas fa-check\'></i> 已复制'"><i class="fas fa-copy"></i> 复制订阅链接</button>
+        <div class="mt-3 text-center" style="max-width:200px">
+            <img src="{{ $qr }}" alt="订阅二维码" style="width:180px;height:180px;border:1px solid #eee;border-radius:8px;padding:8px;background:#fff">
+            <div class="text-muted mt-2"><small>手机扫码导入</small></div>
+        </div>
     </div>
 </div>
 <div class="card">
