@@ -50,6 +50,12 @@ it('shows 已到期 for a user whose plan lapsed', function () {
         ->assertSee('已到期')->assertDontSee('未开通')->assertDontSee('剩余 ');
 });
 
+it('shows client download & tutorial card with checkin', function () {
+    $user = User::factory()->create(['class' => 1, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3, 'last_check_in' => 0]);
+    $this->actingAs($user)->get('/user')->assertOk()
+        ->assertSee('客户端下载和教程')->assertSee('每日签到')->assertDontSee('账户信息');
+});
+
 it('shows latest published announcements on dashboard', function () {
     $user = User::factory()->create(['class' => 1, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3]);
     \App\Models\Announcement::create(['title' => '系统维护通知', 'content' => '今晚维护', 'published' => true]);

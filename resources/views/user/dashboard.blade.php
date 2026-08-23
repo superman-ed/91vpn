@@ -106,15 +106,8 @@
     </div>
     <div class="col-12 col-lg-4">
         <div class="card">
-            <div class="card-header"><h4>账户信息</h4></div>
+            <div class="card-header"><h4>客户端下载和教程</h4></div>
             <div class="card-body">
-                <ul class="list-unstyled list-unstyled-border">
-                    <li class="media"><div class="media-body"><div class="text-small text-muted">到期时间</div>
-                        {{ $user->class > 0 && $user->class_expire ? $user->class_expire->format('Y-m-d H:i') : '未开通套餐' }}</div></li>
-                    <li class="media"><div class="media-body"><div class="text-small text-muted">今日已用</div>{{ number_format($todayGb, 2) }} GB</div></li>
-                    <li class="media"><div class="media-body"><div class="text-small text-muted">总流量</div>{{ number_format($totalGb, 2) }} GB</div></li>
-                    <li class="media"><div class="media-body"><div class="text-small text-muted">端口限速</div>{{ $user->node_speed_limit ? $user->node_speed_limit.' Mbps' : '不限速' }}</div></li>
-                </ul>
                 <form method="POST" action="/user/checkin">@csrf
                     @if($checkedIn)
                         <button class="btn btn-light btn-block" disabled><i class="fas fa-check"></i> 今日已签到</button>
@@ -122,6 +115,18 @@
                         <button class="btn btn-primary btn-block"><i class="fas fa-calendar-check"></i> 每日签到领流量</button>
                     @endif
                 </form>
+                <hr>
+                <div class="row text-center">
+                    @foreach([['Windows','fab fa-windows'],['macOS','fab fa-apple'],['Android','fab fa-android'],['iOS','fab fa-app-store-ios']] as $p)
+                    <div class="col-3 mb-2">
+                        <a href="/user/downloads" style="color:#6777ef;text-decoration:none">
+                            <i class="{{ $p[1] }}" style="font-size:26px"></i>
+                            <div class="text-muted" style="font-size:12px;margin-top:4px">{{ $p[0] }}</div>
+                        </a>
+                    </div>
+                    @endforeach
+                </div>
+                <a href="/user/downloads" class="btn btn-light btn-block mt-2"><i class="fas fa-book"></i> 查看下载和教程</a>
             </div>
         </div>
     </div>

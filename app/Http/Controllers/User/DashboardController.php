@@ -24,10 +24,7 @@ class DashboardController extends Controller
 
         return view('user.dashboard', [
             'user' => $user,
-            'usedGb' => bytes_to_gb($used),
             'remainGb' => bytes_to_gb($remainBytes),
-            'totalGb' => bytes_to_gb($user->transfer_enable),
-            'todayGb' => bytes_to_gb($user->transfer_today),
             'rebateTotal' => $user->paybacks()->sum('amount'),
             'membership' => $user->membershipText(),
             'className' => class_name($user->class),
