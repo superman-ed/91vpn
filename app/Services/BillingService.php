@@ -47,6 +47,10 @@ class BillingService
                 'paid_at' => now(),
             ]);
             $this->deliver($order->user, $order->plan);
+            // 限量套餐扣库存（-1 表示无限，不扣）
+            if ($order->plan && $order->plan->stock > 0) {
+                $order->plan->decrement('stock');
+            }
             $this->payback($order);
         });
     }

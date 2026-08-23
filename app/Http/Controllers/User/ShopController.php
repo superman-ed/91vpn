@@ -27,6 +27,11 @@ class ShopController extends Controller
         ]);
 
         $plan = Plan::findOrFail($data['plan_id']);
+
+        if (! $plan->on_sale || $plan->stock === 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架']);
+        }
+
         $amount = (float) $plan->price;
 
         // 优惠券（选填）

@@ -24,6 +24,20 @@ if (! function_exists('linkify')) {
     }
 }
 
+if (! function_exists('period_name')) {
+    /** 套餐周期显示名 */
+    function period_name(string $period): string
+    {
+        return match ($period) {
+            'month' => '月付',
+            'quarter' => '季付',
+            'half_year' => '半年付',
+            'year' => '年付',
+            default => $period,
+        };
+    }
+}
+
 if (! function_exists('class_name')) {
     /** 等级数字转显示名 */
     function class_name(int $class): string
