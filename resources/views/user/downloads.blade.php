@@ -35,7 +35,7 @@
                         @if($c['qr_target'] === 'scheme')
                             <a href="{{ $c['scheme'] }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-sm btn-block"><i class="fas fa-bolt"></i> 一键导入</a>
                         @else
-                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="navigator.clipboard.writeText('{{ $c['url'] }}');this.textContent='已复制订阅'">复制订阅链接</button>
+                            <button class="btn btn-outline-primary btn-sm btn-block" onclick="copySub('{{ $c['url'] }}')">复制订阅链接</button>
                         @endif
                     </div>
                     <div class="text-muted mt-1"><small>{{ $c['tip'] }}</small></div>
@@ -53,9 +53,8 @@
             <tbody>
             @foreach($formatLinks as $fl)
             <tr>
-                <td style="white-space:nowrap;font-weight:600">{{ $fl['name'] }}</td>
-                <td style="word-break:break-all"><code style="font-size:12px">{{ $fl['url'] }}</code></td>
-                <td style="white-space:nowrap"><button class="btn btn-outline-primary btn-sm" onclick="navigator.clipboard.writeText('{{ $fl['url'] }}');this.textContent='已复制'">复制</button></td>
+                <td style="font-weight:600">{{ $fl['name'] }}</td>
+                <td class="text-right"><button class="btn btn-outline-primary btn-sm" onclick="copySub('{{ $fl['url'] }}')"><i class="fas fa-copy"></i> 复制订阅链接</button></td>
             </tr>
             @endforeach
             </tbody>

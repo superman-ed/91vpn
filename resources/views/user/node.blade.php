@@ -13,8 +13,8 @@
 <div class="card">
     <div class="card-header"><h4>订阅链接</h4></div>
     <div class="card-body">
-        <div class="alert alert-light" style="word-break:break-all"><code>{{ $subUrl }}</code></div>
-        <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText('{{ $subUrl }}');this.innerHTML='<i class=\'fas fa-check\'></i> 已复制'"><i class="fas fa-copy"></i> 复制订阅链接</button>
+        <p class="text-muted">出于安全考虑不显示明文地址，请直接复制使用。</p>
+        <button class="btn btn-outline-primary" onclick="copySub('{{ $subUrl }}')"><i class="fas fa-copy"></i> 复制订阅链接</button>
         <a href="/user/downloads" class="btn btn-primary"><i class="fas fa-download"></i> 前往下载 / 一键导入</a>
         <form method="POST" action="/user/node/reset-sub" class="d-inline" onsubmit="return confirm('重置后旧链接立即失效，约10分钟后新链接生效，确认？')">@csrf<button class="btn btn-danger">重置订阅链接</button></form>
     </div>

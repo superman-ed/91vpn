@@ -81,5 +81,26 @@
 <script src="/stisla/assets/js/stisla.js"></script>
 <script src="/stisla/assets/js/scripts.js"></script>
 <script src="/stisla/assets/js/custom.js"></script>
+<div id="copy-toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#34395e;color:#fff;padding:12px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;z-index:9999">已复制订阅链接</div>
+<script>
+window.copySub = function (text) {
+    const done = () => {
+        const t = document.getElementById('copy-toast');
+        t.style.opacity = '1';
+        clearTimeout(window.__copyTimer);
+        window.__copyTimer = setTimeout(() => { t.style.opacity = '0'; }, 1800);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
+    } else { fallback(text, done); }
+    function fallback(t, cb) {
+        const ta = document.createElement('textarea');
+        ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta); cb();
+    }
+};
+</script>
 </body>
 </html>
