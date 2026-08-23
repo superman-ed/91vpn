@@ -132,9 +132,16 @@
         <div class="card">
             <div class="card-header"><h4>订阅链接</h4></div>
             <div class="card-body">
-                <a href="{{ $clashScheme }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-block mb-2"><i class="fas fa-bolt"></i> 一键导入 Clash</a>
-                @foreach($formatLinks as $fl)
-                <button class="btn btn-outline-primary btn-block btn-sm mb-2 text-left" onclick="copySub('{{ $fl['url'] }}')"><i class="fas fa-copy"></i> {{ $fl['name'] }}</button>
+                <p class="text-muted" style="font-size:12px;margin-bottom:12px">支持一键导入的直接点「导入」；其余点「复制订阅链接」后，在客户端里手动添加订阅。</p>
+                @foreach($clients as $c)
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span style="font-size:13px"><i class="{{ $c['icon'] }}" style="color:#6777ef;width:18px"></i> {{ $c['name'] }}</span>
+                    @if($c['qr_target'] === 'scheme')
+                        <a href="{{ $c['scheme'] }}" data-turbo="false" rel="nofollow" class="btn btn-primary btn-sm"><i class="fas fa-bolt"></i> 导入</a>
+                    @else
+                        <button class="btn btn-outline-primary btn-sm" onclick="copySub('{{ $c['url'] }}')"><i class="fas fa-copy"></i> 复制订阅链接</button>
+                    @endif
+                </div>
                 @endforeach
             </div>
         </div>
