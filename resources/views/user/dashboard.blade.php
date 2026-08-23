@@ -71,9 +71,9 @@
                     <span class="stat-icon bg-info"><i class="fas fa-mobile-alt"></i></span>
                     <h4 class="stat-title">设备上限</h4>
                 </div>
-                <div class="stat-value text-info">{{ $user->node_ip_limit ?: '∞' }}</div>
+                <div class="stat-value text-info">{{ $user->onlineDevices() }} / {{ $user->node_ip_limit ?: '∞' }}</div>
                 <div class="stat-sub-box">
-                    <span class="stat-sub">同时在线设备数上限</span>
+                    <span class="stat-sub">当前在线 / 设备上限</span>
                 </div>
             </div>
         </div>

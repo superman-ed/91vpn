@@ -106,6 +106,12 @@ class User extends Authenticatable
         return (int) min(100, round($this->usedTraffic() / $this->transfer_enable * 100));
     }
 
+    // 当前在线设备数（占位）：mod_mu 尚未上报 alive IP，接入前恒为 0
+    public function onlineDevices(): int
+    {
+        return 0;
+    }
+
     // 会员剩余时长(天)，未开通或已过期返回 0
     public function membershipDaysLeft(): int
     {
