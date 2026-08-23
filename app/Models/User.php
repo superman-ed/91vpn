@@ -136,12 +136,18 @@ class User extends Authenticatable
         return (int) ceil(now()->diffInDays($this->class_expire, true));
     }
 
-    // 会员时长展示文本
+    // 会员时长展示文本：未开通(新用户) / 已到期 / 剩余 X 天
     public function membershipText(): string
     {
-        $days = $this->membershipDaysLeft();
+        if ($this->class <= 0) {
+            return '未开通';
+        }
 
-        return $days > 0 ? "剩余 {$days} 天" : '未开通';
+        if ($this->class_expire === null || $this->class_expire->isPast()) {
+            return '已到期';
+        }
+
+        return '剩余 '.$this->membershipDaysLeft().' 天';
     }
 
     // 是否等级有效(未过期)

@@ -19,11 +19,19 @@ it('shows membership remaining days instead of vip tier', function () {
         ->assertSee('会员时长')->assertSee('剩余 30 天');
 });
 
-it('shows 未开通 for user without active plan', function () {
+it('shows 未开通 for a brand-new user who never subscribed', function () {
     $user = User::factory()->create([
         'class' => 0, 'class_expire' => null, 'transfer_enable' => 1024 ** 3,
     ]);
-    $this->actingAs($user)->get('/user')->assertOk()->assertSee('未开通');
+    $this->actingAs($user)->get('/user')->assertOk()->assertSee('未开通')->assertDontSee('已到期');
+});
+
+it('shows 已到期 for a user whose plan lapsed', function () {
+    $user = User::factory()->create([
+        'class' => 2, 'class_expire' => now()->subDay(), 'transfer_enable' => 1024 ** 3,
+    ]);
+    $this->actingAs($user)->get('/user')->assertOk()
+        ->assertSee('已到期')->assertDontSee('未开通')->assertDontSee('剩余 ');
 });
 
 it('shows accumulated rebate total on wallet card', function () {
