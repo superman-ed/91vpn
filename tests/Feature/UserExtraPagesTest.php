@@ -5,7 +5,7 @@ use App\Models\User;
 
 it('shows downloads page', function () {
     $this->actingAs(User::factory()->create())->get('/user/downloads')
-        ->assertOk()->assertSee('客户端下载');
+        ->assertOk()->assertSee('91VPN 官方客户端');
 });
 
 it('records a subscribe log when subscription fetched', function () {
