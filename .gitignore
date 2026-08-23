@@ -26,4 +26,4 @@ yarn-error.log
 /refs/
 tmp_laravel/
 .gitignore.laravel
-/storage/app/qqwry.dat
+/storage/app/ip2region/*.xdb
