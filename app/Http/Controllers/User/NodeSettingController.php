@@ -14,9 +14,9 @@ class NodeSettingController extends Controller
         $user = auth()->user();
         $subUrl = url('/sub/'.$user->invite_token);
 
-        // 各客户端导入方式。
-        // 有 scheme 的：二维码/按钮装 scheme，扫码即唤起 App 自动导入。
-        // 无 scheme 的(如 V2rayNG)：二维码装订阅 URL，在 App"扫码添加订阅"里识别。
+        // 各客户端导入方式，每个客户端各用各的（不通用）。
+        // qr_target=scheme：二维码/按钮装该客户端专属 scheme，扫码即唤起 App 自动导入。
+        // qr_target=url：该客户端无 scheme(如 V2rayNG)，二维码装订阅 URL，在 App"扫码添加订阅"里识别。
         $clients = [
             [
                 'key' => 'clash', 'name' => 'Clash / Verge', 'icon' => 'fas fa-bolt',
@@ -26,6 +26,11 @@ class NodeSettingController extends Controller
             [
                 'key' => 'shadowrocket', 'name' => '小火箭 Shadowrocket', 'icon' => 'fas fa-rocket',
                 'scheme' => 'shadowrocket://add/sub://'.base64_encode($subUrl).'?remark=91VPN',
+                'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
+            ],
+            [
+                'key' => 'quantumultx', 'name' => 'Quantumult X', 'icon' => 'fas fa-atom',
+                'scheme' => 'quantumult-x://add-resource?remote-resource='.urlencode('{"server_remote":["'.$subUrl.'?flag=sub, tag=91VPN"]}'),
                 'qr_target' => 'scheme', 'tip' => '扫码/点按钮自动导入',
             ],
             [
@@ -47,11 +52,12 @@ class NodeSettingController extends Controller
         }
         unset($c);
 
+        // 订阅链接（按格式，非按 App；base64 那条多客户端可读，不特指某两个 App）
         $formatLinks = [
-            ['name' => 'Clash / Verge', 'url' => $subUrl.'?flag=clash'],
-            ['name' => 'V2rayN / NG', 'url' => $subUrl.'?flag=v2ray'],
-            ['name' => '小火箭 / QuantumultX（通用）', 'url' => $subUrl.'?flag=sub'],
-            ['name' => '通用订阅（自动识别）', 'url' => $subUrl],
+            ['name' => 'Clash 格式（YAML）', 'url' => $subUrl.'?flag=clash'],
+            ['name' => 'V2rayN 格式（base64）', 'url' => $subUrl.'?flag=v2ray'],
+            ['name' => '通用 base64（多客户端可读）', 'url' => $subUrl.'?flag=sub'],
+            ['name' => '自动识别（按客户端返回对应格式）', 'url' => $subUrl],
         ];
 
         return view('user.node', [
