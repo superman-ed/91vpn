@@ -56,6 +56,10 @@
     padding: 6px 16px; border-radius: 7px; cursor: pointer; transition: all .15s;
 }
 .wallet-tabs button.active { background: #6777ef; color: #fff; box-shadow: 0 2px 6px rgba(103,119,239,.3); }
+.wallet-pager { padding: 14px 22px 6px; }
+.wallet-pager .pagination { margin: 0; justify-content: flex-end; }
+.wallet-pager .page-item.active .page-link { background: #6777ef; border-color: #6777ef; }
+.wallet-pager .page-link { color: #6777ef; border-radius: 7px; margin: 0 2px; border-color: #eef0f5; }
 .badge-pill-soft { padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 12px; }
 </style>
 @endsection
@@ -136,6 +140,7 @@
             @empty<tr><td colspan="5"><div class="wallet-empty"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>暂无购买记录</div></td></tr>@endforelse
             </tbody>
         </table>
+        @if($orders->hasPages())<div class="wallet-pager">{{ $orders->links('pagination::bootstrap-4') }}</div>@endif
     </div>
     <div class="table-responsive" data-pane="recharge" style="display:none">
         <table class="table wallet-table">
@@ -151,6 +156,7 @@
             @empty<tr><td colspan="4"><div class="wallet-empty"><i class="fas fa-bolt fa-2x mb-2 d-block"></i>暂无充值记录</div></td></tr>@endforelse
             </tbody>
         </table>
+        @if($rechargeLogs->hasPages())<div class="wallet-pager">{{ $rechargeLogs->links('pagination::bootstrap-4') }}</div>@endif
     </div>
 </div>
 <script>
@@ -162,14 +168,14 @@ document.querySelectorAll('.rc-chip').forEach(function (chip) {
         if (input) input.value = chip.dataset.amt;
     });
 });
+function walletShowTab(tab) {
+    document.querySelectorAll('.wallet-tabs button').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
+    document.querySelectorAll('[data-pane]').forEach(function (p) { p.style.display = (p.dataset.pane === tab) ? '' : 'none'; });
+}
 document.querySelectorAll('.wallet-tabs button').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        document.querySelectorAll('.wallet-tabs button').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        document.querySelectorAll('[data-pane]').forEach(function (p) {
-            p.style.display = (p.dataset.pane === btn.dataset.tab) ? '' : 'none';
-        });
-    });
+    btn.addEventListener('click', function () { walletShowTab(btn.dataset.tab); });
 });
+// 充值记录翻页后 URL 带 rp，刷新回来时自动切到充值记录标签
+if (new URLSearchParams(location.search).has('rp')) { walletShowTab('recharge'); }
 </script>
 @endsection

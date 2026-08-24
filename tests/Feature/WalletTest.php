@@ -14,6 +14,19 @@ it('shows wallet with balance and orders', function () {
         ->assertOk()->assertSee('25.00')->assertSee('VIP①');
 });
 
+it('paginates purchase records 10 per page', function () {
+    $user = User::factory()->create();
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30]);
+    foreach (range(1, 12) as $i) {
+        Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'paid', 'period' => 'month']);
+    }
+
+    $res = $this->actingAs($user)->get('/user/wallet')->assertOk();
+    expect($res->viewData('orders')->count())->toBe(10);          // 每页 10 条
+    expect($res->viewData('orders')->hasPages())->toBeTrue();
+    $res->assertSee('op=2');                                       // 有第二页链接
+});
+
 it('mock-recharges balance and logs it', function () {
     $user = User::factory()->create(['money' => 0]);
 
