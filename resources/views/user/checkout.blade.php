@@ -23,6 +23,9 @@
 .pm-extra { margin-left: auto; color: #98a6ad; font-size: 13px; }
 .coupon-note { font-size: 12.5px; line-height: 1.9; }
 .coupon-note .code { color: #6777ef; font-weight: 700; letter-spacing: .5px; }
+.buy-notice { margin: 0; padding-left: 18px; }
+.buy-notice li { color: #54667a; font-size: 13px; line-height: 1.9; margin-bottom: 4px; }
+.buy-notice li::marker { color: #6777ef; }
 </style>
 @endsection
 @section('content')
@@ -119,6 +122,17 @@
                 <a href="/user/shop" class="btn btn-link btn-block text-muted">返回商店</a>
             </div>
         </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><h4><i class="fas fa-circle-info text-primary"></i> 购买须知</h4></div>
+    <div class="card-body">
+        <ul class="buy-notice">
+            <li>流量每 30 天重置一次（从购买日开始计算），未使用的流量不结转到下个周期。</li>
+            <li>轻量套餐为 90 天总计 120GB 流量，不重置（从购买日开始计算），未使用的流量不结转到下个周期。</li>
+            <li>如当前套餐未到期，新购套餐需等当前套餐过期后自动生效，具体生效时间可以去<a href="/user/wallet">我的钱包</a>里面查看。</li>
+            <li>如当月流量用完，要继续使用，请购买流量包（立即生效）或去官网首页点击立即结束当前套餐（需不是多月套餐）。</li>
+        </ul>
     </div>
 </div>
 <script>
