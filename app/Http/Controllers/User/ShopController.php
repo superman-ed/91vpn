@@ -76,6 +76,11 @@ class ShopController extends Controller
             throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架']);
         }
 
+        // 流量包需在有生效套餐时购买，否则加了流量也用不了（节点按到期日下发）
+        if ($plan->is_data_pack && ! auth()->user()->hasActivePackage()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '流量包需在有生效套餐时购买，请先购买套餐']);
+        }
+
         // 去重：同套餐已有待支付订单则复用，避免堆积
         $existing = Order::where('user_id', auth()->id())
             ->where('plan_id', $plan->id)

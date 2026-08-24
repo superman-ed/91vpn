@@ -22,3 +22,6 @@ Schedule::command('orders:activate-due')->everyTenMinutes();
 
 // 每 5 分钟支付对账：回调漏单则主动查单补发货
 Schedule::command('payment:reconcile')->everyFiveMinutes();
+
+// 每 10 分钟关闭超时未支付订单（关单前先查网关防误杀）
+Schedule::command('orders:expire-pending')->everyTenMinutes();

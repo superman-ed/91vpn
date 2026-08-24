@@ -27,6 +27,22 @@ it('shows total (no-reset) wording for none-type plans', function () {
         ->assertOk()->assertSee('90天总计 120GB 流量（不重置）');
 });
 
+it('blocks buying a data pack without an active package', function () {
+    $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
+    $pack = Plan::create(['name' => '50GB 包', 'price' => 15, 'transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0, 'speed_limit' => 0, 'ip_limit' => 0, 'duration_days' => 0, 'on_sale' => true]);
+
+    $this->actingAs($user)->post('/user/order/create', ['plan_id' => $pack->id])->assertSessionHasErrors('plan_id');
+    expect(Order::where('user_id', $user->id)->count())->toBe(0);
+});
+
+it('allows buying a data pack with an active package', function () {
+    $user = User::factory()->create(['class' => 1, 'class_expire' => now()->addDays(10)]);
+    $pack = Plan::create(['name' => '50GB 包', 'price' => 15, 'transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0, 'speed_limit' => 0, 'ip_limit' => 0, 'duration_days' => 0, 'on_sale' => true]);
+
+    $this->actingAs($user)->post('/user/order/create', ['plan_id' => $pack->id])->assertRedirect();
+    expect(Order::where('user_id', $user->id)->where('status', 'pending')->count())->toBe(1);
+});
+
 it('creates a pending order', function () {
     $user = User::factory()->create();
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);

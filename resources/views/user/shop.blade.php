@@ -37,6 +37,9 @@
 </style>
 @endsection
 @section('content')
+@if($errors->has('plan_id'))
+<div class="alert alert-danger">{{ $errors->first('plan_id') }}</div>
+@endif
 @if($groups->isEmpty() && $dataPacks->isEmpty())
     <div class="card"><div class="card-body text-center text-muted py-5">暂无在售套餐，敬请期待。</div></div>
 @else
