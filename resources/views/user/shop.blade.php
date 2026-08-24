@@ -54,17 +54,6 @@
         <div class="card plan-card">
             <div class="plan-head"><h4>{{ $b->name }}</h4></div>
             <div class="card-body">
-                <div class="dur-group">
-                    @foreach($g['durations'] as $d)
-                    <button type="button"
-                        class="dur-btn {{ $loop->first ? 'active' : '' }}"
-                        onclick="pickDuration(this)"
-                        data-plan="{{ $d['plan_id'] }}" data-price="{{ $d['price'] }}"
-                        data-days="{{ $d['days'] }}" data-stock="{{ $d['stock'] }}"
-                        data-traffic="{{ $trafficText($d) }}"
-                        data-soldout="{{ $d['sold_out'] ? 1 : 0 }}">{{ $d['label'] }}</button>
-                    @endforeach
-                </div>
                 <div class="text-center mb-3">
                     <span class="plan-price">¥<span data-price-out>{{ $first['price'] }}</span></span>
                     <div class="plan-days">有效期 <span data-days-out>{{ $first['days'] }}</span> 天</div>
@@ -80,7 +69,17 @@
                 </div>
                 <form method="POST" action="/user/order/create" class="mt-auto">@csrf
                     <input type="hidden" name="plan_id" value="{{ $first['plan_id'] }}" data-plan-input>
-                    <input type="text" name="coupon" class="form-control coupon-input mb-2" placeholder="优惠码（选填）" data-coupon style="{{ $first['sold_out'] ? 'display:none' : '' }}">
+                    <div class="dur-group">
+                        @foreach($g['durations'] as $d)
+                        <button type="button"
+                            class="dur-btn {{ $loop->first ? 'active' : '' }}"
+                            onclick="pickDuration(this)"
+                            data-plan="{{ $d['plan_id'] }}" data-price="{{ $d['price'] }}"
+                            data-days="{{ $d['days'] }}" data-stock="{{ $d['stock'] }}"
+                            data-traffic="{{ $trafficText($d) }}"
+                            data-soldout="{{ $d['sold_out'] ? 1 : 0 }}">{{ $d['label'] }}</button>
+                        @endforeach
+                    </div>
                     <button class="btn buy-btn btn-block" data-buy style="{{ $first['sold_out'] ? 'display:none' : '' }}"><i class="fas fa-shopping-cart"></i> 立即购买</button>
                     <button type="button" class="btn btn-light btn-block" data-soldout-btn disabled style="{{ $first['sold_out'] ? '' : 'display:none' }}">已售罄</button>
                 </form>
@@ -103,7 +102,6 @@ function pickDuration(btn){
     if (stock > 0) { stockLine.style.display = ''; card.querySelector('[data-stock-num]').textContent = stock; }
     else { stockLine.style.display = 'none'; }
     var soldOut = btn.dataset.soldout === '1';
-    card.querySelector('[data-coupon]').style.display = soldOut ? 'none' : '';
     card.querySelector('[data-buy]').style.display = soldOut ? 'none' : '';
     card.querySelector('[data-soldout-btn]').style.display = soldOut ? '' : 'none';
 }
