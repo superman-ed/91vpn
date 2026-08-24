@@ -50,6 +50,12 @@
 .flow-ic { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; margin-right: 8px; }
 .flow-ic.in { background: #63c76a; } .flow-ic.out { background: #fc544b; }
 .wallet-empty { text-align: center; color: #98a6ad; padding: 38px 0; }
+.wallet-tabs { display: inline-flex; gap: 4px; background: #f1f3fb; padding: 4px; border-radius: 9px; }
+.wallet-tabs button {
+    border: none; background: transparent; color: #7a869a; font-weight: 600; font-size: 13px;
+    padding: 6px 16px; border-radius: 7px; cursor: pointer; transition: all .15s;
+}
+.wallet-tabs button.active { background: #6777ef; color: #fff; box-shadow: 0 2px 6px rgba(103,119,239,.3); }
 .badge-pill-soft { padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 12px; }
 </style>
 @endsection
@@ -94,9 +100,14 @@
     </div>
 </div>
 
-<div class="card wallet-panel mb-4">
-    <div class="card-header"><h4><i class="fas fa-shopping-bag text-primary"></i> 购买记录</h4></div>
-    <div class="table-responsive">
+<div class="card wallet-panel">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="wallet-tabs">
+            <button type="button" class="active" data-tab="orders"><i class="fas fa-shopping-bag"></i> 购买记录</button>
+            <button type="button" data-tab="recharge"><i class="fas fa-bolt"></i> 充值记录</button>
+        </div>
+    </div>
+    <div class="table-responsive" data-pane="orders">
         <table class="table wallet-table">
             <thead><tr><th>商品</th><th>金额</th><th>状态</th><th>操作</th><th>时间</th></tr></thead>
             <tbody>
@@ -126,24 +137,18 @@
             </tbody>
         </table>
     </div>
-</div>
-
-<div class="card wallet-panel">
-    <div class="card-header"><h4><i class="fas fa-exchange-alt text-primary"></i> 余额流水</h4></div>
-    <div class="table-responsive">
+    <div class="table-responsive" data-pane="recharge" style="display:none">
         <table class="table wallet-table">
-            <thead><tr><th>类型</th><th>变动</th><th>变动后</th><th>备注</th><th>时间</th></tr></thead>
+            <thead><tr><th>金额</th><th>变动后余额</th><th>备注</th><th>时间</th></tr></thead>
             <tbody>
-            @forelse($balanceLogs as $l)
-            @php $isIn = $l->amount > 0; @endphp
+            @forelse($rechargeLogs as $l)
             <tr>
-                <td><span class="flow-ic {{ $isIn ? 'in' : 'out' }}"><i class="fas fa-{{ $isIn ? 'arrow-down' : 'arrow-up' }}"></i></span>{{ $l->type === 'recharge' ? '充值' : '消费' }}</td>
-                <td class="{{ $isIn ? 'amt-plus' : 'amt-minus' }}">{{ $isIn ? '+' : '' }}{{ number_format($l->amount, 2) }}</td>
+                <td class="amt-plus"><span class="flow-ic in"><i class="fas fa-arrow-down"></i></span>+{{ number_format($l->amount, 2) }}</td>
                 <td style="color:#34395e;font-weight:600">¥{{ number_format($l->balance_after, 2) }}</td>
                 <td>{{ $l->remark }}</td>
                 <td class="text-muted">{{ $l->created_at?->format('Y-m-d H:i') }}</td>
             </tr>
-            @empty<tr><td colspan="5"><div class="wallet-empty"><i class="fas fa-receipt fa-2x mb-2 d-block"></i>暂无余额流水</div></td></tr>@endforelse
+            @empty<tr><td colspan="4"><div class="wallet-empty"><i class="fas fa-bolt fa-2x mb-2 d-block"></i>暂无充值记录</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>
@@ -155,6 +160,15 @@ document.querySelectorAll('.rc-chip').forEach(function (chip) {
         chip.classList.add('active');
         var input = document.querySelector('#rechargeForm input[name="amount"]');
         if (input) input.value = chip.dataset.amt;
+    });
+});
+document.querySelectorAll('.wallet-tabs button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        document.querySelectorAll('.wallet-tabs button').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('[data-pane]').forEach(function (p) {
+            p.style.display = (p.dataset.pane === btn.dataset.tab) ? '' : 'none';
+        });
     });
 });
 </script>

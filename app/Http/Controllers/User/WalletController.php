@@ -20,6 +20,7 @@ class WalletController extends Controller
             'user' => $user,
             'orders' => $user->orders()->with('plan')->latest()->get(),
             'balanceLogs' => $user->balanceLogs()->latest()->take(20)->get(),
+            'rechargeLogs' => $user->balanceLogs()->where('type', 'recharge')->latest()->take(50)->get(),
             'totalRecharge' => (float) $user->balanceLogs()->where('type', 'recharge')->sum('amount'),
             'totalConsume' => abs((float) $user->balanceLogs()->where('type', 'consume')->sum('amount')),
             'totalRebate' => (float) \App\Models\Payback::where('user_id', $user->id)->sum('amount'),
