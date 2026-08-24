@@ -7,7 +7,9 @@
 <div class="form-group col-md-6"><label>名称</label><input name="name" value="{{ old('name',$plan->name) }}" class="form-control" required></div>
 <div class="form-group col-md-6"><label>价格 ¥</label><input name="price" type="number" step="0.01" value="{{ old('price',$plan->price) }}" class="form-control" required></div>
 <div class="form-group col-md-4"><label>周期</label><select name="period" class="form-control">@foreach(['month'=>'月','quarter'=>'季','half_year'=>'半年','year'=>'年'] as $k=>$v)<option value="{{ $k }}" @selected(old('period',$plan->period)===$k)>{{ $v }}</option>@endforeach</select></div>
-<div class="form-group col-md-4"><label>流量 GB</label><input name="transfer_gb" type="number" value="{{ old('transfer_gb',$plan->transfer_gb) }}" class="form-control" required></div>
+<div class="form-group col-md-4"><label>流量 GB（月配额/总量）</label><input name="transfer_gb" type="number" value="{{ old('transfer_gb',$plan->transfer_gb) }}" class="form-control" required></div>
+<div class="form-group col-md-4"><label>流量重置</label><select name="reset_type" class="form-control"><option value="monthly" @selected(old('reset_type',$plan->reset_type ?? 'monthly')==='monthly')>每30天重置</option><option value="none" @selected(old('reset_type',$plan->reset_type)==='none')>总量不重置</option></select></div>
+<div class="form-group col-md-4"><label>套餐类型</label><select name="is_data_pack" class="form-control"><option value="0" @selected(!old('is_data_pack',$plan->is_data_pack ?? false))>普通套餐</option><option value="1" @selected(old('is_data_pack',$plan->is_data_pack ?? false))>流量包（立即加流量）</option></select></div>
 <div class="form-group col-md-4"><label>等级</label><input name="class" type="number" value="{{ old('class',$plan->class ?? 1) }}" class="form-control" required></div>
 <div class="form-group col-md-4"><label>时长（天）</label><input name="duration_days" type="number" value="{{ old('duration_days',$plan->duration_days) }}" class="form-control" required></div>
 <div class="form-group col-md-4"><label>限速 Mbps（0不限）</label><input name="speed_limit" type="number" value="{{ old('speed_limit',$plan->speed_limit ?? 0) }}" class="form-control"></div>

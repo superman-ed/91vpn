@@ -12,6 +12,20 @@ it('lists on-sale plans in shop', function () {
         ->assertOk()->assertSee('VIP①')->assertDontSee('下架套餐');
 });
 
+it('shows data packs in their own immediate-effect section', function () {
+    Plan::create(['name' => '10GB 流量包', 'price' => 8, 'transfer_gb' => 10, 'is_data_pack' => true, 'class' => 0, 'speed_limit' => 0, 'ip_limit' => 0, 'duration_days' => 0, 'on_sale' => true]);
+
+    $this->actingAs(User::factory()->create())->get('/user/shop')
+        ->assertOk()->assertSee('流量包（立即生效）')->assertSee('10GB 流量包')->assertSee('购买流量包');
+});
+
+it('shows total (no-reset) wording for none-type plans', function () {
+    Plan::create(['name' => '轻量套餐', 'price' => 60, 'period' => 'quarter', 'transfer_gb' => 120, 'reset_type' => 'none', 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 3, 'duration_days' => 90, 'on_sale' => true]);
+
+    $this->actingAs(User::factory()->create())->get('/user/shop')
+        ->assertOk()->assertSee('90天总计 120GB 流量（不重置）');
+});
+
 it('creates a pending order', function () {
     $user = User::factory()->create();
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);

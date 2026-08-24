@@ -17,6 +17,30 @@ it('batch-creates same-named plans for each priced duration', function () {
     expect(Plan::where('name', 'VIP①')->where('period', 'year')->first()->duration_days)->toBe(365);
 });
 
+it('creates a data pack from the batch form', function () {
+    $this->actingAs($this->admin)->post('/admin/plans', [
+        'name' => '10GB 流量包', 'transfer_gb' => 10, 'class' => 1, 'is_data_pack' => 1, 'on_sale' => 1,
+        'prices' => ['month' => 8, 'quarter' => '', 'half_year' => '', 'year' => ''],
+    ])->assertRedirect('/admin/plans');
+
+    $pack = Plan::where('name', '10GB 流量包')->first();
+    expect($pack)->not->toBeNull();
+    expect($pack->is_data_pack)->toBeTrue();
+    expect((float) $pack->price)->toBe(8.0);
+    expect(Plan::where('name', '10GB 流量包')->count())->toBe(1);   // 单件，不建4档
+});
+
+it('creates a total (none-reset) plan group', function () {
+    $this->actingAs($this->admin)->post('/admin/plans', [
+        'name' => '轻量套餐', 'transfer_gb' => 120, 'class' => 1, 'reset_type' => 'none', 'on_sale' => 1,
+        'prices' => ['month' => '', 'quarter' => 60, 'half_year' => '', 'year' => ''],
+    ])->assertRedirect('/admin/plans');
+
+    $plan = Plan::where('name', '轻量套餐')->where('period', 'quarter')->first();
+    expect($plan->reset_type)->toBe('none');
+    expect($plan->duration_days)->toBe(90);
+});
+
 it('rejects a plan group with no prices filled', function () {
     $this->actingAs($this->admin)->post('/admin/plans', [
         'name' => 'VIP①', 'transfer_gb' => 100, 'class' => 1, 'prices' => ['month' => '', 'quarter' => '', 'half_year' => '', 'year' => ''],

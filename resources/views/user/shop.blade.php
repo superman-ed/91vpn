@@ -37,18 +37,24 @@
 </style>
 @endsection
 @section('content')
-@if($groups->isEmpty())
+@if($groups->isEmpty() && $dataPacks->isEmpty())
     <div class="card"><div class="card-body text-center text-muted py-5">暂无在售套餐，敬请期待。</div></div>
 @else
+@if($groups->isNotEmpty())
 <div class="row shop-row">
     @foreach($groups as $g)
     @php
         $b = $g['benefits'];
         $first = $g['durations']->first();
         $cnMonths = [1 => '一', 3 => '三', 6 => '六', 12 => '十二'];
-        $trafficText = fn ($d) => $d['months'] <= 1
-            ? '每月 '.$d['total_gb'].'GB 流量'
-            : ($cnMonths[$d['months']] ?? $d['months']).'个月总计 '.$d['total_gb'].'GB 流量';
+        $trafficText = function ($d) use ($cnMonths) {
+            if (! $d['monthly_reset']) {
+                return $d['days'].'天总计 '.$d['total_gb'].'GB 流量（不重置）';
+            }
+            return $d['months'] <= 1
+                ? '每月 '.$d['total_gb'].'GB 流量'
+                : ($cnMonths[$d['months']] ?? $d['months']).'个月总计 '.$d['total_gb'].'GB 流量';
+        };
     @endphp
     <div class="col-6 col-md-4 col-lg-3">
         <div class="card plan-card">
@@ -88,6 +94,42 @@
     </div>
     @endforeach
 </div>
+@endif
+
+@if($dataPacks->isNotEmpty())
+<h5 class="mb-3 mt-2"><i class="fas fa-bolt text-warning"></i> 流量包（立即生效）</h5>
+<div class="row shop-row">
+    @foreach($dataPacks as $p)
+    <div class="col-6 col-md-4 col-lg-3">
+        <div class="card plan-card">
+            <div class="plan-head" style="background:linear-gradient(135deg,#ffb020 0%,#ff9f1a 100%)"><h4>{{ $p['name'] }}</h4></div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <span class="plan-price">+{{ $p['transfer_gb'] }}<small style="font-size:14px">GB</small></span>
+                    <div class="plan-days">立即加到当前套餐</div>
+                </div>
+                <div class="mb-3">
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>支付后立即生效，不占用排队</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>不改变套餐等级与到期时间</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>本周期用完流量的加油首选</span></div>
+                    <div class="plan-feature text-warning" style="{{ $p['stock'] > 0 ? '' : 'display:none' }}"><i class="fas fa-fire" style="color:#ffa426"></i><span>限量剩余 {{ max(0, $p['stock']) }} 份</span></div>
+                </div>
+                <div class="text-center mb-2"><span class="plan-price" style="font-size:22px">¥{{ $p['price'] }}</span></div>
+                <form method="POST" action="/user/order/create" class="mt-auto">@csrf
+                    <input type="hidden" name="plan_id" value="{{ $p['plan_id'] }}">
+                    @if($p['sold_out'])
+                    <button type="button" class="btn btn-light btn-block" disabled>已售罄</button>
+                    @else
+                    <button class="btn buy-btn btn-block"><i class="fas fa-shopping-cart"></i> 购买流量包</button>
+                    @endif
+                </form>
+            </div>
+        </div>
+    </div>
+    @endforeach
+</div>
+@endif
+@endif
 <script>
 function pickDuration(btn){
     var card = btn.closest('.plan-card');
@@ -106,5 +148,4 @@ function pickDuration(btn){
     card.querySelector('[data-soldout-btn]').style.display = soldOut ? '' : 'none';
 }
 </script>
-@endif
 @endsection

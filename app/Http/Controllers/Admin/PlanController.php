@@ -31,12 +31,29 @@ class PlanController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'transfer_gb' => ['required', 'integer', 'min:0'],
+            'reset_type' => ['nullable', 'in:monthly,none'],
             'class' => ['required', 'integer', 'min:0', 'max:9'],
             'speed_limit' => ['nullable', 'integer', 'min:0'],
             'ip_limit' => ['nullable', 'integer', 'min:0'],
             'sort' => ['nullable', 'integer'],
             'prices' => ['required', 'array'],
         ]);
+
+        // 流量包：单件，仅取“1个月”价格，立即生效不排队
+        if ($request->boolean('is_data_pack')) {
+            $price = $data['prices']['month'] ?? null;
+            if ($price === null || $price === '') {
+                return back()->withErrors(['prices' => '流量包请在「1个月」那格填写价格'])->withInput();
+            }
+            Plan::create([
+                'name' => $data['name'], 'price' => $price, 'period' => 'month', 'duration_days' => 0,
+                'transfer_gb' => $data['transfer_gb'], 'is_data_pack' => true, 'reset_type' => 'monthly',
+                'class' => 0, 'speed_limit' => 0, 'ip_limit' => 0,
+                'sort' => $data['sort'] ?? 0, 'on_sale' => $request->boolean('on_sale'),
+            ]);
+
+            return redirect('/admin/plans')->with('status', '流量包已创建');
+        }
 
         $created = 0;
         foreach (self::PERIOD_DAYS as $period => $days) {
@@ -51,6 +68,7 @@ class PlanController extends Controller
                 'period' => $period,
                 'duration_days' => $days,
                 'transfer_gb' => $data['transfer_gb'],
+                'reset_type' => $data['reset_type'] ?? 'monthly',
                 'class' => $data['class'],
                 'speed_limit' => $data['speed_limit'] ?? 0,
                 'ip_limit' => $data['ip_limit'] ?? 0,
@@ -91,6 +109,7 @@ class PlanController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'period' => ['required', 'string'],
             'transfer_gb' => ['required', 'integer', 'min:0'],
+            'reset_type' => ['nullable', 'in:monthly,none'],
             'class' => ['required', 'integer', 'min:0', 'max:9'],
             'speed_limit' => ['nullable', 'integer', 'min:0'],
             'ip_limit' => ['nullable', 'integer', 'min:0'],
@@ -98,6 +117,8 @@ class PlanController extends Controller
             'sort' => ['nullable', 'integer'],
         ]);
         $data['on_sale'] = $request->boolean('on_sale');
+        $data['is_data_pack'] = $request->boolean('is_data_pack');
+        $data['reset_type'] ??= 'monthly';
         $data['speed_limit'] ??= 0;
         $data['ip_limit'] ??= 0;
         return $data;
