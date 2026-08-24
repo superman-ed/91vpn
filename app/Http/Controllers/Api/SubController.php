@@ -29,7 +29,7 @@ class SubController extends Controller
 
         $isClash = ! in_array($flag, ['v2ray', 'v2rayn', 'sub', 'base64'], true);
 
-        $this->recordFetch($user, $request);
+        $this->recordFetch($user, $request, $flag);
 
         return response($body, Response::HTTP_OK, [
             'Content-Type' => ($isClash ? 'application/yaml' : 'text/plain').'; charset=utf-8',
@@ -51,10 +51,11 @@ class SubController extends Controller
         };
     }
 
-    private function recordFetch(User $user, Request $request): void
+    private function recordFetch(User $user, Request $request, string $flag): void
     {
         \App\Models\SubscribeLog::create([
             'user_id' => $user->id,
+            'type' => $flag,
             'ip' => $request->ip(),
             'location' => \App\Support\GeoIp::locate($request->ip()),
             'client' => substr((string) $request->userAgent(), 0, 255),

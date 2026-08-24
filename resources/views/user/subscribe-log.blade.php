@@ -14,7 +14,8 @@
 .sl-client { display: inline-flex; align-items: center; gap: 9px; }
 .sl-cic { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; flex-shrink: 0; }
 .sl-cname { font-weight: 600; color: #34395e; }
-.sl-ua { font-size: 11px; color: #b0bac5; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-type { display: inline-block; padding: 3px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.sl-ua { display: inline-block; font-size: 12.5px; color: #7a869a; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .sl-ip { font-family: SFMono-Regular, Menlo, Consolas, monospace; color: #34395e; }
 .sl-empty { text-align: center; color: #98a6ad; padding: 44px 0; }
 .sl-foot { padding: 14px 22px; color: #98a6ad; font-size: 12.5px; border-top: 1px solid #f4f6fb; }
@@ -22,21 +23,7 @@
 @endsection
 @section('content')
 @php
-    $parse = function ($ua) {
-        $ua = (string) $ua;
-        $map = [
-            'clash' => ['Clash', '#3fae57'], 'mihomo' => ['Mihomo', '#3fae57'], 'stash' => ['Stash', '#3fae57'],
-            'shadowrocket' => ['Shadowrocket', '#3a6ee6'], 'quantumult' => ['Quantumult', '#6777ef'],
-            'surge' => ['Surge', '#e6912a'], 'loon' => ['Loon', '#7c4ddb'], 'sing-box' => ['sing-box', '#34395e'],
-            'v2ray' => ['V2Ray', '#e64b4b'], 'shadowsocks' => ['Shadowsocks', '#3aa0c7'],
-        ];
-        foreach ($map as $kw => $c) {
-            if (stripos($ua, $kw) !== false) {
-                return $c;
-            }
-        }
-        return ['其它客户端', '#98a6ad'];
-    };
+    $typeColor = ['clash' => '#3fae57', 'v2ray' => '#e64b4b', 'v2rayn' => '#e64b4b', 'sub' => '#3a6ee6', 'base64' => '#7c4ddb', 'config' => '#6777ef'];
 @endphp
 <div class="sl-bar">
     <h4><i class="fas fa-rss text-primary"></i> 订阅使用记录</h4>
@@ -46,25 +33,18 @@
 <div class="card sl-panel">
     <div class="table-responsive">
         <table class="table sl-table">
-            <thead><tr><th>客户端</th><th>IP 地址</th><th>地点</th><th>时间</th></tr></thead>
+            <thead><tr><th>ID</th><th>类型</th><th>IP</th><th>地点</th><th>日期</th><th>User-Agent</th></tr></thead>
             <tbody>
             @forelse($logs as $l)
-            @php $c = $parse($l->client); @endphp
             <tr>
-                <td>
-                    <span class="sl-client">
-                        <span class="sl-cic" style="background:{{ $c[1] }}"><i class="fas fa-mobile-screen-button"></i></span>
-                        <span>
-                            <span class="sl-cname">{{ $c[0] }}</span>
-                            @if($l->client)<br><span class="sl-ua" title="{{ $l->client }}">{{ $l->client }}</span>@endif
-                        </span>
-                    </span>
-                </td>
+                <td class="text-muted">#{{ $l->id }}</td>
+                <td><span class="sl-type" style="background:{{ ($typeColor[$l->type] ?? '#98a6ad').'22' }};color:{{ $typeColor[$l->type] ?? '#98a6ad' }}">{{ $l->type ?: '—' }}</span></td>
                 <td><span class="sl-ip">{{ $l->ip }}</span></td>
                 <td>{{ $l->location ?: '—' }}</td>
                 <td class="text-muted">{{ $l->fetched_at?->format('Y-m-d H:i:s') }}</td>
+                <td><span class="sl-ua" title="{{ $l->client }}">{{ $l->client ?: '—' }}</span></td>
             </tr>
-            @empty<tr><td colspan="4"><div class="sl-empty"><i class="fas fa-rss fa-2x mb-2 d-block"></i>暂无订阅记录</div></td></tr>@endforelse
+            @empty<tr><td colspan="6"><div class="sl-empty"><i class="fas fa-rss fa-2x mb-2 d-block"></i>暂无订阅记录</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>
