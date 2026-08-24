@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/order/{order}', [ShopController::class, 'checkout'])->name('user.checkout');
     Route::post('/user/order/{order}/coupon', [ShopController::class, 'applyCoupon']);
     Route::post('/user/order/{order}/pay', [ShopController::class, 'pay']);
+    Route::post('/user/subscription/end', [ShopController::class, 'endSubscription']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
     Route::get('/user/wallet', [WalletController::class, 'index'])->name('user.wallet');
     Route::post('/user/wallet/recharge', [WalletController::class, 'recharge']);

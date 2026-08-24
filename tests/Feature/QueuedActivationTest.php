@@ -84,6 +84,32 @@ it('applies a data pack immediately without touching expiry or class', function 
     expect($user->fresh()->class_expire->toDateString())->toBe(now()->addDays(10)->toDateString());
 });
 
+it('ends a single-month package immediately and activates the queued one', function () {
+    $user = User::factory()->create(['class' => 1, 'class_expire' => now()->addDays(10), 'transfer_enable' => 0]);
+    // 当前生效：单月套餐（已发货）
+    Order::create(['user_id' => $user->id, 'plan_id' => makePlan(['period' => 'month'])->id, 'amount' => 30, 'status' => 'paid', 'period' => 'month', 'delivered_at' => now()->subDay()]);
+    // 排队：更高等级套餐
+    $queued = Order::create(['user_id' => $user->id, 'plan_id' => makePlan(['class' => 2, 'transfer_gb' => 300])->id, 'amount' => 30, 'status' => 'queued', 'period' => 'month', 'activate_at' => now()->addDays(10)]);
+
+    $this->actingAs($user)->post('/user/subscription/end')->assertRedirect();
+
+    expect($queued->fresh()->status)->toBe('paid');
+    expect($user->fresh()->class)->toBe(2);
+    expect($user->fresh()->transfer_enable)->toBe(300 * 1024 ** 3);
+});
+
+it('refuses to end a multi-month package', function () {
+    $user = User::factory()->create(['class' => 1, 'class_expire' => now()->addDays(60)]);
+    Order::create(['user_id' => $user->id, 'plan_id' => makePlan(['period' => 'quarter', 'duration_days' => 90])->id, 'amount' => 85, 'status' => 'paid', 'period' => 'quarter', 'delivered_at' => now()->subDay()]);
+    $queued = Order::create(['user_id' => $user->id, 'plan_id' => makePlan()->id, 'amount' => 30, 'status' => 'queued', 'period' => 'month', 'activate_at' => now()->addDays(60)]);
+
+    $this->actingAs($user)->post('/user/subscription/end')->assertRedirect();
+
+    // 多月套餐不可立即结束：一切不变
+    expect($user->fresh()->class)->toBe(1);
+    expect($queued->fresh()->status)->toBe('queued');
+});
+
 it('sets no monthly reset for total (none) type plans', function () {
     $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
     $plan = makePlan(['reset_type' => 'none', 'period' => 'quarter', 'transfer_gb' => 120, 'duration_days' => 90]);

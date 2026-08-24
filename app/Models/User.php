@@ -158,4 +158,32 @@ class User extends Authenticatable
             && $this->class_expire !== null
             && $this->class_expire->isFuture();
     }
+
+    // 是否有生效中的付费套餐
+    public function hasActivePackage(): bool
+    {
+        return $this->class > 0 && $this->class_expire !== null && $this->class_expire->isFuture();
+    }
+
+    // 当前生效套餐的周期（取最近一次已发货订单），无则 null
+    public function currentPeriod(): ?string
+    {
+        return $this->orders()
+            ->where('status', 'paid')
+            ->whereNotNull('delivered_at')
+            ->latest('delivered_at')
+            ->value('period');
+    }
+
+    // 是否可“立即结束当前套餐”：生效中且当前为单月套餐（非多月）
+    public function canEndCurrentPackage(): bool
+    {
+        return $this->hasActivePackage() && $this->currentPeriod() === 'month';
+    }
+
+    // 排队中的订单（已支付待生效）
+    public function queuedOrders(): HasMany
+    {
+        return $this->orders()->where('status', 'queued')->orderBy('activate_at');
+    }
 }

@@ -25,6 +25,25 @@
 </form>
 @endsection
 @section('content')
+@php $queued = $user->queuedOrders()->with('plan')->get(); @endphp
+@if($queued->isNotEmpty() || $user->canEndCurrentPackage())
+<div class="card">
+    <div class="card-body d-flex flex-wrap align-items-center justify-content-between" style="gap:10px">
+        <div class="text-muted">
+            @if($queued->isNotEmpty())
+                <i class="fas fa-hourglass-half text-info"></i> 有 {{ $queued->count() }} 个套餐排队中，最近一个预计 <strong>{{ $queued->first()->activate_at?->format('Y-m-d H:i') }}</strong> 生效（当前套餐到期后自动切换，详情见<a href="/user/wallet">我的钱包</a>）。
+            @else
+                <i class="fas fa-circle-check text-success"></i> 当前套餐生效中。
+            @endif
+        </div>
+        @if($user->canEndCurrentPackage())
+        <form method="POST" action="/user/subscription/end" onsubmit="return confirm('确定立即结束当前套餐？当前套餐剩余时长将作废，排队套餐立即生效。')">@csrf
+            <button class="btn btn-outline-danger btn-sm"><i class="fas fa-power-off"></i> 立即结束当前套餐</button>
+        </form>
+        @endif
+    </div>
+</div>
+@endif
 <div class="row stat-row">
     <div class="col-lg-3 col-md-6 col-sm-6 col-12">
         <div class="card stat-card">

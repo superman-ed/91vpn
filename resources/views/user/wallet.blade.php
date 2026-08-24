@@ -30,9 +30,10 @@
             @forelse($orders as $o)
             <tr>
                 <td>{{ $o->plan?->name ?? '—' }}</td><td>¥{{ number_format($o->amount,2) }}</td>
-                <td>@if($o->status==='paid')<span class="badge badge-success">已支付</span>@elseif($o->status==='pending')<span class="badge badge-warning">待支付</span>@else<span class="badge badge-secondary">已取消</span>@endif</td>
+                <td>@if($o->status==='paid')<span class="badge badge-success">已支付</span>@elseif($o->status==='queued')<span class="badge badge-info">排队中</span>@elseif($o->status==='pending')<span class="badge badge-warning">待支付</span>@else<span class="badge badge-secondary">已取消</span>@endif</td>
                 <td>@if($o->status==='pending')
                     <a href="/user/order/{{ $o->id }}" class="btn btn-primary btn-sm">去支付</a>
+                    @elseif($o->status==='queued')<span class="text-muted">预计 {{ $o->activate_at?->format('Y-m-d H:i') }} 生效</span>
                     @else — @endif</td>
                 <td>{{ $o->created_at?->format('Y-m-d H:i') }}</td>
             </tr>

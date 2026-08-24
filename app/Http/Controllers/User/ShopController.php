@@ -158,6 +158,20 @@ class ShopController extends Controller
         return redirect('/user')->with('status', "{$channel}支付成功，套餐已到账！");
     }
 
+    /** POST /user/subscription/end —— 立即结束当前套餐（仅单月套餐，让排队套餐生效） */
+    public function endSubscription(BillingService $billing)
+    {
+        $user = auth()->user();
+        if (! $user->canEndCurrentPackage()) {
+            return back()->with('status', '当前套餐不可立即结束（仅单月套餐可用）');
+        }
+
+        $billing->endCurrentPackage($user);
+        $activated = $user->fresh()->hasActivePackage();
+
+        return back()->with('status', $activated ? '当前套餐已结束，排队套餐已生效' : '当前套餐已结束');
+    }
+
     /** POST /user/order/{order}/mock-pay —— 模拟支付并发货（开发用） */
     public function mockPay(Order $order, BillingService $billing)
     {

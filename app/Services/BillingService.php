@@ -116,6 +116,31 @@ class BillingService
         });
     }
 
+    /**
+     * 立即结束当前套餐：把当前套餐置为过期，并让排队队列从现在起重新排期，
+     * 队首若已到期则立即激活。用于“流量用完/提前换套餐”。
+     */
+    public function endCurrentPackage(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            $user->update(['class_expire' => now(), 'next_reset_at' => null]);
+
+            // 队列从现在起重新排期
+            $base = now();
+            $queued = $user->orders()->where('status', 'queued')->with('plan')->orderBy('activate_at')->get();
+            foreach ($queued as $order) {
+                $order->update(['activate_at' => $base]);
+                $base = $base->copy()->addDays($order->plan->duration_days ?? 0);
+            }
+
+            // 队首（activate_at=now）立即激活
+            $first = $user->orders()->where('status', 'queued')->where('activate_at', '<=', now())->orderBy('activate_at')->first();
+            if ($first) {
+                $this->activate($first);
+            }
+        });
+    }
+
     /** 余额支付一笔待支付订单：校验余额→扣款记流水→发货 */
     public function payWithBalance(Order $order): void
     {
