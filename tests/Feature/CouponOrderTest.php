@@ -28,6 +28,30 @@ it('applies a valid coupon on checkout and counts it only after payment', functi
     expect((float) $user->fresh()->money)->toBe(76.0);         // 100 - 24
 });
 
+it('rejects a coupon whose period does not match the order', function () {
+    $user = User::factory()->create();
+    // 月付订单
+    $monthly = Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
+    $order = pendingOrder($user, $monthly);
+    // 仅限半年/年付的券
+    Coupon::create(['code' => 'HALFYEAR', 'type' => 'percent', 'value' => 5, 'periods' => ['half_year', 'year'], 'max_use' => -1, 'enabled' => true]);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/coupon", ['coupon' => 'HALFYEAR'])
+        ->assertSessionHasErrors('coupon');
+    expect($order->fresh()->coupon_id)->toBeNull();
+    expect((float) $order->fresh()->amount)->toBe(30.0);
+});
+
+it('applies a period-restricted coupon when the order period matches', function () {
+    $user = User::factory()->create();
+    $halfYear = Plan::create(['name' => 'VIP①', 'price' => 160, 'period' => 'half_year', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 180, 'on_sale' => true]);
+    $order = pendingOrder($user, $halfYear);
+    Coupon::create(['code' => 'HALFYEAR', 'type' => 'percent', 'value' => 5, 'periods' => ['half_year', 'year'], 'max_use' => -1, 'enabled' => true]);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/coupon", ['coupon' => 'HALFYEAR'])->assertRedirect("/user/order/{$order->id}");
+    expect((float) $order->fresh()->amount)->toBe(152.0);   // 160 * 0.95
+});
+
 it('removes a coupon and restores full price when submitted empty', function () {
     $user = User::factory()->create();
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
@@ -70,12 +94,13 @@ it('admin edits a coupon', function () {
     $this->actingAs($admin)->get("/admin/coupons/{$coupon->id}/edit")->assertOk()->assertSee('HALF95');
 
     $this->actingAs($admin)->put("/admin/coupons/{$coupon->id}", [
-        'code' => 'HALF95', 'note' => '新文案', 'type' => 'percent', 'value' => 8, 'max_use' => 50, 'enabled' => 0, 'show_on_checkout' => 1,
+        'code' => 'HALF95', 'note' => '新文案', 'type' => 'percent', 'value' => 8, 'periods' => ['half_year', 'year'], 'max_use' => 50, 'enabled' => 0, 'show_on_checkout' => 1,
     ])->assertRedirect('/admin/coupons');
 
     $coupon->refresh();
     expect($coupon->note)->toBe('新文案');
     expect((float) $coupon->value)->toBe(8.0);
+    expect($coupon->periods)->toBe(['half_year', 'year']);
     expect($coupon->max_use)->toBe(50);
     expect($coupon->enabled)->toBeFalse();
     expect($coupon->show_on_checkout)->toBeTrue();

@@ -53,11 +53,14 @@ class CouponController extends Controller
             'note' => ['nullable', 'string', 'max:100'],
             'type' => ['required', 'in:percent,amount'],
             'value' => ['required', 'numeric', 'min:0'],
+            'periods' => ['nullable', 'array'],
+            'periods.*' => ['in:month,quarter,half_year,year'],
             'max_use' => ['nullable', 'integer'],
             'expires_at' => ['nullable', 'date'],
             'enabled' => ['nullable', 'boolean'],
             'show_on_checkout' => ['nullable', 'boolean'],
         ]);
+        $data['periods'] = ! empty($data['periods']) ? array_values($data['periods']) : null;   // 空=不限周期
         $data['max_use'] = $data['max_use'] ?? -1;
         $data['enabled'] = array_key_exists('enabled', $data) ? (bool) $data['enabled'] : true;
         $data['show_on_checkout'] = (bool) ($data['show_on_checkout'] ?? false);

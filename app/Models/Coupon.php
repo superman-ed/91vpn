@@ -6,9 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
-    protected $fillable = ['code', 'note', 'type', 'value', 'max_use', 'used', 'expires_at', 'enabled', 'show_on_checkout'];
+    protected $fillable = ['code', 'note', 'type', 'value', 'periods', 'max_use', 'used', 'expires_at', 'enabled', 'show_on_checkout'];
 
-    protected $casts = ['value' => 'decimal:2', 'expires_at' => 'datetime', 'enabled' => 'boolean', 'show_on_checkout' => 'boolean'];
+    protected $casts = ['value' => 'decimal:2', 'periods' => 'array', 'expires_at' => 'datetime', 'enabled' => 'boolean', 'show_on_checkout' => 'boolean'];
+
+    /** 是否适用于该订单周期（未限定周期则全适用） */
+    public function appliesToPeriod(?string $period): bool
+    {
+        return empty($this->periods) || in_array($period, $this->periods, true);
+    }
 
     /** 收银台可展示的券：启用 + 勾选展示 + 有文案 + 当前可用 */
     public static function checkoutVisible()

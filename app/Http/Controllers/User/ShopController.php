@@ -109,6 +109,9 @@ class ShopController extends Controller
         if (! $coupon || ! $coupon->isUsable()) {
             throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '优惠券无效或已过期']);
         }
+        if (! $coupon->appliesToPeriod($order->period)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '此优惠码不适用于该套餐时长']);
+        }
 
         $order->update(['coupon_id' => $coupon->id, 'amount' => $coupon->apply($base)]);
 
