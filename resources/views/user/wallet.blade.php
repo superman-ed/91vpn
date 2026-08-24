@@ -18,6 +18,11 @@
 .wh-actions { margin-top: 20px; }
 .wh-actions .btn-white { background: #fff; color: #4b56d6; font-weight: 700; border-radius: 9px; }
 .wh-actions .btn-white:hover { color: #4b56d6; filter: brightness(.97); }
+.wh-actions .btn-ghost {
+    color: #fff; font-weight: 600; border-radius: 9px; border: 1.5px solid rgba(255,255,255,.55);
+    background: rgba(255,255,255,.08); margin-left: 6px;
+}
+.wh-actions .btn-ghost:hover { color: #fff; background: rgba(255,255,255,.22); border-color: #fff; }
 
 .recharge-card { border: none; border-radius: 14px; box-shadow: 0 5px 18px rgba(103,119,239,.10); height: 100%; }
 .recharge-card .card-body { padding: 22px 24px; }
@@ -61,7 +66,7 @@
                 </div>
                 <div class="wh-actions">
                     <a href="/user/shop" class="btn btn-white"><i class="fas fa-store"></i> 购买套餐</a>
-                    <a href="/user/invite" class="btn btn-link text-white" style="opacity:.9"><i class="fas fa-gift"></i> 邀请返利</a>
+                    <a href="/user/invite" class="btn btn-ghost"><i class="fas fa-gift"></i> 邀请返利</a>
                 </div>
             </div>
         </div>
