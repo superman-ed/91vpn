@@ -13,6 +13,11 @@ class TrafficLogController extends Controller
         $records = DailyTraffic::where('user_id', auth()->id())
             ->orderByDesc('date')->limit(30)->get();
 
-        return view('user.traffic', ['records' => $records]);
+        return view('user.traffic', [
+            'records' => $records,                              // 表格用（倒序）
+            'chart' => $records->sortBy('date')->values(),      // 柱状图用（正序）
+            'total' => $records->sum(fn ($r) => $r->u + $r->d),
+            'maxDay' => (int) $records->max(fn ($r) => $r->u + $r->d) ?: 1,
+        ]);
     }
 }
