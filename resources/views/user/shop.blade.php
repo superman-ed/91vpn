@@ -38,10 +38,12 @@
                     <div class="text-muted mt-1" style="font-size:13px">有效期 <span data-days-out>{{ $first['days'] }}</span> 天</div>
                 </div>
                 <div class="mb-3">
-                    <div class="plan-feature"><i class="fas fa-database text-success"></i> {{ $b->transfer_gb }} GB / 月</div>
-                    <div class="plan-feature"><i class="fas fa-mobile-alt text-success"></i> {{ $b->ip_limit > 0 ? $b->ip_limit.' 台设备' : '设备不限' }}</div>
-                    <div class="plan-feature"><i class="fas fa-tachometer-alt text-success"></i> {{ $b->speed_limit > 0 ? $b->speed_limit.' Mbps' : '不限速' }}</div>
-                    <div class="plan-feature"><i class="fas fa-crown text-success"></i> 等级 {{ class_name($b->class) }}</div>
+                    <div class="plan-feature"><i class="fas fa-check text-success"></i> IEPL 专线隧道出口</div>
+                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 每月 {{ $b->transfer_gb }}GB 流量</div>
+                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 最大同时在线设备数 {{ $b->ip_limit > 0 ? $b->ip_limit.' 个' : '不限' }}</div>
+                    <div class="plan-feature"><i class="fas fa-check text-success"></i> {{ $b->speed_limit > 0 ? '端口限速 '.$b->speed_limit.'Mbps' : '端口不限速' }}</div>
+                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 稳定解锁 NetFlix 等流媒体</div>
+                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 有限售后支持（网站右下角客服或工单）</div>
                     <div class="plan-feature text-warning" data-stock-line style="{{ $first['stock'] > 0 ? '' : 'display:none' }}"><i class="fas fa-fire"></i> 限量剩余 <span data-stock-num>{{ max(0, $first['stock']) }}</span> 份</div>
                 </div>
                 <form method="POST" action="/user/order/create" class="mt-auto">@csrf

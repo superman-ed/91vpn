@@ -17,10 +17,10 @@ it('shows empty state when no plans on sale', function () {
         ->assertOk()->assertSee('暂无在售套餐');
 });
 
-it('shows 不限速 and 设备不限 for zero limits', function () {
+it('shows 不限速 and 设备数不限 for zero limits', function () {
     shopPlan(['speed_limit' => 0, 'ip_limit' => 0]);
     $this->actingAs(User::factory()->create())->get('/user/shop')
-        ->assertOk()->assertSee('不限速')->assertSee('设备不限');
+        ->assertOk()->assertSee('端口不限速')->assertSee('设备数 不限');
 });
 
 it('marks a sold-out plan and blocks purchase', function () {
