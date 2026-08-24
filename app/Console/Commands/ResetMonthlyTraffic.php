@@ -31,7 +31,12 @@ class ResetMonthlyTraffic extends Command
                         $next = $next->addMonthNoOverflow();
                     } while ($next->lte($now));
 
-                    $user->update(['u' => 0, 'd' => 0, 'next_reset_at' => $next]);
+                    $updates = ['u' => 0, 'd' => 0, 'next_reset_at' => $next];
+                    // 额度归位到套餐基础配额，抹掉上周期买的加油包（老用户无基准则保持不动）
+                    if ($user->base_transfer_enable > 0) {
+                        $updates['transfer_enable'] = $user->base_transfer_enable;
+                    }
+                    $user->update($updates);
                     $count++;
                 }
             });

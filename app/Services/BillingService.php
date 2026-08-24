@@ -28,8 +28,10 @@ class BillingService
                 ? $user->class_expire->copy()
                 : now();
 
+            $quota = $plan->transfer_gb * (1024 ** 3);
             $user->update([
-                'transfer_enable' => $plan->transfer_gb * (1024 ** 3),
+                'transfer_enable' => $quota,
+                'base_transfer_enable' => $quota,   // 重置基准，用于月度归位、抹掉加油包
                 'u' => 0,
                 'd' => 0,
                 'class' => $plan->class,

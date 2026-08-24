@@ -110,6 +110,24 @@ it('refuses to end a multi-month package', function () {
     expect($queued->fresh()->status)->toBe('queued');
 });
 
+it('data pack top-up is wiped on the next monthly reset (not carried over)', function () {
+    $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
+    // 开通月套餐：基础配额 100
+    app(BillingService::class)->completeOrder(paidOrder($user, makePlan(['transfer_gb' => 100])), 'mock');
+    expect($user->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
+    expect($user->fresh()->base_transfer_enable)->toBe(100 * 1024 ** 3);
+
+    // 买流量包 +10 → 立即到 110
+    $pack = makePlan(['name' => '10GB 包', 'is_data_pack' => true, 'transfer_gb' => 10]);
+    app(BillingService::class)->completeOrder(paidOrder($user, $pack), 'mock');
+    expect($user->fresh()->transfer_enable)->toBe(110 * 1024 ** 3);
+
+    // 到刷新日 → 归位到基础 100，加油包不结转
+    $user->update(['next_reset_at' => now()->subMinute()]);
+    $this->artisan('traffic:reset-monthly')->assertSuccessful();
+    expect($user->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
+});
+
 it('sets no monthly reset for total (none) type plans', function () {
     $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
     $plan = makePlan(['reset_type' => 'none', 'period' => 'quarter', 'transfer_gb' => 120, 'duration_days' => 90]);

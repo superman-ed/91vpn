@@ -7,7 +7,9 @@ it('resets used traffic only for members whose anniversary is due', function () 
     $due = User::factory()->create([
         'class' => 1, 'class_expire' => now()->addDays(10),
         'next_reset_at' => now()->subMinute(),
-        'transfer_enable' => 100 * 1024 ** 3, 'u' => 60 * 1024 ** 3, 'd' => 20 * 1024 ** 3,
+        // 额度被加油包抬到 110，重置后应归位到基础 100
+        'transfer_enable' => 110 * 1024 ** 3, 'base_transfer_enable' => 100 * 1024 ** 3,
+        'u' => 60 * 1024 ** 3, 'd' => 20 * 1024 ** 3,
     ]);
     // 未到刷新日：本周期内，不动
     $notDue = User::factory()->create([
@@ -29,10 +31,10 @@ it('resets used traffic only for members whose anniversary is due', function () 
 
     $this->artisan('traffic:reset-monthly')->assertSuccessful();
 
-    // 到期会员：配额不变、已用清零、刷新日推进到未来
+    // 到期会员：已用清零、额度归位到基础配额(抹掉加油包)、刷新日推进到未来
     expect((int) $due->fresh()->u)->toBe(0);
     expect((int) $due->fresh()->d)->toBe(0);
-    expect($due->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
+    expect($due->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);   // 110 → 归位 100
     expect($due->fresh()->next_reset_at->isFuture())->toBeTrue();
 
     // 未到期会员：已用保持不变

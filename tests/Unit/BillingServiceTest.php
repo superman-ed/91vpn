@@ -22,6 +22,7 @@ it('delivers a plan: adds traffic, sets class, extends expiry', function () {
 
     $user->refresh();
     expect($user->transfer_enable)->toBe(300 * 1024 ** 3);
+    expect($user->base_transfer_enable)->toBe(300 * 1024 ** 3);   // 记录重置基准
     expect($user->class)->toBe(2);
     expect($user->node_speed_limit)->toBe(200);
     expect($user->node_ip_limit)->toBe(7);
