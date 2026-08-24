@@ -99,7 +99,7 @@
 
                 @if($isFree)
                 <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm" data-turbo="false">@csrf
-                    <button class="btn btn-primary btn-block co-btn" data-confirm><i class="fas fa-gift"></i> 确认领取（¥0.00）</button>
+                    <button class="btn btn-primary btn-block co-btn" data-paybtn><i class="fas fa-gift"></i> 确认领取（¥0.00）</button>
                 </form>
                 @else
                 <div class="d-flex justify-content-between align-items-baseline mb-3">
@@ -135,7 +135,7 @@
                     <div class="alert alert-warning py-2 mb-3" data-lowbalance style="display:none">余额不足，请先 <a href="/user/wallet">充值</a> 或换其它支付方式。</div>
                     @error('method')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
 
-                    <button class="btn btn-primary btn-block co-btn" data-confirm><i class="fas fa-lock"></i> 确认支付 ¥{{ number_format($order->amount, 2) }}</button>
+                    <button class="btn btn-primary btn-block co-btn" data-paybtn><i class="fas fa-lock"></i> 确认支付 ¥{{ number_format($order->amount, 2) }}</button>
                 </form>
                 @endif
 
@@ -170,7 +170,7 @@
     var amount = {{ (float) $order->amount }}, balance = {{ (float) $user->money }};
     var form = document.getElementById('payForm');
     if (!form) return;
-    var confirmBtn = form.querySelector('[data-confirm]');
+    var confirmBtn = form.querySelector('[data-paybtn]');
     var lowWarn = form.querySelector('[data-lowbalance]');
 
     function pick(method) {
