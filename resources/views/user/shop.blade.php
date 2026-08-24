@@ -34,8 +34,8 @@
                     @endforeach
                 </div>
                 <div class="text-center mb-3">
-                    <span class="plan-price">¥<span data-price>{{ $first['price'] }}</span></span>
-                    <div class="text-muted mt-1" style="font-size:13px">有效期 <span data-days>{{ $first['days'] }}</span> 天</div>
+                    <span class="plan-price">¥<span data-price-out>{{ $first['price'] }}</span></span>
+                    <div class="text-muted mt-1" style="font-size:13px">有效期 <span data-days-out>{{ $first['days'] }}</span> 天</div>
                 </div>
                 <div class="mb-3">
                     <div class="plan-feature"><i class="fas fa-database text-success"></i> {{ $b->transfer_gb }} GB / 月</div>
@@ -60,8 +60,8 @@ function pickDuration(btn){
     var card = btn.closest('.plan-card');
     card.querySelectorAll('.dur-btn').forEach(function(b){ b.classList.remove('btn-primary'); b.classList.add('btn-outline-primary'); });
     btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary');
-    card.querySelector('[data-price]').textContent = btn.dataset.price;
-    card.querySelector('[data-days]').textContent = btn.dataset.days;
+    card.querySelector('[data-price-out]').textContent = btn.dataset.price;
+    card.querySelector('[data-days-out]').textContent = btn.dataset.days;
     card.querySelector('[data-plan-input]').value = btn.dataset.plan;
     var stock = parseInt(btn.dataset.stock, 10);
     var stockLine = card.querySelector('[data-stock-line]');
