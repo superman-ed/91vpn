@@ -17,11 +17,17 @@ class EmailCodeController extends Controller
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        $this->emailCode->send($data['email']);
+        try {
+            $this->emailCode->send($data['email']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('邮箱验证码发送失败', ['email' => $data['email'], 'err' => $e->getMessage()]);
+
+            return response()->json(['ok' => false, 'message' => '邮件发送失败，请稍后重试或联系客服'], 500);
+        }
 
         return response()->json([
             'ok' => true,
-            'message' => '验证码已发送（开发环境请查看服务器日志）',
+            'message' => smtp_configured() ? '验证码已发送至邮箱，请查收（含垃圾箱）' : '验证码已发送（开发环境请查看服务器日志）',
         ]);
     }
 }

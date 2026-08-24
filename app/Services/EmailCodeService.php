@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class EmailCodeService
 {
@@ -15,14 +17,47 @@ class EmailCodeService
     }
 
     /**
-     * 生成 6 位邮箱验证码，存入缓存并（第一版）打到日志，返回验证码。
+     * 生成 6 位邮箱验证码，存入缓存并发送。
+     * 已配置 SMTP → 真发邮件；否则回退记日志（开发环境）。
      */
     public function send(string $email): string
     {
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         Cache::put($this->key($email), $code, now()->addMinutes(self::TTL_MINUTES));
-        Log::info("[邮箱验证码] {$email} => {$code}（第一版仅记录，未真发邮件）");
+
+        if (smtp_configured()) {
+            $this->mail($email, $code);
+        } else {
+            Log::info("[邮箱验证码] {$email} => {$code}（未配置 SMTP，仅记录）");
+        }
+
         return $code;
+    }
+
+    /** 用后台配置的 SMTP 发送验证码邮件 */
+    private function mail(string $email, string $code): void
+    {
+        Config::set('mail.mailers.smtp', array_merge(config('mail.mailers.smtp', []), [
+            'transport' => 'smtp',
+            'host' => setting('smtp_host'),
+            'port' => (int) setting('smtp_port', '465'),
+            'encryption' => setting('smtp_encryption', 'ssl') ?: null,
+            'username' => setting('smtp_username'),
+            'password' => setting('smtp_password'),
+        ]));
+
+        $from = setting('smtp_from') ?: setting('smtp_username');
+        $fromName = setting('smtp_from_name', '91VPN');
+        $body = "您的验证码是：{$code}\n\n验证码 {$this->ttlMinutes()} 分钟内有效，请勿泄露给他人。\n如非本人操作请忽略此邮件。";
+
+        Mail::mailer('smtp')->raw($body, function ($m) use ($email, $from, $fromName) {
+            $m->to($email)->from($from, $fromName)->subject('【91VPN】邮箱验证码');
+        });
+    }
+
+    private function ttlMinutes(): int
+    {
+        return self::TTL_MINUTES;
     }
 
     /**

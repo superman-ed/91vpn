@@ -77,6 +77,14 @@ if (! function_exists('signup_bonus')) {
     }
 }
 
+if (! function_exists('smtp_configured')) {
+    /** 后台是否已配置 SMTP 发信 */
+    function smtp_configured(): bool
+    {
+        return (string) setting('smtp_host', '') !== '' && (string) setting('smtp_username', '') !== '';
+    }
+}
+
 if (! function_exists('class_name')) {
     /** 等级数字转显示名 */
     function class_name(int $class): string

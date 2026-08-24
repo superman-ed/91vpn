@@ -17,6 +17,13 @@ class SettingController extends Controller
             'epayKey' => setting('epay_key', ''),
             'rebateRate' => rebate_rate(),
             'signupBonus' => signup_bonus(),
+            'smtpHost' => setting('smtp_host', ''),
+            'smtpPort' => setting('smtp_port', '465'),
+            'smtpEncryption' => setting('smtp_encryption', 'ssl'),
+            'smtpUsername' => setting('smtp_username', ''),
+            'smtpPassword' => setting('smtp_password', ''),
+            'smtpFrom' => setting('smtp_from', ''),
+            'smtpFromName' => setting('smtp_from_name', '91VPN'),
         ]);
     }
 
@@ -29,6 +36,13 @@ class SettingController extends Controller
             'epay_key' => ['nullable', 'string', 'max:128'],
             'rebate_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'signup_bonus' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'smtp_host' => ['nullable', 'string', 'max:255'],
+            'smtp_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            'smtp_encryption' => ['nullable', 'in:ssl,tls,none'],
+            'smtp_username' => ['nullable', 'string', 'max:255'],
+            'smtp_password' => ['nullable', 'string', 'max:255'],
+            'smtp_from' => ['nullable', 'string', 'max:255'],
+            'smtp_from_name' => ['nullable', 'string', 'max:64'],
         ]);
 
         Setting::put('buy_notice', $data['buy_notice'] ?? '');
@@ -37,6 +51,13 @@ class SettingController extends Controller
         Setting::put('epay_key', $data['epay_key'] ?? '');
         Setting::put('rebate_rate', (string) ($data['rebate_rate'] ?? '2.5'));
         Setting::put('signup_bonus', (string) ($data['signup_bonus'] ?? '1'));
+        Setting::put('smtp_host', $data['smtp_host'] ?? '');
+        Setting::put('smtp_port', (string) ($data['smtp_port'] ?? '465'));
+        Setting::put('smtp_encryption', ($data['smtp_encryption'] ?? 'ssl') === 'none' ? '' : ($data['smtp_encryption'] ?? 'ssl'));
+        Setting::put('smtp_username', $data['smtp_username'] ?? '');
+        Setting::put('smtp_password', $data['smtp_password'] ?? '');
+        Setting::put('smtp_from', $data['smtp_from'] ?? '');
+        Setting::put('smtp_from_name', $data['smtp_from_name'] ?? '91VPN');
 
         return redirect('/admin/settings')->with('status', '设置已保存');
     }
