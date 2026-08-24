@@ -26,9 +26,12 @@ class BillingService
                 : now();
 
             $user->update([
-                'transfer_enable' => $user->transfer_enable + $plan->transfer_gb * (1024 ** 3),
+                // 流量固定为月配额（设值不累加），已用清零，由每月重置刷新
+                'transfer_enable' => $plan->transfer_gb * (1024 ** 3),
+                'u' => 0,
+                'd' => 0,
                 'class' => $plan->class,
-                'class_expire' => $base->addDays($plan->duration_days),
+                'class_expire' => $base->addDays($plan->duration_days),   // 时长仍叠加延长有效期
                 'node_speed_limit' => $plan->speed_limit,
                 'node_ip_limit' => $plan->ip_limit,
             ]);

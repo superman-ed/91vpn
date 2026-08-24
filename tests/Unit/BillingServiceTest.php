@@ -43,8 +43,12 @@ it('stacks expiry from future date when renewing before expiry', function () {
     expect($user->fresh()->class_expire->toDateString())->toBe($future->copy()->addDays(30)->toDateString());
 });
 
-it('adds traffic cumulatively when renewing', function () {
-    $user = User::factory()->create(['transfer_enable' => 50 * 1024 ** 3, 'class' => 1, 'class_expire' => now()->addDays(5)]);
+it('sets fixed monthly quota and resets usage on renewal', function () {
+    // 续费不累加流量：设为月配额并清零已用（流量固定只延长有效期）
+    $user = User::factory()->create([
+        'transfer_enable' => 100 * 1024 ** 3, 'u' => 80 * 1024 ** 3, 'd' => 10 * 1024 ** 3,
+        'class' => 1, 'class_expire' => now()->addDays(5),
+    ]);
     $plan = Plan::create([
         'name' => 'VIP①', 'price' => 30, 'period' => 'month',
         'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30,
@@ -52,5 +56,8 @@ it('adds traffic cumulatively when renewing', function () {
 
     app(BillingService::class)->deliver($user, $plan);
 
-    expect($user->fresh()->transfer_enable)->toBe(150 * 1024 ** 3);
+    $user->refresh();
+    expect($user->transfer_enable)->toBe(100 * 1024 ** 3);   // 固定月配额，不累加
+    expect((int) $user->u)->toBe(0);                          // 已用清零
+    expect((int) $user->d)->toBe(0);
 });
