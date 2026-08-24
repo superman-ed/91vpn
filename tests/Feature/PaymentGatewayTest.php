@@ -47,6 +47,16 @@ it('redirects to the gateway when configured', function () {
     expect($order->fresh()->status)->toBe('pending');   // 未发货，等回调
 });
 
+it('maps channels to gateway type and sends usdt to the cashier', function () {
+    configureEpay();
+    $order = gwOrder(User::factory()->create(), gwPlan());
+    $epay = app(EpayService::class);
+
+    expect($epay->payUrl($order, 'alipay'))->toContain('&type=alipay');
+    expect($epay->payUrl($order, 'wechat'))->toContain('&type=wxpay');
+    expect($epay->payUrl($order, 'usdt'))->not->toContain('&type=');   // 该网关无USDT → 走收银台
+});
+
 it('falls back to mock immediate delivery when gateway not configured', function () {
     $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
     $order = gwOrder($user, gwPlan());

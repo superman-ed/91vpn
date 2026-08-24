@@ -199,8 +199,8 @@ class ShopController extends Controller
             return redirect('/user')->with('status', '余额支付成功，套餐已到账！');
         }
 
-        // 在线渠道：已配置网关则跳转支付，回调发货
-        if ($epay->configured() && $epay->supports($data['method'])) {
+        // 在线渠道：已配置网关则跳转支付，回调发货（未映射渠道跳网关收银台）
+        if ($epay->configured()) {
             return redirect()->away($epay->payUrl($order, $data['method']));
         }
 
