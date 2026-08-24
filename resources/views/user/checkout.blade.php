@@ -21,6 +21,8 @@
 .pm-balance { background: #6777ef; } .pm-alipay { background: #1677ff; } .pm-wechat { background: #07c160; } .pm-usdt { background: #26a17b; }
 .pm-name { font-weight: 600; color: #34395e; }
 .pm-extra { margin-left: auto; color: #98a6ad; font-size: 13px; }
+.coupon-note { font-size: 12.5px; line-height: 1.9; }
+.coupon-note .code { color: #6777ef; font-weight: 700; letter-spacing: .5px; }
 </style>
 @endsection
 @section('content')
@@ -55,6 +57,10 @@
                     @endif
                     @error('coupon')<div class="invalid-feedback d-block w-100">{{ $message }}</div>@enderror
                 </form>
+                <div class="coupon-note text-muted mt-2">
+                    <div>VIP ①②③ 半年套餐 95 折优惠码：<span class="code">XXXXXX</span></div>
+                    <div>VIP ①②③ 年付套餐 90 折优惠码：<span class="code">XXXXXX</span></div>
+                </div>
             </div>
         </div>
     </div>
