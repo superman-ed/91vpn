@@ -82,7 +82,11 @@ class ShopController extends Controller
             return redirect('/user/wallet')->with('status', '该订单已处理，无需支付');
         }
 
-        return view('user.checkout', ['order' => $order->load('plan', 'coupon'), 'user' => auth()->user()]);
+        return view('user.checkout', [
+            'order' => $order->load('plan', 'coupon'),
+            'user' => auth()->user(),
+            'couponNotes' => \App\Models\Coupon::checkoutVisible(),
+        ]);
     }
 
     /** POST /user/order/{order}/coupon —— 收银台应用/移除优惠码（按原价重算，支付成功才计 used） */

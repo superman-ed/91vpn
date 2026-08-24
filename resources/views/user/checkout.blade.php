@@ -57,10 +57,13 @@
                     @endif
                     @error('coupon')<div class="invalid-feedback d-block w-100">{{ $message }}</div>@enderror
                 </form>
+                @if($couponNotes->isNotEmpty())
                 <div class="coupon-note text-muted mt-2">
-                    <div>VIP ①②③ 半年套餐 95 折优惠码：<span class="code">XXXXXX</span></div>
-                    <div>VIP ①②③ 年付套餐 90 折优惠码：<span class="code">XXXXXX</span></div>
+                    @foreach($couponNotes as $c)
+                    <div>{{ $c->note }}：<span class="code">{{ $c->code }}</span></div>
+                    @endforeach
                 </div>
+                @endif
             </div>
         </div>
     </div>

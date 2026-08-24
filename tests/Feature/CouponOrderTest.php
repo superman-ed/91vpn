@@ -51,10 +51,28 @@ it('rejects an invalid coupon on checkout and keeps full price', function () {
     expect((float) $order->fresh()->amount)->toBe(30.0);
 });
 
-it('admin creates a coupon', function () {
+it('admin creates a coupon with a checkout note', function () {
     $admin = \App\Models\User::factory()->create(['is_admin' => true]);
     $this->actingAs($admin)->post('/admin/coupons', [
-        'code' => 'NEWYEAR', 'type' => 'percent', 'value' => 15, 'max_use' => 100,
+        'code' => 'HALF95', 'note' => 'VIP ①②③ 半年套餐 95 折优惠码', 'type' => 'percent', 'value' => 5, 'max_use' => 100, 'show_on_checkout' => 1,
     ])->assertRedirect('/admin/coupons');
-    expect(\App\Models\Coupon::where('code', 'NEWYEAR')->exists())->toBeTrue();
+
+    $c = \App\Models\Coupon::where('code', 'HALF95')->first();
+    expect($c)->not->toBeNull();
+    expect($c->note)->toBe('VIP ①②③ 半年套餐 95 折优惠码');
+    expect($c->show_on_checkout)->toBeTrue();
+});
+
+it('checkout lists only coupons flagged for display', function () {
+    $user = User::factory()->create();
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
+    $order = pendingOrder($user, $plan);
+
+    Coupon::create(['code' => 'HALF95', 'note' => 'VIP ①②③ 半年套餐 95 折优惠码', 'type' => 'percent', 'value' => 5, 'max_use' => -1, 'enabled' => true, 'show_on_checkout' => true]);
+    Coupon::create(['code' => 'SECRET', 'note' => '内部券', 'type' => 'percent', 'value' => 50, 'max_use' => -1, 'enabled' => true, 'show_on_checkout' => false]);
+    Coupon::create(['code' => 'USEDUP', 'note' => '已用完', 'type' => 'percent', 'value' => 10, 'max_use' => 1, 'used' => 1, 'enabled' => true, 'show_on_checkout' => true]);
+
+    $res = $this->actingAs($user)->get("/user/order/{$order->id}")->assertOk();
+    $res->assertSee('VIP ①②③ 半年套餐 95 折优惠码')->assertSee('HALF95');
+    $res->assertDontSee('SECRET')->assertDontSee('USEDUP');   // 未勾选展示 / 已用完不显示
 });
