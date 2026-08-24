@@ -17,7 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password',
         'uuid', 'passwd',
-        'u', 'd', 'transfer_enable', 'base_transfer_enable', 'pack_transfer', 'transfer_today',
+        'u', 'd', 'transfer_enable', 'base_transfer_enable', 'transfer_today',
         'class', 'class_expire', 'next_reset_at',
         'node_speed_limit', 'node_ip_limit',
         'money', 'ref_by', 'ref_code',

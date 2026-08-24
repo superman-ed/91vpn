@@ -32,7 +32,6 @@ class BillingService
             $user->update([
                 'transfer_enable' => $quota,
                 'base_transfer_enable' => $quota,   // 重置基准
-                'pack_transfer' => 0,               // 新套餐清空上一套餐残留的加油包
                 'u' => 0,
                 'd' => 0,
                 'class' => $plan->class,
@@ -45,12 +44,10 @@ class BillingService
         });
     }
 
-    /** 流量包(加油包)：立即加流量并计入加油包余额(跨月保留，随套餐结束作废) */
+    /** 流量包(加油包)：立即加流量。到期日/流量重置日随额度归位而清零 */
     public function applyDataPack(User $user, Plan $plan): void
     {
-        $bytes = $plan->transfer_gb * (1024 ** 3);
-        $user->increment('transfer_enable', $bytes);
-        $user->increment('pack_transfer', $bytes);
+        $user->increment('transfer_enable', $plan->transfer_gb * (1024 ** 3));
     }
 
     /**

@@ -118,41 +118,25 @@ it('adds a data pack immediately and clears it when a new plan is delivered', fu
     $pack = makePlan(['name' => '50GB 包', 'is_data_pack' => true, 'transfer_gb' => 50]);
     app(BillingService::class)->completeOrder(paidOrder($user, $pack), 'mock');
     expect($user->fresh()->transfer_enable)->toBe(150 * 1024 ** 3);   // 立即 +50
-    expect($user->fresh()->pack_transfer)->toBe(50 * 1024 ** 3);
 
-    // 开通新套餐 → 加油包清空
+    // 开通新套餐 → 额度归位，加油包清空
     app(BillingService::class)->deliver($user->fresh(), makePlan(['transfer_gb' => 100]));
     expect($user->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
-    expect($user->fresh()->pack_transfer)->toBe(0);
 });
 
-it('keeps unused data-pack traffic across a monthly reset (base refreshes, pack persists)', function () {
+it('clears data-pack traffic at the monthly reset day', function () {
+    // 官方提示：加油包在流量重置日/会员到期日自动清零，不跨重置日保留
     $user = User::factory()->create([
         'class' => 1, 'class_expire' => now()->addDays(60), 'next_reset_at' => now()->subMinute(),
-        'base_transfer_enable' => 100 * 1024 ** 3, 'pack_transfer' => 10 * 1024 ** 3,
-        'transfer_enable' => 110 * 1024 ** 3, 'u' => 50 * 1024 ** 3, 'd' => 0,   // 本月只用 50，未动加油包
+        'base_transfer_enable' => 100 * 1024 ** 3, 'transfer_enable' => 150 * 1024 ** 3,   // 100 基础 + 50 加油包
+        'u' => 30 * 1024 ** 3, 'd' => 0,
     ]);
 
     $this->artisan('traffic:reset-monthly')->assertSuccessful();
 
-    // 基础刷新 100 + 加油包保留 10 = 110
-    expect($user->fresh()->transfer_enable)->toBe(110 * 1024 ** 3);
-    expect($user->fresh()->pack_transfer)->toBe(10 * 1024 ** 3);
+    // 归位到基础 100，加油包(未用完的部分)一并清零
+    expect($user->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
     expect((int) $user->fresh()->u)->toBe(0);
-});
-
-it('depletes data pack only after base is exhausted, remainder carries to next cycle', function () {
-    $user = User::factory()->create([
-        'class' => 1, 'class_expire' => now()->addDays(60), 'next_reset_at' => now()->subMinute(),
-        'base_transfer_enable' => 100 * 1024 ** 3, 'pack_transfer' => 50 * 1024 ** 3,
-        'transfer_enable' => 150 * 1024 ** 3, 'u' => 120 * 1024 ** 3, 'd' => 0,   // 用 120：基础100吃满 + 加油包吃 20
-    ]);
-
-    $this->artisan('traffic:reset-monthly')->assertSuccessful();
-
-    // 加油包剩 30，基础刷新 100 → 130
-    expect($user->fresh()->pack_transfer)->toBe(30 * 1024 ** 3);
-    expect($user->fresh()->transfer_enable)->toBe(130 * 1024 ** 3);
 });
 
 it('sets no monthly reset for total (none) type plans', function () {

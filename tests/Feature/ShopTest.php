@@ -16,7 +16,8 @@ it('shows data packs in their own immediate-effect section', function () {
     Plan::create(['name' => '10GB 流量包', 'price' => 8, 'transfer_gb' => 10, 'is_data_pack' => true, 'class' => 0, 'speed_limit' => 0, 'ip_limit' => 0, 'duration_days' => 0, 'on_sale' => true]);
 
     $this->actingAs(User::factory()->create())->get('/user/shop')
-        ->assertOk()->assertSee('流量包（立即生效）')->assertSee('10GB 流量包')->assertSee('购买流量包');
+        ->assertOk()->assertSee('流量包（立即生效）')->assertSee('10GB 流量包')->assertSee('购买流量包')
+        ->assertSee('会员到期日')->assertSee('流量重置日');   // 官方清零提示
 });
 
 it('shows total (no-reset) wording for none-type plans', function () {

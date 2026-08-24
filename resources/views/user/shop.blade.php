@@ -97,7 +97,8 @@
 @endif
 
 @if($dataPacks->isNotEmpty())
-<h5 class="mb-3 mt-2"><i class="fas fa-bolt text-warning"></i> 流量包（立即生效）</h5>
+<h5 class="mb-2 mt-2"><i class="fas fa-bolt text-warning"></i> 流量包（立即生效）</h5>
+<div class="alert alert-warning py-2 mb-3" style="font-size:13px"><i class="fas fa-circle-exclamation"></i> 重要提示：购买的流量包将会在您的<strong>会员到期日</strong>或<strong>流量重置日</strong>自动清零，请根据您的实际使用流量选择合适的流量包。</div>
 <div class="row shop-row">
     @foreach($dataPacks as $p)
     <div class="col-6 col-md-4 col-lg-3">

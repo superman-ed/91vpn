@@ -32,13 +32,9 @@ class ResetMonthlyTraffic extends Command
                     } while ($next->lte($now));
 
                     $updates = ['u' => 0, 'd' => 0, 'next_reset_at' => $next];
-                    // 归位：基础月配额刷新(不结转)，加油包按剩余跨月保留(先扣套餐、超出部分才吃加油包)
+                    // 额度归位到基础月配额：不结转，且清掉本周期买的加油包（老用户无基准则不动）
                     if ($user->base_transfer_enable > 0) {
-                        $used = (int) $user->u + (int) $user->d;
-                        $overflow = max(0, $used - (int) $user->base_transfer_enable);   // 本周期吃掉的加油包
-                        $packLeft = max(0, (int) $user->pack_transfer - $overflow);
-                        $updates['transfer_enable'] = (int) $user->base_transfer_enable + $packLeft;
-                        $updates['pack_transfer'] = $packLeft;
+                        $updates['transfer_enable'] = $user->base_transfer_enable;
                     }
                     $user->update($updates);
                     $count++;
