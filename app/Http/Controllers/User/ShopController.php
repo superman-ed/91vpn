@@ -124,13 +124,22 @@ class ShopController extends Controller
         ]);
     }
 
-    /** POST /user/order/{order}/cancel —— 取消待支付订单 */
+    /** POST /user/order/{order}/cancel —— 取消待支付订单（行锁防与支付竞态） */
     public function cancelOrder(Order $order)
     {
         abort_unless($order->user_id === auth()->id(), 403);
-        abort_if($order->status !== 'pending', 403);
 
-        $order->update(['status' => 'cancelled']);
+        $cancelled = \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
+            if (! $locked || $locked->status !== 'pending') {
+                return false;
+            }
+            $locked->update(['status' => 'cancelled']);
+
+            return true;
+        });
+
+        abort_unless($cancelled, 403);
 
         return redirect('/user/wallet')->with('status', '订单已取消');
     }
@@ -175,7 +184,7 @@ class ShopController extends Controller
 
         // 0 元订单（优惠券抵满）直接发货，无需选支付方式
         if ((float) $order->amount <= 0) {
-            $billing->completeOrder($order, 'free');
+            $billing->settleOrder($order, 'free');
 
             return redirect('/user')->with('status', '订单已发货！');
         }
@@ -185,13 +194,13 @@ class ShopController extends Controller
         ]);
 
         if ($data['method'] === 'balance') {
-            $billing->payWithBalance($order);   // 余额不足会抛校验错误
+            $billing->payWithBalance($order);   // 锁内校验余额，不足会抛错误
 
             return redirect('/user')->with('status', '余额支付成功，套餐已到账！');
         }
 
         // 在线渠道：模拟支付成功
-        $billing->completeOrder($order, $data['method']);
+        $billing->settleOrder($order, $data['method']);
         $channel = self::ONLINE_METHODS[$data['method']];
 
         return redirect('/user')->with('status', "{$channel}支付成功，套餐已到账！");
@@ -221,7 +230,7 @@ class ShopController extends Controller
             return redirect('/user')->with('status', '订单状态异常，无需支付');
         }
 
-        $billing->completeOrder($order, 'mock');
+        $billing->settleOrder($order, 'mock');
 
         return redirect('/user')->with('status', '支付成功，套餐已到账！');
     }

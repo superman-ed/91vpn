@@ -83,6 +83,43 @@ it('renders admin-configured buy notice on checkout', function () {
         ->assertOk()->assertSee('第一条自定义须知')->assertSee('第二条自定义须知');
 });
 
+it('refuses payment when the plan sold out after ordering', function () {
+    $user = User::factory()->create(['money' => 100, 'class' => 0, 'class_expire' => now()->subDay()]);
+    $plan = coPlan(['stock' => 1]);
+    $order = coPending($user, $plan);
+    $plan->update(['stock' => 0]);   // 下单后售罄
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'balance'])
+        ->assertSessionHasErrors('plan_id');
+    expect($order->fresh()->status)->toBe('pending');
+    expect($user->fresh()->class)->toBe(0);
+    expect((float) $user->fresh()->money)->toBe(100.0);   // 未扣款
+});
+
+it('refuses payment when the plan goes off sale after ordering', function () {
+    $user = User::factory()->create(['money' => 100]);
+    $plan = coPlan();
+    $order = coPending($user, $plan);
+    $plan->update(['on_sale' => false]);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'balance'])
+        ->assertSessionHasErrors('plan_id');
+    expect($order->fresh()->status)->toBe('pending');
+});
+
+it('settleOrder is idempotent and does not double-deliver or double-decrement stock', function () {
+    $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
+    $plan = coPlan(['stock' => 5]);
+    $order = coPending($user, $plan);
+    $billing = app(App\Services\BillingService::class);
+
+    expect($billing->settleOrder($order, 'mock'))->toBeTrue();
+    expect($billing->settleOrder($order->fresh(), 'mock'))->toBeFalse();   // 已支付，幂等跳过
+
+    expect($user->fresh()->class)->toBe(1);
+    expect($plan->fresh()->stock)->toBe(4);   // 只扣一次库存
+});
+
 it('admin updates the buy notice setting', function () {
     $admin = User::factory()->create(['is_admin' => true]);
     $this->actingAs($admin)->put('/admin/settings', ['buy_notice' => "新须知A\n新须知B"])->assertRedirect('/admin/settings');

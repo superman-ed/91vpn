@@ -90,6 +90,8 @@
                 <div class="alert alert-info py-2 mb-3" style="font-size:13px"><i class="fas fa-hourglass-half"></i> 当前套餐生效中，本套餐支付后将<strong>排队</strong>，预计 <strong>{{ $queuedActivateAt->format('Y-m-d H:i') }}</strong> 自动生效。</div>
                 @endif
 
+                @error('plan_id')<div class="alert alert-danger py-2 mb-3">{{ $message }}</div>@enderror
+
                 <div class="d-flex justify-content-between align-items-baseline mb-4">
                     <span class="text-muted">应付金额</span>
                     <span class="co-pay">¥{{ number_format($order->amount, 2) }}</span>

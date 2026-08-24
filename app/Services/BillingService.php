@@ -143,24 +143,51 @@ class BillingService
         });
     }
 
-    /** 余额支付一笔待支付订单：校验余额→扣款记流水→发货 */
+    /**
+     * 支付结算入口：行锁订单 + 原子校验，杜绝并发重复发货。
+     * - 订单已非 pending → 幂等跳过(返回 false)
+     * - 套餐已售罄/下架 → 抛校验错误
+     * - $charge：余额支付的扣款闭包(在锁内执行，可抛"余额不足")
+     */
+    public function settleOrder(Order $order, string $method, ?\Closure $charge = null): bool
+    {
+        return DB::transaction(function () use ($order, $method, $charge) {
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
+            if (! $locked || $locked->status !== 'pending') {
+                return false;   // 并发下已被处理，幂等跳过
+            }
+
+            $plan = $locked->plan;
+            if (! $plan || ! $plan->on_sale || $plan->stock === 0) {
+                throw ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架，无法完成支付']);
+            }
+
+            if ($charge) {
+                $charge($locked);   // 余额扣款，可抛"余额不足"
+            }
+
+            $this->completeOrder($locked, $method);
+
+            return true;
+        });
+    }
+
+    /** 余额支付一笔待支付订单：锁用户余额→校验→扣款记流水→发货 */
     public function payWithBalance(Order $order): void
     {
-        $user = $order->user;
-        if ($user->money < $order->amount) {
-            throw ValidationException::withMessages(['method' => '余额不足，请先充值']);
-        }
-
-        DB::transaction(function () use ($user, $order) {
-            $user->decrement('money', $order->amount);
+        $this->settleOrder($order, 'balance', function (Order $locked) {
+            $user = User::whereKey($locked->user_id)->lockForUpdate()->first();
+            if ($user->money < $locked->amount) {
+                throw ValidationException::withMessages(['method' => '余额不足，请先充值']);
+            }
+            $user->decrement('money', $locked->amount);
             BalanceLog::create([
                 'user_id' => $user->id,
-                'amount' => -$order->amount,
+                'amount' => -$locked->amount,
                 'type' => 'consume',
                 'balance_after' => $user->fresh()->money,
-                'remark' => "购买套餐 #{$order->id}",
+                'remark' => "购买套餐 #{$locked->id}",
             ]);
-            $this->completeOrder($order, 'balance');
         });
     }
 
