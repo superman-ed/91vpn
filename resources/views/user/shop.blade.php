@@ -19,10 +19,10 @@
 .dur-group { display: flex; gap: 3px; background: #f1f3fb; padding: 3px; border-radius: 8px; margin-bottom: 14px; }
 .dur-group .dur-btn {
     flex: 1; min-width: 36px; border: none; border-radius: 6px; padding: 5px 0;
-    background: transparent; color: #6777ef; font-weight: 600; font-size: 12px; cursor: pointer;
+    background: transparent; color: #7a869a; font-weight: 600; font-size: 12px; cursor: pointer;
     transition: all .15s ease;
 }
-.dur-group .dur-btn.active { background: #6777ef; color: #fff; box-shadow: 0 2px 6px rgba(103,119,239,.35); }
+.dur-group .dur-btn.active { background: #34395e; color: #fff; box-shadow: 0 2px 6px rgba(52,57,94,.35); }
 .plan-price { font-size: 30px; font-weight: 800; color: #34395e; line-height: 1; }
 .plan-days { color: #98a6ad; font-size: 12px; margin-top: 3px; }
 .plan-feature { padding: 5px 0; font-size: 12.5px; color: #54667a; display: flex; align-items: flex-start; }
