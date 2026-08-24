@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Models\Order;
 
 /**
- * 易支付(彩虹易支付/码支付类)聚合网关。
- * 一套 MD5 签名 API 覆盖 支付宝/微信/USDT，页面跳转 + 异步回调发货。
+ * 易支付(彩虹易支付/码支付类)聚合网关，兼容易支付 v1 API。
+ * 页面跳转支付(submit.php) + 异步回调发货。支付宝→alipay、微信→wxpay 直连；
+ * 该网关 type 仅 alipay/wxpay/qqpay，未映射渠道不传 type 走网关收银台。
  * 网关地址/PID/密钥由后台「站点设置」配置，未配置时视为未启用(回退 mock)。
  */
 class EpayService
@@ -35,10 +36,36 @@ class EpayService
         return $this->url() !== '' && $this->pid() !== '' && $this->key() !== '';
     }
 
-    /** MD5 签名：剔除 sign/sign_type/空值 → 按键 ASCII 升序 → k=v&... 拼接后接密钥（结果小写） */
+    /**
+     * MD5 签名（发起支付用）：按文档正文规则——剔除 sign/sign_type/空值 →
+     * 按键 ASCII 升序 → k=v&... 拼接（不 urlencode）后接密钥 → md5 小写。
+     */
     public function sign(array $params): string
     {
-        unset($params['sign'], $params['sign_type']);
+        return $this->md5sign($params, true);
+    }
+
+    /**
+     * 验签（回调用）：文档正文与示例代码对「sign_type 是否参与签名」自相矛盾，
+     * 两种写法都接受，任一匹配即通过（仍需正确密钥，不降低安全性）。
+     */
+    public function verify(array $params): bool
+    {
+        $sign = (string) ($params['sign'] ?? '');
+        if ($sign === '') {
+            return false;
+        }
+
+        return hash_equals($this->md5sign($params, true), $sign)      // 排除 sign_type（正文/标准）
+            || hash_equals($this->md5sign($params, false), $sign);    // 含 sign_type（示例代码）
+    }
+
+    private function md5sign(array $params, bool $excludeSignType): string
+    {
+        unset($params['sign']);
+        if ($excludeSignType) {
+            unset($params['sign_type']);
+        }
         $params = array_filter($params, fn ($v) => $v !== '' && $v !== null);
         ksort($params);
 
@@ -48,13 +75,6 @@ class EpayService
         }
 
         return md5(implode('&', $pairs).$this->key());
-    }
-
-    public function verify(array $params): bool
-    {
-        $sign = $params['sign'] ?? '';
-
-        return $sign !== '' && hash_equals($this->sign($params), (string) $sign);
     }
 
     /** 生成跳转到网关的支付地址（页面支付 submit.php）。未映射的渠道不传 type → 网关收银台 */
