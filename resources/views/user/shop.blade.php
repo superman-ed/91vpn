@@ -2,38 +2,38 @@
 @section('title', '商店')
 @section('head')
 <style>
-.shop-row > [class*="col-"] { display: flex; margin-bottom: 28px; }
+.shop-row > [class*="col-"] { display: flex; margin-bottom: 20px; }
 .plan-card {
     width: 100%; margin-bottom: 0; display: flex; flex-direction: column;
-    border: none; border-radius: 14px; overflow: hidden;
-    box-shadow: 0 6px 22px rgba(103,119,239,.10);
+    border: none; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 5px 18px rgba(103,119,239,.10);
     transition: transform .2s ease, box-shadow .2s ease;
 }
-.plan-card:hover { transform: translateY(-5px); box-shadow: 0 16px 36px rgba(103,119,239,.22); }
+.plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(103,119,239,.20); }
 .plan-head {
     background: linear-gradient(135deg, #6777ef 0%, #5a67e8 100%);
-    color: #fff; text-align: center; padding: 22px 16px 18px;
+    color: #fff; text-align: center; padding: 15px 12px 12px;
 }
-.plan-head h4 { color: #fff; margin: 0; font-weight: 700; font-size: 19px; letter-spacing: .5px; }
-.plan-card .card-body { display: flex; flex-direction: column; flex: 1; padding: 22px; }
-.dur-group { display: flex; gap: 4px; background: #f1f3fb; padding: 4px; border-radius: 10px; margin-bottom: 18px; }
+.plan-head h4 { color: #fff; margin: 0; font-weight: 700; font-size: 16px; letter-spacing: .3px; }
+.plan-card .card-body { display: flex; flex-direction: column; flex: 1; padding: 15px; }
+.dur-group { display: flex; gap: 3px; background: #f1f3fb; padding: 3px; border-radius: 8px; margin-bottom: 14px; }
 .dur-group .dur-btn {
-    flex: 1; min-width: 48px; border: none; border-radius: 7px; padding: 7px 0;
-    background: transparent; color: #6777ef; font-weight: 600; font-size: 13px; cursor: pointer;
+    flex: 1; min-width: 36px; border: none; border-radius: 6px; padding: 5px 0;
+    background: transparent; color: #6777ef; font-weight: 600; font-size: 12px; cursor: pointer;
     transition: all .15s ease;
 }
-.dur-group .dur-btn.active { background: #6777ef; color: #fff; box-shadow: 0 3px 8px rgba(103,119,239,.35); }
-.plan-price { font-size: 40px; font-weight: 800; color: #34395e; line-height: 1; }
-.plan-days { color: #98a6ad; font-size: 13px; margin-top: 4px; }
-.plan-feature { padding: 8px 0; font-size: 14px; color: #54667a; display: flex; align-items: flex-start; }
-.plan-feature i { width: 22px; color: #63c76a; margin-top: 3px; flex-shrink: 0; }
+.dur-group .dur-btn.active { background: #6777ef; color: #fff; box-shadow: 0 2px 6px rgba(103,119,239,.35); }
+.plan-price { font-size: 30px; font-weight: 800; color: #34395e; line-height: 1; }
+.plan-days { color: #98a6ad; font-size: 12px; margin-top: 3px; }
+.plan-feature { padding: 5px 0; font-size: 12.5px; color: #54667a; display: flex; align-items: flex-start; }
+.plan-feature i { width: 18px; color: #63c76a; margin-top: 3px; flex-shrink: 0; }
 .buy-btn {
-    border-radius: 10px; padding: 12px; font-weight: 700; color: #fff; border: none;
+    border-radius: 9px; padding: 9px; font-weight: 700; font-size: 14px; color: #fff; border: none;
     background: linear-gradient(135deg, #6777ef 0%, #5a67e8 100%);
-    box-shadow: 0 6px 16px rgba(103,119,239,.3);
+    box-shadow: 0 5px 14px rgba(103,119,239,.3);
 }
 .buy-btn:hover { color: #fff; filter: brightness(1.05); }
-.coupon-input { border-radius: 9px; }
+.coupon-input { border-radius: 8px; font-size: 13px; }
 </style>
 @endsection
 @section('content')
@@ -43,7 +43,7 @@
 <div class="row shop-row">
     @foreach($groups as $g)
     @php $b = $g['benefits']; $first = $g['durations']->first(); @endphp
-    <div class="col-12 col-md-6 col-lg-4">
+    <div class="col-6 col-md-4 col-lg-3">
         <div class="card plan-card">
             <div class="plan-head"><h4>{{ $b->name }}</h4></div>
             <div class="card-body">
