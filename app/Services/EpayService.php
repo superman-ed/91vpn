@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use Illuminate\Support\Facades\Http;
 
 /**
  * 易支付(彩虹易支付/码支付类)聚合网关，兼容易支付 v1 API。
@@ -59,6 +60,28 @@ class EpayService
         $sign = (string) ($params['sign'] ?? '');
 
         return $sign !== '' && hash_equals($this->sign($params), $sign);
+    }
+
+    /** 主动查单：查询该商户订单在网关是否已支付成功（用于回调漏单对账） */
+    public function isPaidOnGateway(string $outTradeNo): bool
+    {
+        if (! $this->configured()) {
+            return false;
+        }
+
+        try {
+            $resp = Http::asForm()->timeout(10)
+                ->post($this->url().'/api/EasyPay/queryOrder', ['orderNo' => $outTradeNo]);
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        if (! $resp->ok()) {
+            return false;
+        }
+        $json = $resp->json() ?? [];
+
+        return (int) ($json['code'] ?? 0) === 1 && (($json['data']['status'] ?? '') === 'success');
     }
 
     /** 生成跳转到网关的支付地址（页面支付 submit.php）。未映射的渠道不传 type → 网关收银台 */

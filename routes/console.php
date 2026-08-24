@@ -19,3 +19,6 @@ Schedule::command('traffic:reset-monthly')->dailyAt('00:05');
 
 // 每 10 分钟激活到期的排队订单（当前套餐过期后自动生效）
 Schedule::command('orders:activate-due')->everyTenMinutes();
+
+// 每 5 分钟支付对账：回调漏单则主动查单补发货
+Schedule::command('payment:reconcile')->everyFiveMinutes();
