@@ -6,12 +6,22 @@ use App\Models\User;
 
 beforeEach(fn () => $this->admin = User::factory()->create(['is_admin' => true]));
 
-it('creates a plan', function () {
+it('batch-creates same-named plans for each priced duration', function () {
     $this->actingAs($this->admin)->post('/admin/plans', [
-        'name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100,
-        'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => 1,
+        'name' => 'VIP①', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'on_sale' => 1,
+        'prices' => ['month' => 30, 'quarter' => 85, 'half_year' => '', 'year' => 300],
     ])->assertRedirect('/admin/plans');
-    expect(Plan::where('name', 'VIP①')->exists())->toBeTrue();
+
+    // 只为填了价格的 3 档各建一行(半年留空跳过)
+    expect(Plan::where('name', 'VIP①')->count())->toBe(3);
+    expect(Plan::where('name', 'VIP①')->where('period', 'year')->first()->duration_days)->toBe(365);
+});
+
+it('rejects a plan group with no prices filled', function () {
+    $this->actingAs($this->admin)->post('/admin/plans', [
+        'name' => 'VIP①', 'transfer_gb' => 100, 'class' => 1, 'prices' => ['month' => '', 'quarter' => '', 'half_year' => '', 'year' => ''],
+    ])->assertSessionHasErrors('prices');
+    expect(Plan::count())->toBe(0);
 });
 
 it('updates and deletes a plan', function () {

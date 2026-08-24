@@ -6,7 +6,7 @@
 <div class="row">
 <div class="form-group col-md-6"><label>名称</label><input name="name" value="{{ old('name',$plan->name) }}" class="form-control" required></div>
 <div class="form-group col-md-6"><label>价格 ¥</label><input name="price" type="number" step="0.01" value="{{ old('price',$plan->price) }}" class="form-control" required></div>
-<div class="form-group col-md-4"><label>周期</label><select name="period" class="form-control"><option value="month">月</option><option value="quarter">季</option><option value="half_year">半年</option><option value="year">年</option></select></div>
+<div class="form-group col-md-4"><label>周期</label><select name="period" class="form-control">@foreach(['month'=>'月','quarter'=>'季','half_year'=>'半年','year'=>'年'] as $k=>$v)<option value="{{ $k }}" @selected(old('period',$plan->period)===$k)>{{ $v }}</option>@endforeach</select></div>
 <div class="form-group col-md-4"><label>流量 GB</label><input name="transfer_gb" type="number" value="{{ old('transfer_gb',$plan->transfer_gb) }}" class="form-control" required></div>
 <div class="form-group col-md-4"><label>等级</label><input name="class" type="number" value="{{ old('class',$plan->class ?? 1) }}" class="form-control" required></div>
 <div class="form-group col-md-4"><label>时长（天）</label><input name="duration_days" type="number" value="{{ old('duration_days',$plan->duration_days) }}" class="form-control" required></div>
