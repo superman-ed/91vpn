@@ -16,3 +16,6 @@ Schedule::command('traffic:reset-daily')->dailyAt('00:00');
 
 // 每日 0 点检查：按各用户开通周年刷新流量配额（清零已用 u/d，推进下次刷新日）
 Schedule::command('traffic:reset-monthly')->dailyAt('00:05');
+
+// 每 10 分钟激活到期的排队订单（当前套餐过期后自动生效）
+Schedule::command('orders:activate-due')->everyTenMinutes();

@@ -16,9 +16,10 @@ class BillingService
      * 发货：把套餐权益应用到用户。计费核心。
      *
      * 规则：
-     * - 流量累加（transfer_enable += 套餐流量）
+     * - 流量设为套餐流量、已用清零
      * - 等级设为套餐等级、限速/设备数按套餐
      * - 到期时间：未过期则从原到期日叠加，已过期则从 now 起算
+     * - 重置：monthly 型每 30 天从发货日刷新；none 型总量不重置(next_reset_at=null)
      */
     public function deliver(User $user, Plan $plan): void
     {
@@ -28,41 +29,90 @@ class BillingService
                 : now();
 
             $user->update([
-                // 流量固定为月配额（设值不累加），已用清零，按开通日的月度周年刷新
                 'transfer_enable' => $plan->transfer_gb * (1024 ** 3),
                 'u' => 0,
                 'd' => 0,
                 'class' => $plan->class,
-                'class_expire' => $base->addDays($plan->duration_days),   // 时长仍叠加延长有效期
-                // 下次刷新 = 开通日 + 1 个月（月末不溢出，如 1/31 → 2/28）
-                'next_reset_at' => now()->addMonthNoOverflow(),
+                'class_expire' => $base->addDays($plan->duration_days),
+                // monthly：发货日 + 1 个月(月末不溢出)；none(总量型)：不重置
+                'next_reset_at' => $plan->resetsMonthly() ? now()->addMonthNoOverflow() : null,
                 'node_speed_limit' => $plan->speed_limit,
                 'node_ip_limit' => $plan->ip_limit,
             ]);
         });
     }
 
+    /** 流量包(加油包)：立即给当前周期加流量，不改等级/到期/重置 */
+    public function applyDataPack(User $user, Plan $plan): void
+    {
+        $user->increment('transfer_enable', $plan->transfer_gb * (1024 ** 3));
+    }
+
     /**
-     * 标记订单已支付并发货。
+     * 当前已拥有权益的“有效终点”：当前到期日 + 所有排队订单时长的累加。
+     * 用于计算新购套餐的排队生效时间。
+     */
+    public function effectiveEnd(User $user): \Illuminate\Support\Carbon
+    {
+        $end = ($user->class_expire && $user->class_expire->isFuture())
+            ? $user->class_expire->copy()
+            : now();
+
+        foreach ($user->orders()->where('status', 'queued')->with('plan')->get() as $q) {
+            $end = $end->addDays($q->plan->duration_days ?? 0);
+        }
+
+        return $end;
+    }
+
+    /**
+     * 标记订单已支付并结算。
+     * - 库存/优惠券/返利在支付时结算
+     * - 流量包：立即加流量
+     * - 普通套餐：当前有效则排队(status=queued, activate_at)，否则立即发货
      */
     public function completeOrder(Order $order, string $payMethod): void
     {
         DB::transaction(function () use ($order, $payMethod) {
-            $order->update([
-                'status' => 'paid',
-                'pay_method' => $payMethod,
-                'paid_at' => now(),
-            ]);
-            $this->deliver($order->user, $order->plan);
-            // 限量套餐扣库存（-1 表示无限，不扣）
+            $order->update(['pay_method' => $payMethod, 'paid_at' => now()]);
+
+            // 支付即结算的部分
             if ($order->plan && $order->plan->stock > 0) {
                 $order->plan->decrement('stock');
             }
-            // 优惠券在支付成功时才计入使用次数
             if ($order->coupon_id && $order->coupon) {
                 $order->coupon->increment('used');
             }
             $this->payback($order);
+
+            $user = $order->user;
+            $plan = $order->plan;
+
+            if ($plan->is_data_pack) {
+                // 流量包：立即生效，不排队、不改到期
+                $this->applyDataPack($user, $plan);
+                $order->update(['status' => 'paid', 'delivered_at' => now()]);
+
+                return;
+            }
+
+            $end = $this->effectiveEnd($user);
+            if ($end->isFuture()) {
+                // 当前套餐(或已排队套餐)未到期 → 排队，等到期自动激活
+                $order->update(['status' => 'queued', 'activate_at' => $end]);
+            } else {
+                $this->deliver($user, $plan);
+                $order->update(['status' => 'paid', 'delivered_at' => now(), 'activate_at' => now()]);
+            }
+        });
+    }
+
+    /** 激活一笔到期的排队订单（由定时任务调用） */
+    public function activate(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $this->deliver($order->user, $order->plan);
+            $order->update(['status' => 'paid', 'delivered_at' => now()]);
         });
     }
 

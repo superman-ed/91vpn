@@ -8,12 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Order extends Model
 {
     protected $fillable = [
-        'user_id', 'plan_id', 'coupon_id', 'amount', 'status', 'period', 'pay_method', 'paid_at',
+        'user_id', 'plan_id', 'coupon_id', 'amount', 'status', 'period', 'pay_method',
+        'paid_at', 'activate_at', 'delivered_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
+        'activate_at' => 'datetime',
+        'delivered_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
