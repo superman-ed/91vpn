@@ -12,4 +12,5 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 pest()->extend(Tests\TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => \Illuminate\Support\Facades\Cache::flush())   // 隔离 Setting 缓存，防跨测试串味
     ->in('Feature', 'Unit');

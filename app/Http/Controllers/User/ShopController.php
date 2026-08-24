@@ -177,7 +177,7 @@ class ShopController extends Controller
     private const ONLINE_METHODS = ['alipay' => '支付宝', 'wechat' => '微信支付', 'usdt' => 'USDT'];
 
     /** POST /user/order/{order}/pay —— 收银台统一支付：按所选方式发货 */
-    public function pay(Order $order, Request $request, BillingService $billing)
+    public function pay(Order $order, Request $request, BillingService $billing, \App\Services\EpayService $epay)
     {
         abort_unless($order->user_id === auth()->id(), 403);
         abort_if($order->status !== 'pending', 403);
@@ -199,11 +199,16 @@ class ShopController extends Controller
             return redirect('/user')->with('status', '余额支付成功，套餐已到账！');
         }
 
-        // 在线渠道：模拟支付成功
+        // 在线渠道：已配置网关则跳转支付，回调发货
+        if ($epay->configured() && $epay->supports($data['method'])) {
+            return redirect()->away($epay->payUrl($order, $data['method']));
+        }
+
+        // 未配置网关 → 模拟直付（开发/演示）
         $billing->settleOrder($order, $data['method']);
         $channel = self::ONLINE_METHODS[$data['method']];
 
-        return redirect('/user')->with('status', "{$channel}支付成功，套餐已到账！");
+        return redirect('/user')->with('status', "{$channel}支付成功，套餐已到账！（未配置网关，模拟）");
     }
 
     /** POST /user/subscription/end —— 立即结束当前套餐（仅单月套餐，让排队套餐生效） */

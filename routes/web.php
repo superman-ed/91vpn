@@ -34,6 +34,10 @@ Route::get('/', function () {
     return redirect(Auth::check() ? '/user' : '/login');
 });
 
+// 支付网关回调（易支付，机器对机器，无需登录）
+Route::match(['get', 'post'], '/pay/epay/notify', [App\Http\Controllers\PaymentController::class, 'notify']);
+Route::match(['get', 'post'], '/pay/epay/return', [App\Http\Controllers\PaymentController::class, 'epayReturn']);
+
 // 认证（游客）
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
