@@ -22,6 +22,27 @@ it('creates a pending order', function () {
     expect($order)->not->toBeNull();
     expect($order->status)->toBe('pending');
     expect((float) $order->amount)->toBe(30.0);
+
+    // 下单后落到收银台结算页
+    $this->actingAs($user)->get("/user/order/{$order->id}")
+        ->assertOk()->assertSee('订单结算')->assertSee('应付金额')->assertSee('VIP①');
+});
+
+it('redirects checkout to wallet when order already paid', function () {
+    $user = User::factory()->create();
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
+    $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'paid', 'period' => 'month']);
+
+    $this->actingAs($user)->get("/user/order/{$order->id}")->assertRedirect('/user/wallet');
+});
+
+it('cannot open another user checkout', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30]);
+    $order = Order::create(['user_id' => $owner->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+
+    $this->actingAs($other)->get("/user/order/{$order->id}")->assertForbidden();
 });
 
 it('mock-pays an order and delivers the plan', function () {

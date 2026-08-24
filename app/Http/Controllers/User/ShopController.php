@@ -51,13 +51,10 @@ class ShopController extends Controller
         return view('user.shop', ['groups' => $groups]);
     }
 
-    /** POST /user/order/create —— 下单（生成 pending 订单，支持优惠券） */
+    /** POST /user/order/create —— 下单（生成 pending 订单，跳收银台结算） */
     public function createOrder(Request $request)
     {
-        $data = $request->validate([
-            'plan_id' => ['required', 'exists:plans,id'],
-            'coupon' => ['nullable', 'string', 'max:32'],
-        ]);
+        $data = $request->validate(['plan_id' => ['required', 'exists:plans,id']]);
 
         $plan = Plan::findOrFail($data['plan_id']);
 
@@ -65,27 +62,53 @@ class ShopController extends Controller
             throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架']);
         }
 
-        $amount = (float) $plan->price;
-
-        // 优惠券（选填）
-        if (! empty($data['coupon'])) {
-            $coupon = \App\Models\Coupon::where('code', $data['coupon'])->first();
-            if (! $coupon || ! $coupon->isUsable()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '优惠券无效或已过期']);
-            }
-            $amount = $coupon->apply($amount);
-            $coupon->increment('used');
-        }
-
         $order = Order::create([
             'user_id' => auth()->id(),
             'plan_id' => $plan->id,
-            'amount' => $amount,
+            'amount' => (float) $plan->price,   // 收银台可再抵扣优惠券
             'status' => 'pending',
             'period' => $plan->period,
         ]);
 
-        return redirect('/user/wallet')->with('status', "订单已创建：{$plan->name} ¥{$amount}，请在下方完成支付");
+        return redirect("/user/order/{$order->id}");
+    }
+
+    /** GET /user/order/{order} —— 收银台结算页 */
+    public function checkout(Order $order)
+    {
+        abort_unless($order->user_id === auth()->id(), 403);
+
+        if ($order->status !== 'pending') {
+            return redirect('/user/wallet')->with('status', '该订单已处理，无需支付');
+        }
+
+        return view('user.checkout', ['order' => $order->load('plan', 'coupon'), 'user' => auth()->user()]);
+    }
+
+    /** POST /user/order/{order}/coupon —— 收银台应用/移除优惠码（按原价重算，支付成功才计 used） */
+    public function applyCoupon(Order $order, Request $request)
+    {
+        abort_unless($order->user_id === auth()->id(), 403);
+        abort_if($order->status !== 'pending', 403);
+
+        $data = $request->validate(['coupon' => ['nullable', 'string', 'max:32']]);
+        $base = (float) $order->plan->price;
+
+        // 留空 = 移除优惠码，恢复原价
+        if (empty($data['coupon'])) {
+            $order->update(['coupon_id' => null, 'amount' => $base]);
+
+            return redirect("/user/order/{$order->id}")->with('status', '已移除优惠码');
+        }
+
+        $coupon = \App\Models\Coupon::where('code', $data['coupon'])->first();
+        if (! $coupon || ! $coupon->isUsable()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '优惠券无效或已过期']);
+        }
+
+        $order->update(['coupon_id' => $coupon->id, 'amount' => $coupon->apply($base)]);
+
+        return redirect("/user/order/{$order->id}")->with('status', "优惠码已应用，应付 ¥{$order->fresh()->amount}");
     }
 
     /** POST /user/order/{order}/mock-pay —— 模拟支付并发货 */

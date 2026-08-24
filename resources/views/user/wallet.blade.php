@@ -32,8 +32,7 @@
                 <td>{{ $o->plan?->name ?? '—' }}</td><td>¥{{ number_format($o->amount,2) }}</td>
                 <td>@if($o->status==='paid')<span class="badge badge-success">已支付</span>@elseif($o->status==='pending')<span class="badge badge-warning">待支付</span>@else<span class="badge badge-secondary">已取消</span>@endif</td>
                 <td>@if($o->status==='pending')
-                    <form method="POST" action="/user/order/{{ $o->id }}/pay-balance" class="d-inline">@csrf<button class="btn btn-outline-primary btn-sm">余额支付</button></form>
-                    <form method="POST" action="/user/order/{{ $o->id }}/mock-pay" class="d-inline">@csrf<button class="btn btn-primary btn-sm">模拟付款</button></form>
+                    <a href="/user/order/{{ $o->id }}" class="btn btn-primary btn-sm">去支付</a>
                     @else — @endif</td>
                 <td>{{ $o->created_at?->format('Y-m-d H:i') }}</td>
             </tr>

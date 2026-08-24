@@ -67,6 +67,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/ticket/{ticket}/reply', [UserTicketController::class, 'reply']);
     Route::get('/user/shop', [ShopController::class, 'index'])->name('user.shop');
     Route::post('/user/order/create', [ShopController::class, 'createOrder']);
+    Route::get('/user/order/{order}', [ShopController::class, 'checkout'])->name('user.checkout');
+    Route::post('/user/order/{order}/coupon', [ShopController::class, 'applyCoupon']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
     Route::get('/user/wallet', [WalletController::class, 'index'])->name('user.wallet');
     Route::post('/user/wallet/recharge', [WalletController::class, 'recharge']);

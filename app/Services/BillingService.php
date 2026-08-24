@@ -56,6 +56,10 @@ class BillingService
             if ($order->plan && $order->plan->stock > 0) {
                 $order->plan->decrement('stock');
             }
+            // 优惠券在支付成功时才计入使用次数
+            if ($order->coupon_id && $order->coupon) {
+                $order->coupon->increment('used');
+            }
             $this->payback($order);
         });
     }

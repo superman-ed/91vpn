@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Order extends Model
 {
     protected $fillable = [
-        'user_id', 'plan_id', 'amount', 'status', 'period', 'pay_method', 'paid_at',
+        'user_id', 'plan_id', 'coupon_id', 'amount', 'status', 'period', 'pay_method', 'paid_at',
     ];
 
     protected $casts = [
@@ -24,5 +24,10 @@ class Order extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 }
