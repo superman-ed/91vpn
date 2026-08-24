@@ -2,14 +2,38 @@
 @section('title', '商店')
 @section('head')
 <style>
-.shop-row > [class*="col-"] { display: flex; margin-bottom: 25px; }
-.plan-card { width: 100%; margin-bottom: 0; display: flex; flex-direction: column; }
-.plan-card .card-body { display: flex; flex-direction: column; flex: 1; }
-.plan-price { font-size: 36px; font-weight: 800; color: #6777ef; line-height: 1; }
-.plan-feature { padding: 6px 0; border-bottom: 1px solid #f2f4f6; font-size: 14px; }
-.plan-feature i { width: 18px; }
-.dur-group { display: flex; gap: 6px; flex-wrap: wrap; }
-.dur-group .dur-btn { flex: 1; min-width: 56px; }
+.shop-row > [class*="col-"] { display: flex; margin-bottom: 28px; }
+.plan-card {
+    width: 100%; margin-bottom: 0; display: flex; flex-direction: column;
+    border: none; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 6px 22px rgba(103,119,239,.10);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.plan-card:hover { transform: translateY(-5px); box-shadow: 0 16px 36px rgba(103,119,239,.22); }
+.plan-head {
+    background: linear-gradient(135deg, #6777ef 0%, #5a67e8 100%);
+    color: #fff; text-align: center; padding: 22px 16px 18px;
+}
+.plan-head h4 { color: #fff; margin: 0; font-weight: 700; font-size: 19px; letter-spacing: .5px; }
+.plan-card .card-body { display: flex; flex-direction: column; flex: 1; padding: 22px; }
+.dur-group { display: flex; gap: 4px; background: #f1f3fb; padding: 4px; border-radius: 10px; margin-bottom: 18px; }
+.dur-group .dur-btn {
+    flex: 1; min-width: 48px; border: none; border-radius: 7px; padding: 7px 0;
+    background: transparent; color: #6777ef; font-weight: 600; font-size: 13px; cursor: pointer;
+    transition: all .15s ease;
+}
+.dur-group .dur-btn.active { background: #6777ef; color: #fff; box-shadow: 0 3px 8px rgba(103,119,239,.35); }
+.plan-price { font-size: 40px; font-weight: 800; color: #34395e; line-height: 1; }
+.plan-days { color: #98a6ad; font-size: 13px; margin-top: 4px; }
+.plan-feature { padding: 8px 0; font-size: 14px; color: #54667a; display: flex; align-items: flex-start; }
+.plan-feature i { width: 22px; color: #63c76a; margin-top: 3px; flex-shrink: 0; }
+.buy-btn {
+    border-radius: 10px; padding: 12px; font-weight: 700; color: #fff; border: none;
+    background: linear-gradient(135deg, #6777ef 0%, #5a67e8 100%);
+    box-shadow: 0 6px 16px rgba(103,119,239,.3);
+}
+.buy-btn:hover { color: #fff; filter: brightness(1.05); }
+.coupon-input { border-radius: 9px; }
 </style>
 @endsection
 @section('content')
@@ -21,12 +45,12 @@
     @php $b = $g['benefits']; $first = $g['durations']->first(); @endphp
     <div class="col-12 col-md-6 col-lg-4">
         <div class="card plan-card">
-            <div class="card-header"><h4 style="color:#6777ef">{{ $b->name }}</h4></div>
+            <div class="plan-head"><h4>{{ $b->name }}</h4></div>
             <div class="card-body">
-                <div class="dur-group mb-3">
+                <div class="dur-group">
                     @foreach($g['durations'] as $d)
                     <button type="button"
-                        class="btn btn-sm dur-btn {{ $loop->first ? 'btn-primary' : 'btn-outline-primary' }}"
+                        class="dur-btn {{ $loop->first ? 'active' : '' }}"
                         onclick="pickDuration(this)"
                         data-plan="{{ $d['plan_id'] }}" data-price="{{ $d['price'] }}"
                         data-days="{{ $d['days'] }}" data-stock="{{ $d['stock'] }}"
@@ -35,21 +59,21 @@
                 </div>
                 <div class="text-center mb-3">
                     <span class="plan-price">¥<span data-price-out>{{ $first['price'] }}</span></span>
-                    <div class="text-muted mt-1" style="font-size:13px">有效期 <span data-days-out>{{ $first['days'] }}</span> 天</div>
+                    <div class="plan-days">有效期 <span data-days-out>{{ $first['days'] }}</span> 天</div>
                 </div>
                 <div class="mb-3">
-                    <div class="plan-feature"><i class="fas fa-check text-success"></i> IEPL 专线隧道出口</div>
-                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 每月 {{ $b->transfer_gb }}GB 流量</div>
-                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 最大同时在线设备数 {{ $b->ip_limit > 0 ? $b->ip_limit.' 个' : '不限' }}</div>
-                    <div class="plan-feature"><i class="fas fa-check text-success"></i> {{ $b->speed_limit > 0 ? '端口限速 '.$b->speed_limit.'Mbps' : '端口不限速' }}</div>
-                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 稳定解锁 NetFlix 等流媒体</div>
-                    <div class="plan-feature"><i class="fas fa-check text-success"></i> 有限售后支持（网站右下角客服或工单）</div>
-                    <div class="plan-feature text-warning" data-stock-line style="{{ $first['stock'] > 0 ? '' : 'display:none' }}"><i class="fas fa-fire"></i> 限量剩余 <span data-stock-num>{{ max(0, $first['stock']) }}</span> 份</div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>IEPL 专线隧道出口</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>每月 {{ $b->transfer_gb }}GB 流量</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>最大同时在线设备数 {{ $b->ip_limit > 0 ? $b->ip_limit.' 个' : '不限' }}</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>{{ $b->speed_limit > 0 ? '端口限速 '.$b->speed_limit.'Mbps' : '端口不限速' }}</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>稳定解锁 NetFlix 等流媒体</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span>有限售后支持（网站右下角客服或工单）</span></div>
+                    <div class="plan-feature text-warning" data-stock-line style="{{ $first['stock'] > 0 ? '' : 'display:none' }}"><i class="fas fa-fire" style="color:#ffa426"></i><span>限量剩余 <span data-stock-num>{{ max(0, $first['stock']) }}</span> 份</span></div>
                 </div>
                 <form method="POST" action="/user/order/create" class="mt-auto">@csrf
                     <input type="hidden" name="plan_id" value="{{ $first['plan_id'] }}" data-plan-input>
-                    <input type="text" name="coupon" class="form-control mb-2" placeholder="优惠码（选填）" data-coupon style="{{ $first['sold_out'] ? 'display:none' : '' }}">
-                    <button class="btn btn-primary btn-block" data-buy style="{{ $first['sold_out'] ? 'display:none' : '' }}"><i class="fas fa-shopping-cart"></i> 购买</button>
+                    <input type="text" name="coupon" class="form-control coupon-input mb-2" placeholder="优惠码（选填）" data-coupon style="{{ $first['sold_out'] ? 'display:none' : '' }}">
+                    <button class="btn buy-btn btn-block" data-buy style="{{ $first['sold_out'] ? 'display:none' : '' }}"><i class="fas fa-shopping-cart"></i> 立即购买</button>
                     <button type="button" class="btn btn-light btn-block" data-soldout-btn disabled style="{{ $first['sold_out'] ? '' : 'display:none' }}">已售罄</button>
                 </form>
             </div>
@@ -60,8 +84,8 @@
 <script>
 function pickDuration(btn){
     var card = btn.closest('.plan-card');
-    card.querySelectorAll('.dur-btn').forEach(function(b){ b.classList.remove('btn-primary'); b.classList.add('btn-outline-primary'); });
-    btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary');
+    card.querySelectorAll('.dur-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
     card.querySelector('[data-price-out]').textContent = btn.dataset.price;
     card.querySelector('[data-days-out]').textContent = btn.dataset.days;
     card.querySelector('[data-plan-input]').value = btn.dataset.plan;
