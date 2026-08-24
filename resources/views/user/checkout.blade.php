@@ -33,19 +33,30 @@
     $plan = $order->plan;
     $base = (float) $plan->price;
     $discount = max(0, $base - (float) $order->amount);
+    $isPack = $plan->is_data_pack;
+    $isFree = (float) $order->amount <= 0;
+    $trafficLine = $isPack
+        ? '立即叠加 '.$plan->transfer_gb.'GB 到当前套餐'
+        : ($plan->reset_type === 'none'
+            ? $plan->duration_days.'天总计 '.$plan->transfer_gb.'GB（不重置）'
+            : '每月 '.$plan->transfer_gb.'GB');
 @endphp
 <div class="row">
     <div class="col-12 col-lg-7">
         <div class="card">
             <div class="card-header"><h4>订单详情</h4></div>
             <div class="card-body co-summary">
-                <div class="row-line"><span class="lbl">套餐</span><span class="val">{{ $plan->name }}</span></div>
+                <div class="row-line"><span class="lbl">{{ $isPack ? '流量包' : '套餐' }}</span><span class="val">{{ $plan->name }}</span></div>
+                @unless($isPack)
                 <div class="row-line"><span class="lbl">时长</span><span class="val">{{ period_name($order->period) }} · {{ $plan->duration_days }} 天</span></div>
-                <div class="row-line"><span class="lbl">流量</span><span class="val">每月 {{ $plan->transfer_gb }}GB</span></div>
+                @endunless
+                <div class="row-line"><span class="lbl">流量</span><span class="val">{{ $trafficLine }}</span></div>
                 <div class="row-line"><span class="lbl">原价</span><span class="val">¥{{ number_format($base, 2) }}</span></div>
                 @if($order->coupon_id)
                 <div class="row-line discount"><span class="lbl">优惠码 {{ $order->coupon?->code }}</span><span class="val">-¥{{ number_format($discount, 2) }}</span></div>
                 @endif
+                <div class="row-line"><span class="lbl">订单号</span><span class="val">#{{ $order->id }}</span></div>
+                <div class="row-line"><span class="lbl">下单时间</span><span class="val">{{ $order->created_at?->format('Y-m-d H:i') }}</span></div>
             </div>
         </div>
 
@@ -75,10 +86,20 @@
         <div class="card">
             <div class="card-header"><h4>支付</h4></div>
             <div class="card-body">
+                @if($queuedActivateAt)
+                <div class="alert alert-info py-2 mb-3" style="font-size:13px"><i class="fas fa-hourglass-half"></i> 当前套餐生效中，本套餐支付后将<strong>排队</strong>，预计 <strong>{{ $queuedActivateAt->format('Y-m-d H:i') }}</strong> 自动生效。</div>
+                @endif
+
                 <div class="d-flex justify-content-between align-items-baseline mb-4">
                     <span class="text-muted">应付金额</span>
                     <span class="co-pay">¥{{ number_format($order->amount, 2) }}</span>
                 </div>
+
+                @if($isFree)
+                <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm">@csrf
+                    <button class="btn btn-primary btn-block co-btn" data-confirm><i class="fas fa-gift"></i> 确认领取（¥0.00）</button>
+                </form>
+                @else
                 <div class="d-flex justify-content-between align-items-baseline mb-3">
                     <span class="text-muted">钱包余额</span>
                     <span class="co-balance">¥{{ number_format($user->money, 2) }}</span>
@@ -114,12 +135,20 @@
 
                     <button class="btn btn-primary btn-block co-btn" data-confirm><i class="fas fa-lock"></i> 确认支付 ¥{{ number_format($order->amount, 2) }}</button>
                 </form>
+                @endif
 
+                @if(app()->environment('local'))
                 <form method="POST" action="/user/order/{{ $order->id }}/mock-pay" class="mt-2">@csrf
                     <button class="btn btn-link btn-block text-muted"><i class="fas fa-vial"></i> 模拟付款（开发）</button>
                 </form>
+                @endif
 
-                <a href="/user/shop" class="btn btn-link btn-block text-muted">返回商店</a>
+                <div class="d-flex mt-2" style="gap:8px">
+                    <a href="/user/shop" class="btn btn-link flex-fill text-muted">返回商店</a>
+                    <form method="POST" action="/user/order/{{ $order->id }}/cancel" class="flex-fill" onsubmit="return confirm('确定取消该订单？')">@csrf
+                        <button class="btn btn-link btn-block text-danger">取消订单</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -128,10 +157,9 @@
     <div class="card-header"><h4><i class="fas fa-circle-info text-primary"></i> 购买须知</h4></div>
     <div class="card-body">
         <ul class="buy-notice">
-            <li>流量每 30 天重置一次（从购买日开始计算），未使用的流量不结转到下个周期。</li>
-            <li>轻量套餐为 90 天总计 120GB 流量，不重置（从购买日开始计算），未使用的流量不结转到下个周期。</li>
-            <li>如当前套餐未到期，新购套餐需等当前套餐过期后自动生效，具体生效时间可以去<a href="/user/wallet">我的钱包</a>里面查看。</li>
-            <li>如当月流量用完，要继续使用，请购买流量包（立即生效）或去官网首页点击立即结束当前套餐（需不是多月套餐）。</li>
+            @foreach(buy_notice_lines() as $line)
+            <li>{{ $line }}</li>
+            @endforeach
         </ul>
     </div>
 </div>

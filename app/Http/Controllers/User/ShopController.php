@@ -76,6 +76,16 @@ class ShopController extends Controller
             throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架']);
         }
 
+        // 去重：同套餐已有待支付订单则复用，避免堆积
+        $existing = Order::where('user_id', auth()->id())
+            ->where('plan_id', $plan->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
+        if ($existing) {
+            return redirect("/user/order/{$existing->id}");
+        }
+
         $order = Order::create([
             'user_id' => auth()->id(),
             'plan_id' => $plan->id,
@@ -88,7 +98,7 @@ class ShopController extends Controller
     }
 
     /** GET /user/order/{order} —— 收银台结算页 */
-    public function checkout(Order $order)
+    public function checkout(Order $order, BillingService $billing)
     {
         abort_unless($order->user_id === auth()->id(), 403);
 
@@ -96,11 +106,33 @@ class ShopController extends Controller
             return redirect('/user/wallet')->with('status', '该订单已处理，无需支付');
         }
 
+        $user = auth()->user();
+        // 普通套餐且当前有生效套餐 → 本单支付后排队，预计生效时间
+        $queuedActivateAt = null;
+        if (! $order->plan->is_data_pack) {
+            $end = $billing->effectiveEnd($user);
+            if ($end->isFuture()) {
+                $queuedActivateAt = $end;
+            }
+        }
+
         return view('user.checkout', [
             'order' => $order->load('plan', 'coupon'),
-            'user' => auth()->user(),
+            'user' => $user,
             'couponNotes' => \App\Models\Coupon::checkoutVisible(),
+            'queuedActivateAt' => $queuedActivateAt,
         ]);
+    }
+
+    /** POST /user/order/{order}/cancel —— 取消待支付订单 */
+    public function cancelOrder(Order $order)
+    {
+        abort_unless($order->user_id === auth()->id(), 403);
+        abort_if($order->status !== 'pending', 403);
+
+        $order->update(['status' => 'cancelled']);
+
+        return redirect('/user/wallet')->with('status', '订单已取消');
     }
 
     /** POST /user/order/{order}/coupon —— 收银台应用/移除优惠码（按原价重算，支付成功才计 used） */
@@ -141,6 +173,13 @@ class ShopController extends Controller
         abort_unless($order->user_id === auth()->id(), 403);
         abort_if($order->status !== 'pending', 403);
 
+        // 0 元订单（优惠券抵满）直接发货，无需选支付方式
+        if ((float) $order->amount <= 0) {
+            $billing->completeOrder($order, 'free');
+
+            return redirect('/user')->with('status', '订单已发货！');
+        }
+
         $data = $request->validate([
             'method' => ['required', 'in:balance,'.implode(',', array_keys(self::ONLINE_METHODS))],
         ]);
@@ -172,9 +211,10 @@ class ShopController extends Controller
         return back()->with('status', $activated ? '当前套餐已结束，排队套餐已生效' : '当前套餐已结束');
     }
 
-    /** POST /user/order/{order}/mock-pay —— 模拟支付并发货（开发用） */
+    /** POST /user/order/{order}/mock-pay —— 模拟支付并发货（仅开发环境） */
     public function mockPay(Order $order, BillingService $billing)
     {
+        abort_unless(app()->environment('local', 'testing'), 404);
         abort_unless($order->user_id === auth()->id(), 403);
 
         if ($order->status !== 'pending') {

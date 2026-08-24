@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\NodeController as AdminNodeController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\EmailCodeController;
@@ -70,6 +71,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/order/{order}', [ShopController::class, 'checkout'])->name('user.checkout');
     Route::post('/user/order/{order}/coupon', [ShopController::class, 'applyCoupon']);
     Route::post('/user/order/{order}/pay', [ShopController::class, 'pay']);
+    Route::post('/user/order/{order}/cancel', [ShopController::class, 'cancelOrder']);
     Route::post('/user/subscription/end', [ShopController::class, 'endSubscription']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
     Route::get('/user/wallet', [WalletController::class, 'index'])->name('user.wallet');
@@ -110,4 +112,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('coupons/{coupon}/edit', [AdminCouponController::class, 'edit']);
     Route::put('coupons/{coupon}', [AdminCouponController::class, 'update']);
     Route::delete('coupons/{coupon}', [AdminCouponController::class, 'destroy']);
+    Route::get('settings', [AdminSettingController::class, 'edit'])->name('admin.settings.edit');
+    Route::put('settings', [AdminSettingController::class, 'update']);
 });
