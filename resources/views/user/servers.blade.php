@@ -15,7 +15,7 @@
 .node-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(103,119,239,.16); }
 .node-card.offline { opacity: .6; }
 .node-top { display: flex; align-items: center; gap: 12px; }
-.node-flag { font-size: 30px; line-height: 1; flex-shrink: 0; }
+.node-flag { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: 800; }
 .node-name { font-size: 15px; font-weight: 700; color: #34395e; line-height: 1.2; word-break: break-all; }
 .node-status { margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .node-status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
@@ -31,24 +31,31 @@
 @endsection
 @section('content')
 @php
-    $flag = function ($name) {
-        $map = [
-            '香港' => '🇭🇰', 'HK' => '🇭🇰', '台湾' => '🇹🇼', '臺灣' => '🇹🇼', 'TW' => '🇹🇼',
-            '日本' => '🇯🇵', 'JP' => '🇯🇵', '东京' => '🇯🇵', '大阪' => '🇯🇵',
-            '新加坡' => '🇸🇬', '狮城' => '🇸🇬', 'SG' => '🇸🇬',
-            '美国' => '🇺🇸', 'US' => '🇺🇸', '洛杉矶' => '🇺🇸', '硅谷' => '🇺🇸',
-            '韩国' => '🇰🇷', 'KR' => '🇰🇷', '首尔' => '🇰🇷',
-            '英国' => '🇬🇧', 'UK' => '🇬🇧', '德国' => '🇩🇪', 'DE' => '🇩🇪', '法国' => '🇫🇷', 'FR' => '🇫🇷',
-            '俄罗斯' => '🇷🇺', 'RU' => '🇷🇺', '加拿大' => '🇨🇦', '澳大利亚' => '🇦🇺', '澳洲' => '🇦🇺',
-            '印度' => '🇮🇳', '泰国' => '🇹🇭', '马来' => '🇲🇾', '越南' => '🇻🇳', '土耳其' => '🇹🇷',
-            '荷兰' => '🇳🇱', '巴西' => '🇧🇷', '阿根廷' => '🇦🇷', '菲律宾' => '🇵🇭',
-        ];
-        foreach ($map as $kw => $emoji) {
+    // 地区 → [徽章文字, 颜色]；用文字徽章而非 emoji 国旗(Windows 浏览器不渲染国旗)
+    $regions = [
+        '香港' => ['港', '#e64b4b'], 'HK' => ['港', '#e64b4b'],
+        '台湾' => ['台', '#e6912a'], '臺灣' => ['台', '#e6912a'], 'TW' => ['台', '#e6912a'],
+        '日本' => ['日', '#e64b7b'], 'JP' => ['日', '#e64b7b'], '东京' => ['日', '#e64b7b'], '大阪' => ['日', '#e64b7b'],
+        '新加坡' => ['新', '#e64b4b'], '狮城' => ['新', '#e64b4b'], 'SG' => ['新', '#e64b4b'],
+        '美国' => ['美', '#3a6ee6'], 'US' => ['美', '#3a6ee6'], '洛杉矶' => ['美', '#3a6ee6'], '硅谷' => ['美', '#3a6ee6'],
+        '韩国' => ['韩', '#4b56d6'], 'KR' => ['韩', '#4b56d6'], '首尔' => ['韩', '#4b56d6'],
+        '英国' => ['英', '#3a6ee6'], 'UK' => ['英', '#3a6ee6'],
+        '德国' => ['德', '#34395e'], 'DE' => ['德', '#34395e'],
+        '法国' => ['法', '#3a6ee6'], 'FR' => ['法', '#3a6ee6'],
+        '俄罗斯' => ['俄', '#5a67e8'], 'RU' => ['俄', '#5a67e8'],
+        '加拿大' => ['加', '#e64b4b'],
+        '澳大利亚' => ['澳', '#2fa84f'], '澳洲' => ['澳', '#2fa84f'],
+        '印度' => ['印', '#e6912a'], '泰国' => ['泰', '#7c4ddb'], '马来' => ['马', '#e6912a'],
+        '越南' => ['越', '#e64b4b'], '土耳其' => ['土', '#e64b4b'], '荷兰' => ['荷', '#e6912a'],
+        '巴西' => ['巴', '#2fa84f'], '阿根廷' => ['阿', '#3aa0c7'], '菲律宾' => ['菲', '#3a6ee6'],
+    ];
+    $badge = function ($name) use ($regions) {
+        foreach ($regions as $kw => $b) {
             if (mb_stripos($name, $kw) !== false) {
-                return $emoji;
+                return $b;
             }
         }
-        return '🌐';
+        return null;   // 未识别 → 地球图标
     };
     $rate = fn ($r) => rtrim(rtrim(number_format($r, 2), '0'), '.');
 @endphp
@@ -65,7 +72,8 @@
     <div class="col-6 col-md-4 col-lg-3 mb-4">
         <div class="node-card {{ $n->online ? '' : 'offline' }}">
             <div class="node-top">
-                <span class="node-flag">{{ $flag($n->name) }}</span>
+                @php $b = $badge($n->name); @endphp
+                <span class="node-flag" style="background:{{ $b[1] ?? '#6777ef' }}">{!! $b ? $b[0] : '<i class="fas fa-globe"></i>' !!}</span>
                 <span class="node-name">{{ $n->name }}</span>
                 <span class="node-status {{ $n->online ? 'on' : 'off' }}"><span class="dot"></span>{{ $n->online ? '在线' : '离线' }}</span>
             </div>
