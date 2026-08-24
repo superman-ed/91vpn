@@ -37,35 +37,12 @@ class EpayService
     }
 
     /**
-     * MD5 签名（发起支付用）：按文档正文规则——剔除 sign/sign_type/空值 →
+     * MD5 签名：按文档正文规则——剔除 sign/sign_type/空值 →
      * 按键 ASCII 升序 → k=v&... 拼接（不 urlencode）后接密钥 → md5 小写。
      */
     public function sign(array $params): string
     {
-        return $this->md5sign($params, true);
-    }
-
-    /**
-     * 验签（回调用）：文档正文与示例代码对「sign_type 是否参与签名」自相矛盾，
-     * 两种写法都接受，任一匹配即通过（仍需正确密钥，不降低安全性）。
-     */
-    public function verify(array $params): bool
-    {
-        $sign = (string) ($params['sign'] ?? '');
-        if ($sign === '') {
-            return false;
-        }
-
-        return hash_equals($this->md5sign($params, true), $sign)      // 排除 sign_type（正文/标准）
-            || hash_equals($this->md5sign($params, false), $sign);    // 含 sign_type（示例代码）
-    }
-
-    private function md5sign(array $params, bool $excludeSignType): string
-    {
-        unset($params['sign']);
-        if ($excludeSignType) {
-            unset($params['sign_type']);
-        }
+        unset($params['sign'], $params['sign_type']);
         $params = array_filter($params, fn ($v) => $v !== '' && $v !== null);
         ksort($params);
 
@@ -75,6 +52,13 @@ class EpayService
         }
 
         return md5(implode('&', $pairs).$this->key());
+    }
+
+    public function verify(array $params): bool
+    {
+        $sign = (string) ($params['sign'] ?? '');
+
+        return $sign !== '' && hash_equals($this->sign($params), $sign);
     }
 
     /** 生成跳转到网关的支付地址（页面支付 submit.php）。未映射的渠道不传 type → 网关收银台 */

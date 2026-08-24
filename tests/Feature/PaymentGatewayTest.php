@@ -35,23 +35,13 @@ it('signs and verifies params round-trip', function () {
     expect($epay->verify($params))->toBeFalse();
 });
 
-it('verifies both sign_type-excluded and sign_type-included signatures', function () {
+it('excludes sign_type from the signature', function () {
     configureEpay();
-    $key = 'secret-key';
-    $params = ['pid' => '1001', 'out_trade_no' => '9', 'type' => 'alipay', 'money' => '30.00', 'trade_status' => 'TRADE_SUCCESS', 'sign_type' => 'MD5'];
+    $epay = app(EpayService::class);
+    $params = ['pid' => '1001', 'out_trade_no' => '9', 'money' => '30.00'];
 
-    // 文档示例写法：只排除 sign（sign_type 参与签名）
-    $incl = $params;
-    ksort($incl);
-    $str = '';
-    foreach ($incl as $k => $v) {
-        if ($k !== 'sign' && $v !== '') {
-            $str .= "{$k}={$v}&";
-        }
-    }
-    $params['sign'] = md5(rtrim($str, '&').$key);
-
-    expect(app(EpayService::class)->verify($params))->toBeTrue();
+    // 加不加 sign_type，签名结果应一致（sign_type 不参与）
+    expect($epay->sign($params))->toBe($epay->sign($params + ['sign_type' => 'MD5']));
 });
 
 it('redirects to the gateway when configured', function () {
