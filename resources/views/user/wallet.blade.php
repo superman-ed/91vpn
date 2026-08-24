@@ -22,7 +22,8 @@
     color: #fff; font-weight: 600; border-radius: 9px; border: 1.5px solid rgba(255,255,255,.55);
     background: rgba(255,255,255,.08); margin-left: 6px;
 }
-.wh-actions .btn-ghost:hover { color: #fff; background: rgba(255,255,255,.22); border-color: #fff; }
+.wh-actions .btn-ghost:hover,
+.wh-actions .btn-ghost:focus { color: #4b56d6; background: #fff; border-color: #fff; box-shadow: none; }
 
 .recharge-card { border: none; border-radius: 14px; box-shadow: 0 5px 18px rgba(103,119,239,.10); height: 100%; }
 .recharge-card .card-body { padding: 22px 24px; }
