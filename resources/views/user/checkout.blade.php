@@ -98,7 +98,7 @@
                 </div>
 
                 @if($isFree)
-                <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm">@csrf
+                <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm" data-turbo="false">@csrf
                     <button class="btn btn-primary btn-block co-btn" data-confirm><i class="fas fa-gift"></i> 确认领取（¥0.00）</button>
                 </form>
                 @else
@@ -107,7 +107,7 @@
                     <span class="co-balance">¥{{ number_format($user->money, 2) }}</span>
                 </div>
 
-                <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm">@csrf
+                <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm" data-turbo="false">@csrf
                     <div class="pay-methods">
                         <label class="pm active" data-method="balance">
                             <input type="radio" name="method" value="balance" checked>
