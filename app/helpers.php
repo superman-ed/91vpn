@@ -61,6 +61,22 @@ if (! function_exists('buy_notice_lines')) {
     }
 }
 
+if (! function_exists('rebate_rate')) {
+    /** 邀请充值返利比例（百分数，后台可配，默认 2.5） */
+    function rebate_rate(): float
+    {
+        return (float) setting('rebate_rate', '2.5');
+    }
+}
+
+if (! function_exists('signup_bonus')) {
+    /** 受邀注册奖励（元，后台可配，默认 1） */
+    function signup_bonus(): float
+    {
+        return (float) setting('signup_bonus', '1');
+    }
+}
+
 if (! function_exists('class_name')) {
     /** 等级数字转显示名 */
     function class_name(int $class): string

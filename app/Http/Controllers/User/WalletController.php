@@ -27,12 +27,12 @@ class WalletController extends Controller
     }
 
     /** POST /user/wallet/recharge —— 模拟充值 */
-    public function recharge(Request $request)
+    public function recharge(Request $request, BillingService $billing)
     {
         $data = $request->validate(['amount' => ['required', 'numeric', 'min:1', 'max:100000']]);
 
         $user = auth()->user();
-        DB::transaction(function () use ($user, $data) {
+        DB::transaction(function () use ($user, $data, $billing) {
             $user->increment('money', $data['amount']);
             BalanceLog::create([
                 'user_id' => $user->id,
@@ -41,6 +41,8 @@ class WalletController extends Controller
                 'balance_after' => $user->fresh()->money,
                 'remark' => '模拟充值',
             ]);
+            // 充值返利给邀请人
+            $billing->rechargeRebate($user, (float) $data['amount']);
         });
 
         return back()->with('status', "充值成功 ¥{$data['amount']}（模拟）");

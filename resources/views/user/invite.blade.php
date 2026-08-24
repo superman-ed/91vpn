@@ -41,11 +41,12 @@
 </style>
 @endsection
 @section('content')
+@php $fmt = fn ($n) => rtrim(rtrim(number_format($n, 2), '0'), '.'); $rate = rebate_rate(); $bonus = signup_bonus(); @endphp
 <div class="card inv-hero mb-4">
     <div class="card-body">
         <div class="inv-eyebrow"><i class="fas fa-gift"></i> 邀请返利</div>
-        <div class="inv-title">邀请好友，赚 <b>20%</b> 返利</div>
-        <div style="opacity:.9;font-size:13.5px">好友通过你的链接注册，其每一笔消费你都能拿到 20% 返利，直接进钱包余额。</div>
+        <div class="inv-title">邀请好友，赚 <b>{{ $fmt($rate) }}%</b> 充值返利</div>
+        <div style="opacity:.9;font-size:13.5px">好友通过你的链接注册即得 <b>{{ $fmt($bonus) }}</b> 元初始资金；TA 每次充值，你都能拿到充值金额的 <b>{{ $fmt($rate) }}%</b> 返利，直接进钱包余额。</div>
 
         <div class="inv-code-box">
             <span style="opacity:.85;font-size:13px">我的邀请码</span>
@@ -59,15 +60,15 @@
         <div class="inv-stats">
             <div class="inv-stat"><div class="n">{{ $downlines->count() }}</div><div class="t">已邀请人数</div></div>
             <div class="inv-stat"><div class="n">¥{{ number_format($totalPayback, 2) }}</div><div class="t">累计返利</div></div>
-            <div class="inv-stat"><div class="n">20%</div><div class="t">返利比例</div></div>
+            <div class="inv-stat"><div class="n">{{ $fmt($rate) }}%</div><div class="t">充值返利比例</div></div>
         </div>
     </div>
 </div>
 
 <div class="inv-steps">
     <div class="inv-step"><div class="num">1</div><h5>分享邀请链接</h5><p>把上方专属链接发给好友。</p></div>
-    <div class="inv-step"><div class="num">2</div><h5>好友注册并消费</h5><p>好友通过链接注册即成为你的下线。</p></div>
-    <div class="inv-step"><div class="num">3</div><h5>躺赚 20% 返利</h5><p>下线每笔消费的 20% 自动进你钱包。</p></div>
+    <div class="inv-step"><div class="num">2</div><h5>好友注册得 {{ $fmt($bonus) }} 元</h5><p>好友通过链接注册即成为你的下线，并获得 {{ $fmt($bonus) }} 元初始资金。</p></div>
+    <div class="inv-step"><div class="num">3</div><h5>充值躺赚 {{ $fmt($rate) }}%</h5><p>下线每次充值的 {{ $fmt($rate) }}% 自动进你钱包。</p></div>
 </div>
 
 <div class="row">

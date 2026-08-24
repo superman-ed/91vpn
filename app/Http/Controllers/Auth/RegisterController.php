@@ -86,6 +86,19 @@ class RegisterController extends Controller
             $invite->update(['used_by' => $user->id]);
         }
 
+        // 受邀注册奖励：通过邀请注册即得初始资金（后台可配，默认 1 元）
+        if ($refByUserId && signup_bonus() > 0) {
+            $bonus = signup_bonus();
+            $user->increment('money', $bonus);
+            \App\Models\BalanceLog::create([
+                'user_id' => $user->id,
+                'amount' => $bonus,
+                'type' => 'bonus',
+                'balance_after' => $user->fresh()->money,
+                'remark' => '邀请注册奖励',
+            ]);
+        }
+
         Auth::login($user);
 
         return redirect('/user');

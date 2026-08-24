@@ -85,7 +85,6 @@ class BillingService
             if ($order->coupon_id && $order->coupon) {
                 $order->coupon->increment('used');
             }
-            $this->payback($order);
 
             $user = $order->user;
             $plan = $order->plan;
@@ -191,10 +190,9 @@ class BillingService
         });
     }
 
-    /** 返利：下线付费给邀请人返佣（默认 20%，进余额） */
-    private function payback(Order $order): void
+    /** 充值返利：下线每次充值时给邀请人返佣（比例后台可配，默认 2.5%，进余额） */
+    public function rechargeRebate(User $downline, float $rechargeAmount): void
     {
-        $downline = $order->user;
         if (! $downline->ref_by) {
             return;
         }
@@ -203,8 +201,7 @@ class BillingService
             return;
         }
 
-        $rate = 0.20;
-        $amount = round($order->amount * $rate, 2);
+        $amount = round($rechargeAmount * rebate_rate() / 100, 2);
         if ($amount <= 0) {
             return;
         }
@@ -213,8 +210,15 @@ class BillingService
         Payback::create([
             'user_id' => $inviter->id,
             'from_user_id' => $downline->id,
-            'order_id' => $order->id,
+            'order_id' => null,
             'amount' => $amount,
+        ]);
+        BalanceLog::create([
+            'user_id' => $inviter->id,
+            'amount' => $amount,
+            'type' => 'rebate',
+            'balance_after' => $inviter->fresh()->money,
+            'remark' => "邀请返利（下线 #{$downline->id} 充值 ¥".number_format($rechargeAmount, 2).'）',
         ]);
     }
 }
