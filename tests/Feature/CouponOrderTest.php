@@ -63,6 +63,24 @@ it('admin creates a coupon with a checkout note', function () {
     expect($c->show_on_checkout)->toBeTrue();
 });
 
+it('admin edits a coupon', function () {
+    $admin = \App\Models\User::factory()->create(['is_admin' => true]);
+    $coupon = Coupon::create(['code' => 'HALF95', 'note' => '旧文案', 'type' => 'percent', 'value' => 5, 'max_use' => -1, 'enabled' => true, 'show_on_checkout' => false]);
+
+    $this->actingAs($admin)->get("/admin/coupons/{$coupon->id}/edit")->assertOk()->assertSee('HALF95');
+
+    $this->actingAs($admin)->put("/admin/coupons/{$coupon->id}", [
+        'code' => 'HALF95', 'note' => '新文案', 'type' => 'percent', 'value' => 8, 'max_use' => 50, 'enabled' => 0, 'show_on_checkout' => 1,
+    ])->assertRedirect('/admin/coupons');
+
+    $coupon->refresh();
+    expect($coupon->note)->toBe('新文案');
+    expect((float) $coupon->value)->toBe(8.0);
+    expect($coupon->max_use)->toBe(50);
+    expect($coupon->enabled)->toBeFalse();
+    expect($coupon->show_on_checkout)->toBeTrue();
+});
+
 it('checkout lists only coupons flagged for display', function () {
     $user = User::factory()->create();
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);

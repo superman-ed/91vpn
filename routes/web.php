@@ -106,5 +106,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('coupons', [AdminCouponController::class, 'index'])->name('admin.coupons.index');
     Route::get('coupons/create', [AdminCouponController::class, 'create']);
     Route::post('coupons', [AdminCouponController::class, 'store']);
+    Route::get('coupons/{coupon}/edit', [AdminCouponController::class, 'edit']);
+    Route::put('coupons/{coupon}', [AdminCouponController::class, 'update']);
     Route::delete('coupons/{coupon}', [AdminCouponController::class, 'destroy']);
 });
