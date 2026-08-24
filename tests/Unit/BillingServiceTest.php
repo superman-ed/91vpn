@@ -27,6 +27,8 @@ it('delivers a plan: adds traffic, sets class, extends expiry', function () {
     expect($user->node_ip_limit)->toBe(7);
     // 过期用户从 now 起算 30 天
     expect($user->class_expire->toDateString())->toBe(now()->addDays(30)->toDateString());
+    // 下次流量刷新 = 开通日 + 1 个月（月周年，非日历1号）
+    expect($user->next_reset_at->toDateString())->toBe(now()->addMonthNoOverflow()->toDateString());
 });
 
 it('stacks expiry from future date when renewing before expiry', function () {

@@ -14,5 +14,5 @@ Schedule::command('alive-ips:prune')->everyFiveMinutes();
 // 每日 0 点清零今日已用流量
 Schedule::command('traffic:reset-daily')->dailyAt('00:00');
 
-// 每月 1 号 0 点刷新会员流量配额（清零已用 u/d）
-Schedule::command('traffic:reset-monthly')->monthlyOn(1, '00:00');
+// 每日 0 点检查：按各用户开通周年刷新流量配额（清零已用 u/d，推进下次刷新日）
+Schedule::command('traffic:reset-monthly')->dailyAt('00:05');

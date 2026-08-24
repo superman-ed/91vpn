@@ -42,7 +42,14 @@
 @else
 <div class="row shop-row">
     @foreach($groups as $g)
-    @php $b = $g['benefits']; $first = $g['durations']->first(); @endphp
+    @php
+        $b = $g['benefits'];
+        $first = $g['durations']->first();
+        $cnMonths = [1 => '一', 3 => '三', 6 => '六', 12 => '十二'];
+        $trafficText = fn ($d) => $d['months'] <= 1
+            ? '每月 '.$d['total_gb'].'GB 流量'
+            : ($cnMonths[$d['months']] ?? $d['months']).'个月总计 '.$d['total_gb'].'GB 流量';
+    @endphp
     <div class="col-6 col-md-4 col-lg-3">
         <div class="card plan-card">
             <div class="plan-head"><h4>{{ $b->name }}</h4></div>
@@ -54,6 +61,7 @@
                         onclick="pickDuration(this)"
                         data-plan="{{ $d['plan_id'] }}" data-price="{{ $d['price'] }}"
                         data-days="{{ $d['days'] }}" data-stock="{{ $d['stock'] }}"
+                        data-traffic="{{ $trafficText($d) }}"
                         data-soldout="{{ $d['sold_out'] ? 1 : 0 }}">{{ $d['label'] }}</button>
                     @endforeach
                 </div>
@@ -63,7 +71,7 @@
                 </div>
                 <div class="mb-3">
                     <div class="plan-feature"><i class="fas fa-check"></i><span>IEPL 专线隧道出口</span></div>
-                    <div class="plan-feature"><i class="fas fa-check"></i><span>每月 {{ $b->transfer_gb }}GB 流量</span></div>
+                    <div class="plan-feature"><i class="fas fa-check"></i><span data-traffic-out>{{ $trafficText($first) }}</span></div>
                     <div class="plan-feature"><i class="fas fa-check"></i><span>最大同时在线设备数 {{ $b->ip_limit > 0 ? $b->ip_limit.' 个' : '不限' }}</span></div>
                     <div class="plan-feature"><i class="fas fa-check"></i><span>{{ $b->speed_limit > 0 ? '端口限速 '.$b->speed_limit.'Mbps' : '端口不限速' }}</span></div>
                     <div class="plan-feature"><i class="fas fa-check"></i><span>稳定解锁 NetFlix 等流媒体</span></div>
@@ -88,6 +96,7 @@ function pickDuration(btn){
     btn.classList.add('active');
     card.querySelector('[data-price-out]').textContent = btn.dataset.price;
     card.querySelector('[data-days-out]').textContent = btn.dataset.days;
+    card.querySelector('[data-traffic-out]').textContent = btn.dataset.traffic;
     card.querySelector('[data-plan-input]').value = btn.dataset.plan;
     var stock = parseInt(btn.dataset.stock, 10);
     var stockLine = card.querySelector('[data-stock-line]');
