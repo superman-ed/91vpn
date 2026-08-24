@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Services\BillingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class WalletController extends Controller
 {
@@ -53,22 +52,7 @@ class WalletController extends Controller
             return redirect('/user')->with('status', '订单状态异常');
         }
 
-        $user = auth()->user();
-        if ($user->money < $order->amount) {
-            throw ValidationException::withMessages(['amount' => '余额不足，请先充值']);
-        }
-
-        DB::transaction(function () use ($user, $order, $billing) {
-            $user->decrement('money', $order->amount);
-            BalanceLog::create([
-                'user_id' => $user->id,
-                'amount' => -$order->amount,
-                'type' => 'consume',
-                'balance_after' => $user->fresh()->money,
-                'remark' => "购买套餐 #{$order->id}",
-            ]);
-            $billing->completeOrder($order, 'balance');
-        });
+        $billing->payWithBalance($order);
 
         return redirect('/user')->with('status', '余额支付成功，套餐已到账！');
     }

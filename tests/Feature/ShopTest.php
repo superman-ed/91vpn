@@ -58,6 +58,48 @@ it('mock-pays an order and delivers the plan', function () {
     expect($user->transfer_enable)->toBe(300 * 1024 ** 3);
 });
 
+it('pays via an online channel (mock) and records the method', function () {
+    $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay(), 'transfer_enable' => 0, 'money' => 0]);
+    $plan = Plan::create(['name' => 'VIP②', 'price' => 50, 'transfer_gb' => 300, 'class' => 2, 'speed_limit' => 200, 'ip_limit' => 7, 'duration_days' => 30, 'on_sale' => true]);
+    $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 50, 'status' => 'pending', 'period' => 'month']);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'alipay'])->assertRedirect('/user');
+
+    expect($order->fresh()->status)->toBe('paid');
+    expect($order->fresh()->pay_method)->toBe('alipay');
+    expect($user->fresh()->class)->toBe(2);                 // 已发货
+    expect((float) $user->fresh()->money)->toBe(0.0);       // 在线渠道不动余额
+});
+
+it('pays via balance through the unified pay endpoint', function () {
+    $user = User::factory()->create(['class' => 0, 'money' => 100]);
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
+    $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'balance'])->assertRedirect('/user');
+
+    expect($order->fresh()->pay_method)->toBe('balance');
+    expect((float) $user->fresh()->money)->toBe(70.0);
+});
+
+it('rejects balance payment via pay endpoint when insufficient', function () {
+    $user = User::factory()->create(['money' => 5]);
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
+    $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'balance'])->assertSessionHasErrors('method');
+    expect($order->fresh()->status)->toBe('pending');
+});
+
+it('rejects an unknown payment method', function () {
+    $user = User::factory()->create();
+    $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);
+    $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'paypal'])->assertSessionHasErrors('method');
+    expect($order->fresh()->status)->toBe('pending');
+});
+
 it('cannot pay another user order', function () {
     $owner = User::factory()->create();
     $other = User::factory()->create();

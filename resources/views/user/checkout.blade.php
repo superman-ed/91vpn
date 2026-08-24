@@ -11,6 +11,16 @@
 .co-balance { font-size: 20px; font-weight: 700; color: #34395e; }
 .co-coupon .form-control { border-radius: 8px; }
 .co-btn { border-radius: 9px; padding: 11px; font-weight: 700; }
+.pay-methods { margin: 4px 0 14px; }
+.pm { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; margin-bottom: 8px; border: 1.5px solid #eef0f5; border-radius: 10px; cursor: pointer; transition: border-color .15s, background .15s; }
+.pm:hover { border-color: #c9d0f7; }
+.pm.active { border-color: #6777ef; background: #f5f6ff; }
+.pm.disabled { opacity: .5; cursor: not-allowed; }
+.pm input { display: none; }
+.pm-ic { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; flex-shrink: 0; }
+.pm-balance { background: #6777ef; } .pm-alipay { background: #1677ff; } .pm-wechat { background: #07c160; } .pm-usdt { background: #26a17b; }
+.pm-name { font-weight: 600; color: #34395e; }
+.pm-extra { margin-left: auto; color: #98a6ad; font-size: 13px; }
 </style>
 @endsection
 @section('content')
@@ -57,27 +67,69 @@
                     <span class="text-muted">应付金额</span>
                     <span class="co-pay">¥{{ number_format($order->amount, 2) }}</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                <div class="d-flex justify-content-between align-items-baseline mb-3">
                     <span class="text-muted">钱包余额</span>
                     <span class="co-balance">¥{{ number_format($user->money, 2) }}</span>
                 </div>
 
-                @if($user->money < $order->amount)
-                    <div class="alert alert-warning py-2 mb-3">余额不足，请先 <a href="/user/wallet">充值</a> 后再用余额支付。</div>
-                    <button class="btn btn-secondary btn-block co-btn mb-2" disabled>余额支付</button>
-                @else
-                    <form method="POST" action="/user/order/{{ $order->id }}/pay-balance" class="mb-2">@csrf
-                        <button class="btn btn-primary btn-block co-btn"><i class="fas fa-wallet"></i> 余额支付</button>
-                    </form>
-                @endif
+                <form method="POST" action="/user/order/{{ $order->id }}/pay" id="payForm">@csrf
+                    <div class="pay-methods">
+                        <label class="pm active" data-method="balance">
+                            <input type="radio" name="method" value="balance" checked>
+                            <span class="pm-ic pm-balance"><i class="fas fa-wallet"></i></span>
+                            <span class="pm-name">余额支付</span>
+                            <span class="pm-extra">¥{{ number_format($user->money, 2) }}</span>
+                        </label>
+                        <label class="pm" data-method="alipay">
+                            <input type="radio" name="method" value="alipay">
+                            <span class="pm-ic pm-alipay"><i class="fab fa-alipay"></i></span>
+                            <span class="pm-name">支付宝</span>
+                        </label>
+                        <label class="pm" data-method="wechat">
+                            <input type="radio" name="method" value="wechat">
+                            <span class="pm-ic pm-wechat"><i class="fab fa-weixin"></i></span>
+                            <span class="pm-name">微信支付</span>
+                        </label>
+                        <label class="pm" data-method="usdt">
+                            <input type="radio" name="method" value="usdt">
+                            <span class="pm-ic pm-usdt"><i class="fas fa-coins"></i></span>
+                            <span class="pm-name">USDT</span>
+                        </label>
+                    </div>
 
-                <form method="POST" action="/user/order/{{ $order->id }}/mock-pay">@csrf
-                    <button class="btn btn-outline-primary btn-block co-btn"><i class="fas fa-vial"></i> 模拟付款（开发）</button>
+                    <div class="alert alert-warning py-2 mb-3" data-lowbalance style="display:none">余额不足，请先 <a href="/user/wallet">充值</a> 或换其它支付方式。</div>
+                    @error('method')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
+
+                    <button class="btn btn-primary btn-block co-btn" data-confirm><i class="fas fa-lock"></i> 确认支付 ¥{{ number_format($order->amount, 2) }}</button>
                 </form>
 
-                <a href="/user/shop" class="btn btn-link btn-block mt-2 text-muted">返回商店</a>
+                <form method="POST" action="/user/order/{{ $order->id }}/mock-pay" class="mt-2">@csrf
+                    <button class="btn btn-link btn-block text-muted"><i class="fas fa-vial"></i> 模拟付款（开发）</button>
+                </form>
+
+                <a href="/user/shop" class="btn btn-link btn-block text-muted">返回商店</a>
             </div>
         </div>
     </div>
 </div>
+<script>
+(function () {
+    var amount = {{ (float) $order->amount }}, balance = {{ (float) $user->money }};
+    var form = document.getElementById('payForm');
+    if (!form) return;
+    var confirmBtn = form.querySelector('[data-confirm]');
+    var lowWarn = form.querySelector('[data-lowbalance]');
+
+    function pick(method) {
+        form.querySelectorAll('.pm').forEach(function (el) { el.classList.toggle('active', el.dataset.method === method); });
+        var lowBalance = method === 'balance' && balance < amount;
+        if (lowWarn) lowWarn.style.display = lowBalance ? '' : 'none';
+        confirmBtn.disabled = lowBalance;
+    }
+    form.querySelectorAll('input[name="method"]').forEach(function (radio) {
+        radio.addEventListener('change', function () { pick(this.value); });
+    });
+    pick('balance');
+})();
+</script>
 @endsection

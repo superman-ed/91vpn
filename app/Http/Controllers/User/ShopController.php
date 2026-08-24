@@ -111,7 +111,33 @@ class ShopController extends Controller
         return redirect("/user/order/{$order->id}")->with('status', "优惠码已应用，应付 ¥{$order->fresh()->amount}");
     }
 
-    /** POST /user/order/{order}/mock-pay —— 模拟支付并发货 */
+    /** 在线支付渠道（无真实网关，均走模拟成功，记录渠道名） */
+    private const ONLINE_METHODS = ['alipay' => '支付宝', 'wechat' => '微信支付', 'usdt' => 'USDT'];
+
+    /** POST /user/order/{order}/pay —— 收银台统一支付：按所选方式发货 */
+    public function pay(Order $order, Request $request, BillingService $billing)
+    {
+        abort_unless($order->user_id === auth()->id(), 403);
+        abort_if($order->status !== 'pending', 403);
+
+        $data = $request->validate([
+            'method' => ['required', 'in:balance,'.implode(',', array_keys(self::ONLINE_METHODS))],
+        ]);
+
+        if ($data['method'] === 'balance') {
+            $billing->payWithBalance($order);   // 余额不足会抛校验错误
+
+            return redirect('/user')->with('status', '余额支付成功，套餐已到账！');
+        }
+
+        // 在线渠道：模拟支付成功
+        $billing->completeOrder($order, $data['method']);
+        $channel = self::ONLINE_METHODS[$data['method']];
+
+        return redirect('/user')->with('status', "{$channel}支付成功，套餐已到账！");
+    }
+
+    /** POST /user/order/{order}/mock-pay —— 模拟支付并发货（开发用） */
     public function mockPay(Order $order, BillingService $billing)
     {
         abort_unless($order->user_id === auth()->id(), 403);

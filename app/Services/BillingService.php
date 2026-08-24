@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\BalanceLog;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Payback;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BillingService
 {
@@ -61,6 +63,27 @@ class BillingService
                 $order->coupon->increment('used');
             }
             $this->payback($order);
+        });
+    }
+
+    /** 余额支付一笔待支付订单：校验余额→扣款记流水→发货 */
+    public function payWithBalance(Order $order): void
+    {
+        $user = $order->user;
+        if ($user->money < $order->amount) {
+            throw ValidationException::withMessages(['method' => '余额不足，请先充值']);
+        }
+
+        DB::transaction(function () use ($user, $order) {
+            $user->decrement('money', $order->amount);
+            BalanceLog::create([
+                'user_id' => $user->id,
+                'amount' => -$order->amount,
+                'type' => 'consume',
+                'balance_after' => $user->fresh()->money,
+                'remark' => "购买套餐 #{$order->id}",
+            ]);
+            $this->completeOrder($order, 'balance');
         });
     }
 
