@@ -121,6 +121,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('system/devices', [App\Http\Controllers\Admin\DeviceStatController::class, 'index'])->name('admin.system.devices');
     Route::get('system/acquisition', [App\Http\Controllers\Admin\AcquisitionController::class, 'index'])->name('admin.system.acquisition');
     Route::get('system/audit', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('admin.system.audit');
+    Route::get('system/emails', [App\Http\Controllers\Admin\EmailLogController::class, 'index'])->name('admin.system.emails');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
     Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.orders.cancel');

@@ -25,10 +25,18 @@ class EmailCodeService
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         Cache::put($this->key($email), $code, now()->addMinutes(self::TTL_MINUTES));
 
+        $subject = '【91VPN】邮箱验证码';
         if (smtp_configured()) {
-            $this->mail($email, $code);
+            try {
+                $this->mail($email, $code);
+                $this->record($email, $subject, 'sent');
+            } catch (\Throwable $e) {
+                Log::warning("[邮箱验证码] 发送失败 {$email}: {$e->getMessage()}");
+                $this->record($email, $subject, 'failed', $e->getMessage());
+            }
         } else {
             Log::info("[邮箱验证码] {$email} => {$code}（未配置 SMTP，仅记录）");
+            $this->record($email, $subject, 'logged');
         }
 
         return $code;
@@ -58,6 +66,18 @@ class EmailCodeService
     private function ttlMinutes(): int
     {
         return self::TTL_MINUTES;
+    }
+
+    /** 记录一条邮件发送日志(供后台「邮件记录」排查) */
+    private function record(string $email, string $subject, string $status, ?string $error = null): void
+    {
+        \App\Models\EmailLog::create([
+            'to_email' => $email,
+            'type' => 'code',
+            'subject' => $subject,
+            'status' => $status,
+            'error' => $error,
+        ]);
     }
 
     /**
