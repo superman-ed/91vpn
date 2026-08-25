@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BalanceLog extends Model
 {
-    protected $fillable = ['user_id', 'amount', 'type', 'order_id', 'balance_after', 'remark'];
+    protected $fillable = ['user_id', 'amount', 'type', 'order_id', 'trade_no', 'balance_after', 'remark'];
 
     protected $casts = [
         'amount' => 'decimal:2',

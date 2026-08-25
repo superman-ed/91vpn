@@ -191,6 +191,36 @@ class BillingService
         });
     }
 
+    /** 充值到账：加余额 + 记流水(可带交易号) + 触发返佣。模拟与网关充值共用 */
+    public function applyRecharge(User $user, float $amount, ?string $tradeNo = null, string $remark = '充值'): void
+    {
+        DB::transaction(function () use ($user, $amount, $tradeNo, $remark) {
+            $user->increment('money', $amount);
+            BalanceLog::create([
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'type' => 'recharge',
+                'trade_no' => $tradeNo,
+                'balance_after' => $user->fresh()->money,
+                'remark' => $remark,
+            ]);
+            $this->rechargeRebate($user, $amount);
+        });
+    }
+
+    /** 网关充值到账(回调调用)：行锁幂等,已到账则跳过 */
+    public function creditRecharge(\App\Models\Recharge $recharge, ?string $tradeNo): void
+    {
+        DB::transaction(function () use ($recharge, $tradeNo) {
+            $locked = \App\Models\Recharge::whereKey($recharge->getKey())->lockForUpdate()->first();
+            if (! $locked || $locked->status !== 'pending') {
+                return;
+            }
+            $locked->update(['status' => 'paid', 'trade_no' => $tradeNo, 'paid_at' => now()]);
+            $this->applyRecharge($locked->user, (float) $locked->amount, $tradeNo, "在线充值 {$locked->order_no}");
+        });
+    }
+
     /** 充值返利：下线每次充值时给邀请人返佣（比例后台可配，默认 2.5%，进余额） */
     public function rechargeRebate(User $downline, float $rechargeAmount): void
     {

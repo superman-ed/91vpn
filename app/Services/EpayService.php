@@ -87,16 +87,22 @@ class EpayService
     /** 生成跳转到网关的支付地址（页面支付 submit.php）。未映射的渠道不传 type → 网关收银台 */
     public function payUrl(Order $order, string $method): string
     {
+        return $this->buildUrl($order->order_no, $order->plan?->name ?? "订单#{$order->id}", (float) $order->amount, $method);
+    }
+
+    /** 通用支付跳转地址(订单/充值共用),$method 为 null 或未映射则跳网关收银台 */
+    public function buildUrl(string $outTradeNo, string $name, float $money, ?string $method = null): string
+    {
         $params = [
             'pid' => $this->pid(),
-            'out_trade_no' => $order->order_no,
+            'out_trade_no' => $outTradeNo,
             'notify_url' => url('/pay/epay/notify'),
             'return_url' => url('/pay/epay/return'),
-            'name' => $order->plan?->name ?? "订单#{$order->id}",
-            'money' => number_format((float) $order->amount, 2, '.', ''),
+            'name' => $name,
+            'money' => number_format($money, 2, '.', ''),
             'sign_type' => 'MD5',
         ];
-        if (isset(self::TYPE_MAP[$method])) {
+        if ($method && isset(self::TYPE_MAP[$method])) {
             $params['type'] = self::TYPE_MAP[$method];
         }
         $params['sign'] = $this->sign($params);

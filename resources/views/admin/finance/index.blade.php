@@ -48,6 +48,8 @@
                     @if($l->order)
                         <span style="color:#34395e">{{ $l->order->order_no }}</span>
                         @if($l->order->trade_no)<br><span class="text-muted">交易号 {{ $l->order->trade_no }}</span>@endif
+                    @elseif($l->trade_no)
+                        <span class="text-muted">交易号 {{ $l->trade_no }}</span>
                     @else <span class="text-muted">—</span>@endif
                 </td>
                 <td class="text-muted">{{ $l->remark }}</td>

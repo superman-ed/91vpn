@@ -22,25 +22,39 @@ class PaymentController extends Controller
             return response('fail');
         }
 
-        $order = Order::where('order_no', $params['out_trade_no'] ?? '')->first();
+        $outTradeNo = $params['out_trade_no'] ?? '';
+        $money = (float) ($params['money'] ?? 0);
+        $tradeNo = $params['trade_no'] ?? null;
+
+        // 充值单以 R 开头,其余为套餐订单
+        if (str_starts_with($outTradeNo, 'R')) {
+            $recharge = \App\Models\Recharge::where('order_no', $outTradeNo)->first();
+            if (! $recharge || abs($money - (float) $recharge->amount) > 0.01) {
+                return response('fail');
+            }
+            try {
+                $billing->creditRecharge($recharge, $tradeNo);   // 幂等
+            } catch (\Throwable $e) {
+                Log::warning('epay recharge failed', ['recharge' => $recharge->id, 'err' => $e->getMessage()]);
+            }
+
+            return response('success');
+        }
+
+        $order = Order::where('order_no', $outTradeNo)->first();
         if (! $order) {
             return response('fail');
         }
-
-        // 金额防篡改
-        if (abs((float) ($params['money'] ?? 0) - (float) $order->amount) > 0.01) {
+        if (abs($money - (float) $order->amount) > 0.01) {   // 金额防篡改
             return response('fail');
         }
-
-        // 留存网关交易号(对账用)
-        if (! empty($params['trade_no'])) {
-            $order->update(['trade_no' => $params['trade_no']]);
+        if (! empty($tradeNo)) {
+            $order->update(['trade_no' => $tradeNo]);
         }
 
         try {
             $billing->settleOrder($order, (string) ($params['type'] ?? 'epay'));   // 幂等：重复回调不会重复发货
         } catch (\Throwable $e) {
-            // 已扣款但发货失败(如套餐售罄)：记录待人工处理，仍回 success 避免网关无限重试
             Log::warning('epay settle failed', ['order' => $order->id, 'err' => $e->getMessage()]);
         }
 
@@ -50,6 +64,6 @@ class PaymentController extends Controller
     /** 易支付同步跳转：用户支付后返回站内，发货以异步回调为准 */
     public function epayReturn()
     {
-        return redirect('/user')->with('status', '支付完成，套餐到账后可在「我的钱包」查看订单状态。');
+        return redirect('/user')->with('status', '支付完成，到账后可在「我的钱包」查看订单/余额。');
     }
 }

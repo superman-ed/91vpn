@@ -26,26 +26,23 @@ class WalletController extends Controller
         ]);
     }
 
-    /** POST /user/wallet/recharge —— 模拟充值 */
-    public function recharge(Request $request, BillingService $billing)
+    /** POST /user/wallet/recharge —— 充值(配置网关则跳转支付,否则模拟到账) */
+    public function recharge(Request $request, BillingService $billing, \App\Services\EpayService $epay)
     {
         $data = $request->validate(['amount' => ['required', 'numeric', 'min:1', 'max:100000']]);
-
         $user = auth()->user();
-        DB::transaction(function () use ($user, $data, $billing) {
-            $user->increment('money', $data['amount']);
-            BalanceLog::create([
-                'user_id' => $user->id,
-                'amount' => $data['amount'],
-                'type' => 'recharge',
-                'balance_after' => $user->fresh()->money,
-                'remark' => '模拟充值',
-            ]);
-            // 充值返利给邀请人
-            $billing->rechargeRebate($user, (float) $data['amount']);
-        });
+        $amount = (float) $data['amount'];
 
-        return back()->with('status', "充值成功 ¥{$data['amount']}（模拟）");
+        if ($epay->configured()) {
+            $recharge = \App\Models\Recharge::create(['user_id' => $user->id, 'amount' => $amount, 'status' => 'pending']);
+
+            return redirect()->away($epay->buildUrl($recharge->order_no, '钱包充值', $amount));
+        }
+
+        // 未配置网关 → 模拟直接到账(开发用)
+        $billing->applyRecharge($user, $amount, null, '模拟充值');
+
+        return back()->with('status', "充值成功 ¥{$data['amount']}（未配置网关，模拟）");
     }
 
     /** POST /user/order/{order}/pay-balance —— 余额支付订单 */
