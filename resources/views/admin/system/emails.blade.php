@@ -65,7 +65,7 @@
             @forelse($logs as $l)
             <tr>
                 <td class="text-muted">{{ $l->created_at?->format('Y-m-d H:i:s') }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $l->to_email }} @if($l->type === 'code')<a href="/admin/system/emails?peek={{ urlencode($l->to_email) }}{{ $status ? '&status='.$status : '' }}" title="代查该邮箱当前验证码" style="margin-left:4px;color:#e6912a"><i class="fas fa-key"></i></a>@endif</td>
+                <td style="color:#34395e;font-weight:600">{{ $l->to_email }}</td>
                 <td><span class="adm-pill info">{{ $typeName[$l->type] ?? $l->type }}</span></td>
                 <td>{{ $l->subject }}</td>
                 <td><span class="adm-pill {{ $statusPill[$l->status] ?? 'muted' }}">{{ $statusName[$l->status] ?? $l->status }}</span></td>
