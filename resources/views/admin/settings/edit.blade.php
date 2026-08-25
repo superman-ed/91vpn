@@ -61,15 +61,15 @@
         <div class="card adm-form-card">
             <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#7c4ddb,#6636c0)"><i class="fas fa-envelope"></i></span><h4>邮件发送（SMTP）</h4></div>
             <div class="card-body">
-                <p class="form-tip">配置后注册/找回密码的邮箱验证码将真实发送；留空则仅记录到日志（开发用）。465→SSL，587→TLS。</p>
+                <p class="form-tip">配置后注册/找回密码的邮箱验证码将真实发送；留空则仅记录到日志（开发用）。465→SSL，587→TLS。<b>推荐阿里云邮件推送（DirectMail）</b>，对国内邮箱送达友好，参数见下方示例。</p>
                 <div class="row">
-                    <div class="form-group col-md-6"><label>SMTP 服务器</label><input name="smtp_host" value="{{ old('smtp_host', $smtpHost) }}" class="form-control" placeholder="smtp.exmail.qq.com"></div>
-                    <div class="form-group col-md-3"><label>端口</label><input name="smtp_port" type="number" value="{{ old('smtp_port', $smtpPort) }}" class="form-control"></div>
+                    <div class="form-group col-md-6"><label>SMTP 服务器</label><input name="smtp_host" value="{{ old('smtp_host', $smtpHost) }}" class="form-control" placeholder="smtpdm.aliyun.com"></div>
+                    <div class="form-group col-md-3"><label>端口</label><input name="smtp_port" type="number" value="{{ old('smtp_port', $smtpPort) }}" class="form-control" placeholder="465"></div>
                     <div class="form-group col-md-3"><label>加密</label><select name="smtp_encryption" class="form-control">
                         @foreach(['ssl' => 'SSL', 'tls' => 'TLS', 'none' => '不加密'] as $k => $v)<option value="{{ $k }}" @selected(old('smtp_encryption', $smtpEncryption ?: 'none') === $k)>{{ $v }}</option>@endforeach
                     </select></div>
-                    <div class="form-group col-md-6"><label>用户名（发信邮箱）</label><input name="smtp_username" value="{{ old('smtp_username', $smtpUsername) }}" class="form-control" placeholder="noreply@yourdomain.com"></div>
-                    <div class="form-group col-md-6"><label>密码 / 授权码</label><input name="smtp_password" type="password" value="{{ old('smtp_password', $smtpPassword) }}" class="form-control" placeholder="邮箱 SMTP 授权码"></div>
+                    <div class="form-group col-md-6"><label>用户名（发信地址）</label><input name="smtp_username" value="{{ old('smtp_username', $smtpUsername) }}" class="form-control" placeholder="noreply@mail.你的域名.com"></div>
+                    <div class="form-group col-md-6"><label>密码（阿里云发信地址的 SMTP 密码）</label><input name="smtp_password" type="password" value="{{ old('smtp_password', $smtpPassword) }}" class="form-control" placeholder="发信地址的 SMTP 密码（非阿里云账号密码）"></div>
                     <div class="form-group col-md-6"><label>发件人地址（选填，默认同用户名）</label><input name="smtp_from" value="{{ old('smtp_from', $smtpFrom) }}" class="form-control"></div>
                     <div class="form-group col-md-6"><label>发件人名称</label><input name="smtp_from_name" value="{{ old('smtp_from_name', $smtpFromName) }}" class="form-control"></div>
                 </div>
