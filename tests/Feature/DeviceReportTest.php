@@ -53,9 +53,11 @@ it('shows self-client device stats on the device page', function () {
     $res = $this->actingAs($admin)->get('/admin/system/devices');
     $res->assertOk()
         ->assertViewHas('deviceCount', 2)
-        ->assertSee('自研客户端设备')
+        ->assertSee('平台分布')
         ->assertSee('Redmi K60')
         ->assertSee('iPhone 15 Pro');
+    expect($res->viewData('byPlatform')->get('android'))->toBe(1);
+    expect($res->viewData('byPlatform')->get('ios'))->toBe(1);
     expect($res->viewData('byAppVersion')->get('1.2.0'))->toBe(2);
 });
 

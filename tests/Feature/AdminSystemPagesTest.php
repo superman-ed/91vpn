@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\LoginLog;
-use App\Models\SubscribeLog;
 use App\Models\User;
 
 function sysAdmin(): User
@@ -30,37 +29,7 @@ it('filters login logs by ip', function () {
         ->assertOk()->assertSee('9.9.9.9')->assertDontSee('8.8.8.8');
 });
 
-it('aggregates device platforms latest-per-user on device page', function () {
-    $a = User::factory()->create();
-    $b = User::factory()->create();
-    // a 先用 v2rayN(Windows)，后换 Shadowrocket(iOS) → 应只算最近的 iOS
-    SubscribeLog::create(['user_id' => $a->id, 'client' => 'v2rayN/6.0', 'fetched_at' => now()->subHour()]);
-    SubscribeLog::create(['user_id' => $a->id, 'client' => 'Shadowrocket/1.9', 'fetched_at' => now()]);
-    SubscribeLog::create(['user_id' => $b->id, 'client' => 'Shadowrocket/2.0', 'fetched_at' => now()]);
-
-    $res = $this->actingAs(sysAdmin())->get('/admin/system/devices');
-    $res->assertOk()
-        ->assertViewHas('totalUsers', 2)
-        ->assertViewHas('totalFetches', 3);
-
-    $plat = $res->viewData('byPlatform');
-    expect($plat->get('iOS'))->toBe(2);          // a(最近) + b
-    expect($plat->has('Windows'))->toBeFalse();  // a 的旧记录不计
-});
-
-it('classifies device platforms from client UA', function () {
-    $a = User::factory()->create();
-    $b = User::factory()->create();
-    $c = User::factory()->create();
-    SubscribeLog::create(['user_id' => $a->id, 'client' => 'ClashforWindows/0.20', 'fetched_at' => now()]);
-    SubscribeLog::create(['user_id' => $b->id, 'client' => 'v2rayNG/1.8', 'fetched_at' => now()]);
-    SubscribeLog::create(['user_id' => $c->id, 'client' => 'Shadowrocket/2.2', 'fetched_at' => now()]);
-
-    $res = $this->actingAs(sysAdmin())->get('/admin/system/devices');
-    $res->assertOk()->assertSee('设备平台分布');
-
-    $plat = $res->viewData('byPlatform');
-    expect($plat->get('Windows'))->toBe(1);
-    expect($plat->get('Android'))->toBe(1);
-    expect($plat->get('iOS'))->toBe(1);
+it('shows the empty placeholder on the device page when no install devices', function () {
+    $this->actingAs(sysAdmin())->get('/admin/system/devices')
+        ->assertOk()->assertSee('暂无已安装设备');
 });
