@@ -1,19 +1,51 @@
 @extends('layouts.admin')
 @section('title', '工单处理')
 @section('content')
-<div class="card"><div class="card-header"><h4>{{ $ticket->subject }}</h4><div class="card-header-action text-muted">来自 {{ $ticket->user?->email }} · @if($ticket->status==='open')<span class="badge badge-primary">进行中</span>@else<span class="badge badge-secondary">已关闭</span>@endif</div></div>
-<div class="card-body">
-@foreach($ticket->replies as $r)
-<div class="p-3 mb-2" style="border-radius:8px;background:{{ $r->is_admin ? '#f3f6ff' : '#f7f7f7' }}">
-<div class="text-muted mb-1" style="font-size:12px">{{ $r->is_admin ? '👨‍💼 客服' : $r->user?->email }} · {{ $r->created_at?->format('Y-m-d H:i') }}</div>
-<div style="white-space:pre-wrap">{{ $r->content }}</div></div>
-@endforeach
-@if($ticket->status==='open')
-<form method="POST" action="/admin/tickets/{{ $ticket->id }}/reply" class="mt-3">@csrf
-<div class="form-group"><textarea name="content" rows="3" class="form-control" placeholder="回复用户..." required></textarea></div>
-<button class="btn btn-primary">回复</button>
-<button formaction="/admin/tickets/{{ $ticket->id }}/close" class="btn btn-danger">关闭工单</button>
-</form>
-@else<p class="text-muted mt-3">工单已关闭</p>@endif
+<style>
+.atk-chat { padding: 6px 4px 0; }
+.atk-msg { display: flex; gap: 10px; margin-bottom: 18px; align-items: flex-end; }
+.atk-msg.me { flex-direction: row-reverse; }
+.atk-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.atk-av.staff { background: linear-gradient(135deg,#6777ef,#5a67e8); }
+.atk-av.user { background: linear-gradient(135deg,#63c76a,#3fae57); }
+.atk-wrap { max-width: 74%; }
+.atk-meta { font-size: 11.5px; color: #98a6ad; margin: 0 4px 4px; }
+.atk-msg.me .atk-meta { text-align: right; }
+.atk-bubble { padding: 11px 15px; border-radius: 14px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.atk-msg.them .atk-bubble { background: #f4f6fb; color: #34395e; border-bottom-left-radius: 4px; }
+.atk-msg.me .atk-bubble { background: linear-gradient(135deg,#6777ef,#5a67e8); color: #fff; border-bottom-right-radius: 4px; }
+.atk-reply textarea { border-radius: 11px; border-color: #eef0f5; }
+</style>
+<div class="adm-head">
+    <h4><i class="fas fa-headset text-primary"></i> {{ $ticket->subject }}</h4>
+    <div class="adm-tools">
+        <span class="text-muted" style="font-size:13px">来自 {{ $ticket->user?->email }}</span>
+        @if($ticket->status === 'open')<span class="adm-pill info">进行中</span>@else<span class="adm-pill muted">已关闭</span>@endif
+        <a href="/admin/tickets" class="btn btn-light btn-sm" style="border-radius:9px">返回</a>
+    </div>
+</div>
+
+<div class="card adm-panel"><div class="card-body" style="padding:22px">
+    <div class="atk-chat">
+        @foreach($ticket->replies as $r)
+        <div class="atk-msg {{ $r->is_admin ? 'me' : 'them' }}">
+            <span class="atk-av {{ $r->is_admin ? 'staff' : 'user' }}">{{ $r->is_admin ? '客' : mb_strtoupper(mb_substr($r->user?->email ?: 'U', 0, 1)) }}</span>
+            <div class="atk-wrap">
+                <div class="atk-meta">{{ $r->is_admin ? '客服' : ($r->user?->email ?? '用户') }} · {{ $r->created_at?->format('Y-m-d H:i') }}</div>
+                <div class="atk-bubble">{{ $r->content }}</div>
+            </div>
+        </div>
+        @endforeach
+
+        @if($ticket->status === 'open')
+        <form method="POST" action="/admin/tickets/{{ $ticket->id }}/reply" class="atk-reply" style="border-top:1px solid #f1f3fb;margin-top:6px;padding-top:18px">@csrf
+            <div class="form-group mb-2"><textarea name="content" rows="3" class="form-control" placeholder="回复用户…" required></textarea></div>
+            <button class="btn adm-btn"><i class="fas fa-paper-plane"></i> 回复</button>
+            <button formaction="/admin/tickets/{{ $ticket->id }}/close" class="btn btn-outline-danger" style="border-radius:9px" onclick="return confirm('确认关闭该工单？')"><i class="fas fa-lock"></i> 关闭工单</button>
+        </form>
+        @else
+        <div class="text-center text-muted" style="border-top:1px solid #f1f3fb;margin-top:6px;padding-top:16px"><i class="fas fa-lock"></i> 工单已关闭</div>
+        @endif
+    </div>
 </div></div>
 @endsection
