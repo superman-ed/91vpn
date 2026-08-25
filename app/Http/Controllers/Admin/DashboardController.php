@@ -40,6 +40,8 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', [
             'userCount' => User::count(),
+            'onlineUsers' => \App\Models\AliveIp::where('last_seen', '>=', now()->subSeconds(\App\Models\AliveIp::ONLINE_WINDOW))->distinct()->count('user_id'),
+            'activeToday' => User::whereDate('last_used_at', $today)->count(),
             'nodeCount' => Node::count(),
             'onlineNodes' => Node::where('online', true)->count(),
             'planCount' => Plan::count(),

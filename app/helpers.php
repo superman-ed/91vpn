@@ -8,6 +8,22 @@ if (! function_exists('bytes_to_gb')) {
     }
 }
 
+if (! function_exists('human_bytes')) {
+    /** 字节自适应格式化为 B/KB/MB/GB/TB，保留两位小数 */
+    function human_bytes(int|float $bytes): string
+    {
+        $bytes = max(0, (float) $bytes);
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+
+        return ($i === 0 ? (int) $bytes : number_format($bytes, 2)).' '.$units[$i];
+    }
+}
+
 if (! function_exists('linkify')) {
     /** 纯文本转安全 HTML：转义 + 网址高亮成超链接 + 保留换行 */
     function linkify(?string $text): string

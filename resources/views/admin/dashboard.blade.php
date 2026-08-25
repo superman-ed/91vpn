@@ -50,7 +50,9 @@
     <div class="ad-stat" style="background:linear-gradient(135deg,#3aa0c7,#2a86ab);box-shadow:0 8px 22px rgba(58,160,199,.22)"><i class="fas fa-coins ic"></i><div class="n">¥{{ number_format($netProfit, 2) }}</div><div class="t">纯毛利</div><div class="sub">收入 − 返佣</div></div>
     <div class="ad-stat c"><i class="fas fa-shopping-cart ic"></i><div class="n">{{ number_format($paidOrders) }}</div><div class="t">已支付订单</div><div class="sub">今日 +{{ $todayOrders }} 单</div></div>
     <div class="ad-stat d"><i class="fas fa-server ic"></i><div class="n">{{ $onlineNodes }}/{{ $nodeCount }}</div><div class="t">在线节点</div><div class="sub">共 {{ $planCount }} 个套餐</div></div>
+    <a class="ad-stat" href="/admin/online" style="background:linear-gradient(135deg,#2ec27e,#25a06a);box-shadow:0 8px 22px rgba(46,194,126,.22);text-decoration:none"><i class="fas fa-signal ic"></i><div class="n"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#fff;margin-right:6px;animation:dblink 1.4s infinite;vertical-align:middle"></span>{{ $onlineUsers }}</div><div class="t">当前在线用户</div><div class="sub">今日活跃 {{ $activeToday }} 人</div></a>
 </div>
+<style>@keyframes dblink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }</style>
 
 <div class="ad-mini">
     <div class="ad-minicard"><span class="mi" style="background:#e9f9ed;color:#3fae57"><i class="fas fa-yen-sign"></i></span><span><div class="n">¥{{ number_format($todayRevenue, 2) }}</div><div class="t">今日收入</div></span></div>
