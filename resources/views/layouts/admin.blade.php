@@ -156,20 +156,26 @@
     </div>
 </div>
 <script>
+// Turbo 友好：监听只绑一次（document 不随导航替换），元素每次现查（body 会被 Turbo 替换）
 (function () {
-    var overlay = document.getElementById('dcOverlay'), pending = null;
-    var elMsg = document.getElementById('dcMsg'), elTitle = document.getElementById('dcTitle');
-    var wrap = document.getElementById('dcInputWrap'), input = document.getElementById('dcInput'), elWord = document.getElementById('dcWord');
-    var ok = document.getElementById('dcOk'), cancel = document.getElementById('dcCancel');
+    if (window.__dcBound) return;
+    window.__dcBound = true;
+    var pending = null;
+    var el = function (id) { return document.getElementById(id); };
 
-    function close() { overlay.style.display = 'none'; pending = null; input.value = ''; }
+    function close() {
+        var o = el('dcOverlay'); if (o) o.style.display = 'none';
+        var i = el('dcInput'); if (i) i.value = '';
+        pending = null;
+    }
     function open(form) {
+        var overlay = el('dcOverlay'); if (!overlay) return;
         pending = form;
-        elMsg.textContent = form.getAttribute('data-confirm') || '确认执行该操作？';
-        elTitle.textContent = form.getAttribute('data-confirm-title') || '危险操作确认';
-        var word = form.getAttribute('data-confirm-word');
+        el('dcMsg').textContent = form.getAttribute('data-confirm') || '确认执行该操作？';
+        el('dcTitle').textContent = form.getAttribute('data-confirm-title') || '危险操作确认';
+        var word = form.getAttribute('data-confirm-word'), ok = el('dcOk'), input = el('dcInput'), wrap = el('dcInputWrap');
         if (word) {
-            wrap.style.display = 'block'; elWord.textContent = word;
+            wrap.style.display = 'block'; el('dcWord').textContent = word;
             ok.disabled = true; setTimeout(function () { input.focus(); }, 50);
             input.oninput = function () { ok.disabled = input.value.trim() !== word; };
         } else {
@@ -180,15 +186,21 @@
     document.addEventListener('submit', function (e) {
         var f = e.target;
         if (f.matches && f.matches('form[data-confirm]') && !f.__dcPassed) {
-            e.preventDefault(); open(f);
+            e.preventDefault(); e.stopPropagation(); open(f);
         }
     }, true);
-    ok.addEventListener('click', function () {
-        if (ok.disabled || !pending) return;
-        var f = pending; f.__dcPassed = true; close(); f.submit();
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('#dcOk,#dcCancel') : null;
+        if (t && t.id === 'dcOk') {
+            if (t.disabled || !pending) return;
+            var f = pending; f.__dcPassed = true; close();
+            if (f.requestSubmit) { f.requestSubmit(); } else { f.submit(); }   // requestSubmit 触发事件，让 Turbo 接管
+        } else if (t && t.id === 'dcCancel') {
+            close();
+        } else if (e.target.id === 'dcOverlay') {
+            close();
+        }
     });
-    cancel.addEventListener('click', close);
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
 })();
 </script>
 </body>
