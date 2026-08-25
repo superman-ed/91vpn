@@ -49,7 +49,7 @@
         <div class="form-group"><label>节点 ID</label><input class="form-control" value="{{ $node->id }}" readonly style="max-width:200px"></div>
         <div class="form-group"><label>通信密钥（secret）</label>
             <div class="input-group" style="max-width:520px"><input class="form-control" value="{{ $node->secret }}" readonly onclick="this.select()">
-                <div class="input-group-append"><form method="POST" action="/admin/nodes/{{ $node->id }}/regenerate-secret" onsubmit="return confirm('重新生成后旧密钥立即失效，需同步更新节点后端，确认？')">@csrf<button class="btn btn-outline-danger" style="border-radius:0 9px 9px 0">重新生成</button></form></div>
+                <div class="input-group-append"><form method="POST" action="/admin/nodes/{{ $node->id }}/regenerate-secret" data-confirm="重新生成后旧密钥立即失效，需同步更新节点后端，确认？">@csrf<button class="btn btn-outline-danger" style="border-radius:0 9px 9px 0">重新生成</button></form></div>
             </div>
         </div>
         <div class="form-group"><label>用户名单接口</label><input class="form-control" value="{{ url('/mod_mu/users') }}?node_id={{ $node->id }}&key={{ $node->secret }}" readonly onclick="this.select()"></div>

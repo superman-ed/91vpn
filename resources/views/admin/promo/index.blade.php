@@ -41,7 +41,7 @@
                 <td>@if($c->enabled)<span class="adm-pill ok">启用</span>@else<span class="adm-pill muted">停用</span>@endif</td>
                 <td style="white-space:nowrap">
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="editPromo({{ $c->id }}, @js($c->name), @js($c->note), {{ $c->enabled ? 'true' : 'false' }})">编辑</button>
-                    <form method="POST" action="/admin/promo/{{ $c->id }}" class="d-inline" onsubmit="return confirm('删除该推广码？历史归因保留')">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
+                    <form method="POST" action="/admin/promo/{{ $c->id }}" class="d-inline" data-confirm="删除该推广码？历史归因保留">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
             @empty<tr><td colspan="11"><div class="adm-empty"><i class="fas fa-bullhorn fa-2x mb-2 d-block"></i>还没有推广码，上方新建一个分给你的代理</div></td></tr>@endforelse

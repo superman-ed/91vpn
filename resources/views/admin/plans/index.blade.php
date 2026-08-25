@@ -31,7 +31,7 @@
                     <form method="POST" action="/admin/plans/{{ $p->id }}/move" class="d-inline">@csrf<input type="hidden" name="dir" value="up"><button class="btn btn-light btn-sm" title="上移" style="padding:2px 7px"><i class="fas fa-arrow-up"></i></button></form>
                     <form method="POST" action="/admin/plans/{{ $p->id }}/move" class="d-inline">@csrf<input type="hidden" name="dir" value="down"><button class="btn btn-light btn-sm" title="下移" style="padding:2px 7px"><i class="fas fa-arrow-down"></i></button></form>
                     <a href="/admin/plans/{{ $p->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
-                    <form method="POST" action="/admin/plans/{{ $p->id }}" class="d-inline" onsubmit="return confirm('确认删除该套餐？')">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
+                    <form method="POST" action="/admin/plans/{{ $p->id }}" class="d-inline" data-confirm="确认删除该套餐？">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
             @empty<tr><td colspan="10"><div class="adm-empty"><i class="fas fa-box-open fa-2x mb-2 d-block"></i>暂无套餐，点右上角「添加套餐」</div></td></tr>@endforelse

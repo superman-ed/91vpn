@@ -65,7 +65,7 @@
                 </td>
                 <td>
                     <a href="/admin/coupons/{{ $c->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
-                    <form method="POST" action="/admin/coupons/{{ $c->id }}" class="d-inline" onsubmit="return confirm('确认删除该优惠券？')">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
+                    <form method="POST" action="/admin/coupons/{{ $c->id }}" class="d-inline" data-confirm="确认删除该优惠券？">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
             @empty<tr><td colspan="9"><div class="adm-empty"><i class="fas fa-ticket-alt fa-2x mb-2 d-block"></i>暂无优惠券，点右上角「生成优惠券」</div></td></tr>@endforelse
