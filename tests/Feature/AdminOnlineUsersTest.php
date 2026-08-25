@@ -49,17 +49,33 @@ it('shows empty state when nobody is online', function () {
         ->assertOk()->assertSee('当前没有在线用户');
 });
 
-it('shows site-wide today and cumulative traffic cards', function () {
+it('sums traffic over the selected date range', function () {
     $node = onlineNode();
     \App\Models\NodeDailyTraffic::create(['node_id' => $node->id, 'date' => today()->toDateString(), 'u' => 1024 ** 3, 'd' => 0, 'billed' => 1024 ** 3]);
     \App\Models\NodeDailyTraffic::create(['node_id' => $node->id, 'date' => today()->subDays(3)->toDateString(), 'u' => 1024 ** 3, 'd' => 0, 'billed' => 1024 ** 3]);
+    \App\Models\NodeDailyTraffic::create(['node_id' => $node->id, 'date' => today()->subDays(20)->toDateString(), 'u' => 5 * 1024 ** 3, 'd' => 0, 'billed' => 5 * 1024 ** 3]);
 
-    $this->actingAs(onlineAdmin())->get('/admin/online')
+    // 近 7 天：只含今天 + 3 天前 = 2GB
+    $this->actingAs(onlineAdmin())->get('/admin/online?from='.today()->subDays(6)->toDateString().'&to='.today()->toDateString())
         ->assertOk()
-        ->assertViewHas('siteTodayTraffic', 1024 ** 3)
-        ->assertViewHas('siteTotalTraffic', 2 * 1024 ** 3)
-        ->assertSee('全站今日流量')
-        ->assertSee('全站累计流量');
+        ->assertViewHas('rangeTraffic', 2 * 1024 ** 3)
+        ->assertViewHas('rangeDays', 7)
+        ->assertSee('区间总流量');
+
+    // 近 30 天：含 20 天前的 5GB → 共 7GB
+    $this->actingAs(onlineAdmin())->get('/admin/online?from='.today()->subDays(29)->toDateString().'&to='.today()->toDateString())
+        ->assertOk()
+        ->assertViewHas('rangeTraffic', 7 * 1024 ** 3);
+});
+
+it('range summary reflects dau and online peaks within the window', function () {
+    \App\Models\DailyStat::create(['date' => today()->toDateString(), 'dau' => 30, 'peak_online' => 10, 'new_users' => 1]);
+    \App\Models\DailyStat::create(['date' => today()->subDays(2)->toDateString(), 'dau' => 55, 'peak_online' => 22, 'new_users' => 2]);
+
+    $this->actingAs(onlineAdmin())->get('/admin/online?from='.today()->subDays(6)->toDateString().'&to='.today()->toDateString())
+        ->assertOk()
+        ->assertViewHas('peakDau', 55)
+        ->assertViewHas('peakOnline', 22);
 });
 
 it('dashboard shows current online users and today active count', function () {

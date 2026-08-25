@@ -49,7 +49,7 @@ it('renders the 30-day trend on the online page', function () {
 
     $res = $this->actingAs($admin)->get('/admin/online');
     $res->assertOk()
-        ->assertSee('近 30 日趋势')
+        ->assertSee('日活 · 在线趋势')
         ->assertViewHas('trend')
         ->assertViewHas('trendMax', 42);
 });

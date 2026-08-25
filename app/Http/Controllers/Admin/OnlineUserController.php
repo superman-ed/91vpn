@@ -31,13 +31,21 @@ class OnlineUserController extends Controller
             ->get()
             ->groupBy('user_id');
 
-        // 近 30 日趋势（无快照的日期补 0）
-        $days = 30;
-        $stats = DailyStat::where('date', '>=', today()->subDays($days - 1))->get()->keyBy(fn ($s) => $s->date->toDateString());
-        $traffic = \App\Models\NodeDailyTraffic::where('date', '>=', today()->subDays($days - 1))
+        // 趋势区间（默认近 30 天，可选，最长 180 天）
+        $to = $this->parseDate($request->query('to'), today());
+        $from = $this->parseDate($request->query('from'), today()->copy()->subDays(29));
+        if ($from->gt($to)) {
+            [$from, $to] = [$to, $from];
+        }
+        if ($from->diffInDays($to) > 180) {
+            $from = $to->copy()->subDays(180);
+        }
+
+        $stats = DailyStat::whereBetween('date', [$from->toDateString(), $to->toDateString()])->get()->keyBy(fn ($s) => $s->date->toDateString());
+        $traffic = \App\Models\NodeDailyTraffic::whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->selectRaw('date, sum(u + d) as raw')->groupBy('date')->get()->keyBy(fn ($s) => $s->date->toDateString());
         $trend = collect();
-        for ($d = today()->subDays($days - 1); $d->lte(today()); $d->addDay()) {
+        for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
             $row = $stats->get($d->toDateString());
             $trend->push([
                 'label' => $d->format('m-d'),
@@ -46,6 +54,7 @@ class OnlineUserController extends Controller
                 'traffic' => (int) ($traffic->get($d->toDateString())->raw ?? 0),
             ]);
         }
+        $rangeDays = (int) $from->diffInDays($to) + 1;
 
         return view('admin.online.index', [
             'users' => $users,
@@ -54,11 +63,29 @@ class OnlineUserController extends Controller
             'onlineUsers' => $aliveUserIds->count(),
             'onlineDevices' => AliveIp::where('last_seen', '>=', $window)->distinct('ip')->count('ip'),
             'onlineTodayTraffic' => (int) User::whereIn('id', $aliveUserIds)->sum('transfer_today'),
-            'siteTodayTraffic' => (int) (\App\Models\NodeDailyTraffic::whereDate('date', today())->sum('u') + \App\Models\NodeDailyTraffic::whereDate('date', today())->sum('d')),
-            'siteTotalTraffic' => (int) (\App\Models\NodeDailyTraffic::sum('u') + \App\Models\NodeDailyTraffic::sum('d')),
             'windowSec' => AliveIp::ONLINE_WINDOW,
             'trend' => $trend,
             'trendMax' => max(1, (int) $trend->max('dau'), (int) $trend->max('peak')),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'rangeDays' => $rangeDays,
+            // 区间统计（受日期选择影响）
+            'rangeTraffic' => $rangeTraffic = (int) $trend->sum('traffic'),
+            'rangeAvgTraffic' => (int) round($rangeTraffic / max(1, $rangeDays)),
+            'peakDau' => (int) $trend->max('dau'),
+            'peakOnline' => (int) $trend->max('peak'),
         ]);
+    }
+
+    private function parseDate(?string $value, \Illuminate\Support\Carbon $default): \Illuminate\Support\Carbon
+    {
+        if (! $value) {
+            return $default;
+        }
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->startOfDay();
+        } catch (\Throwable $e) {
+            return $default;
+        }
     }
 }
