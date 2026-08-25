@@ -25,17 +25,7 @@ class OrderController extends Controller
             }
         };
 
-        $orders = Order::with(['user', 'plan'])
-            ->when(in_array($status, ['paid', 'pending', 'queued', 'cancelled'], true), fn ($query) => $query->where('status', $status))
-            ->when($q, function ($query) use ($q) {
-                $query->where(function ($w) use ($q) {
-                    $w->whereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%"));
-                    if (ctype_digit((string) $q)) {
-                        $w->orWhere('id', (int) $q);
-                    }
-                });
-            })
-            ->where($dateFilter)
+        $orders = $this->filtered($status, $q, $dateFilter)->with(['user', 'plan'])
             ->latest()->paginate(30)->withQueryString();
 
         return view('admin.orders.index', [
@@ -56,6 +46,63 @@ class OrderController extends Controller
             'netProfit' => $totalRevenue - $totalRebate,
             'todayRevenue' => Order::where('status', 'paid')->whereDate('paid_at', today())->sum('amount'),
         ]);
+    }
+
+    /** 共用筛选（index / export） */
+    private function filtered($status, $q, $dateFilter)
+    {
+        return Order::query()
+            ->when(in_array($status, ['paid', 'pending', 'queued', 'cancelled'], true), fn ($query) => $query->where('status', $status))
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($w) use ($q) {
+                    $w->whereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%"));
+                    if (ctype_digit((string) $q)) {
+                        $w->orWhere('id', (int) $q);
+                    }
+                });
+            })
+            ->where($dateFilter);
+    }
+
+    /** GET /admin/orders/export —— 按当前筛选导出订单 CSV */
+    public function export(Request $request)
+    {
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $dateFilter = function ($query) use ($from, $to) {
+            if ($from) {
+                $query->whereDate('created_at', '>=', $from);
+            }
+            if ($to) {
+                $query->whereDate('created_at', '<=', $to);
+            }
+        };
+
+        $statusName = ['paid' => '已支付', 'pending' => '待支付', 'queued' => '排队中', 'cancelled' => '已取消'];
+        $header = ['订单号', '用户', '套餐', '金额', '券抵扣', '状态', '支付方式', '网关交易号', '创建时间', '支付时间'];
+
+        $rows = (function () use ($request, $dateFilter, $statusName) {
+            foreach ($this->filtered($request->query('status'), $request->query('q'), $dateFilter)
+                ->with(['user', 'plan', 'coupon'])->latest()->cursor() as $o) {
+                $discount = $o->coupon_id && $o->plan ? max(0, (float) $o->plan->price - (float) $o->amount) : 0;
+                yield [
+                    $o->order_no,
+                    $o->user?->email ?? '—',
+                    $o->plan?->name ?? '—',
+                    number_format((float) $o->amount, 2),
+                    $discount > 0 ? number_format($discount, 2) : '',
+                    $statusName[$o->status] ?? $o->status,
+                    $o->pay_method ?? '',
+                    $o->trade_no ?? '',
+                    $o->created_at?->format('Y-m-d H:i:s'),
+                    $o->paid_at?->format('Y-m-d H:i:s') ?? '',
+                ];
+            }
+        })();
+
+        audit('order.export', '导出订单 CSV');
+
+        return csv_download('orders_'.now()->format('Ymd_His').'.csv', $header, $rows);
     }
 
     /** 手动标记已支付并发货(线下/补单用) */

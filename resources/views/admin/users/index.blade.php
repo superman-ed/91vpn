@@ -9,6 +9,7 @@
         <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索邮箱 / 昵称" style="min-width:200px">
         <button class="btn adm-btn"><i class="fas fa-search"></i> 搜索</button>
         @if($q)<a href="/admin/users{{ $status ? '?status='.$status : '' }}" class="btn btn-light" style="border-radius:9px">清除</a>@endif
+        <a href="/admin/users/export?{{ http_build_query(request()->only('q','status')) }}" class="btn btn-light" style="border-radius:9px" title="按当前筛选导出"><i class="fas fa-file-csv text-success"></i> 导出</a>
     </form>
 </div>
 <div class="adm-tools" style="margin-bottom:18px">

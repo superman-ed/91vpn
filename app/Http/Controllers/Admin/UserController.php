@@ -38,6 +38,41 @@ class UserController extends Controller
         ]);
     }
 
+    /** GET /admin/users/export —— 按当前筛选导出用户 CSV */
+    public function export(Request $request)
+    {
+        $q = $request->query('q');
+        $status = $request->query('status');
+
+        $query = User::query()
+            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
+            ->when($status, fn ($query) => $this->applyStatus($query, $status));
+
+        $header = ['ID', '邮箱', '昵称', '身份', '等级', '状态', '已用(GB)', '配额(GB)', '余额', '到期时间', '注册时间'];
+        $rows = (function () use ($query) {
+            foreach ($query->orderByDesc('id')->cursor() as $u) {
+                $state = $u->banned ? '已封禁' : ($u->class > 0 ? ($u->class_expire > now() ? '会员' : '已过期') : '免费');
+                yield [
+                    $u->id,
+                    $u->email,
+                    $u->name,
+                    $u->is_admin ? '管理员' : '用户',
+                    $u->class,
+                    $state,
+                    number_format(bytes_to_gb((int) ($u->u + $u->d)), 2),
+                    number_format(bytes_to_gb((int) $u->transfer_enable), 2),
+                    number_format((float) $u->money, 2),
+                    $u->class_expire?->format('Y-m-d H:i'),
+                    $u->created_at?->format('Y-m-d H:i:s'),
+                ];
+            }
+        })();
+
+        audit('user.export', '导出用户 CSV');
+
+        return csv_download('users_'.now()->format('Ymd_His').'.csv', $header, $rows);
+    }
+
     private function applyStatus($query, string $status)
     {
         return match ($status) {

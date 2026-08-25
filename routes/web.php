@@ -102,6 +102,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('nodes/{node}/regenerate-secret', [AdminNodeController::class, 'regenerateSecret'])->name('admin.nodes.regenerate-secret');
     Route::resource('plans', AdminPlanController::class)->except('show')->names('admin.plans');
     Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
+    Route::get('users/export', [AdminUserController::class, 'export'])->name('admin.users.export');
     Route::get('users', [AdminUserController::class, 'index'])->name('admin.users.index');
     Route::get('users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
     Route::put('users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
@@ -114,6 +115,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('admins/create', [App\Http\Controllers\Admin\AdminController::class, 'create']);
     Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);
     Route::delete('admins/{user}', [App\Http\Controllers\Admin\AdminController::class, 'destroy']);
+    Route::get('finance/export', [App\Http\Controllers\Admin\FinanceController::class, 'export'])->name('admin.finance.export');
     Route::get('finance', [App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
     Route::get('rebates', [App\Http\Controllers\Admin\RebateController::class, 'index'])->name('admin.rebates.index');
     Route::get('online', [App\Http\Controllers\Admin\OnlineUserController::class, 'index'])->name('admin.online.index');
@@ -122,6 +124,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('system/acquisition', [App\Http\Controllers\Admin\AcquisitionController::class, 'index'])->name('admin.system.acquisition');
     Route::get('system/audit', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('admin.system.audit');
     Route::get('system/emails', [App\Http\Controllers\Admin\EmailLogController::class, 'index'])->name('admin.system.emails');
+    Route::get('orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
     Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.orders.cancel');

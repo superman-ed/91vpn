@@ -10,6 +10,43 @@ class FinanceController extends Controller
 {
     private const TYPES = ['recharge', 'consume', 'rebate', 'bonus', 'adjust'];
 
+    private const TYPE_NAME = ['recharge' => '充值', 'consume' => '消费', 'rebate' => '返佣', 'bonus' => '注册奖励', 'adjust' => '调账'];
+
+    /** GET /admin/finance/export —— 按当前筛选导出资金流水 CSV */
+    public function export(Request $request)
+    {
+        $type = $request->query('type');
+        $q = $request->query('q');
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        $query = BalanceLog::query()
+            ->when($q, fn ($b) => $b->whereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%")))
+            ->when(in_array($type, self::TYPES, true), fn ($b) => $b->where('type', $type))
+            ->when($from, fn ($b) => $b->whereDate('created_at', '>=', $from))
+            ->when($to, fn ($b) => $b->whereDate('created_at', '<=', $to));
+
+        $header = ['时间', '用户', '类型', '变动', '变动后余额', '关联订单', '交易号', '备注'];
+        $rows = (function () use ($query) {
+            foreach ($query->with('user', 'order')->latest()->cursor() as $l) {
+                yield [
+                    $l->created_at?->format('Y-m-d H:i:s'),
+                    $l->user?->email ?? '—',
+                    self::TYPE_NAME[$l->type] ?? $l->type,
+                    number_format((float) $l->amount, 2),
+                    number_format((float) $l->balance_after, 2),
+                    $l->order?->order_no ?? '',
+                    $l->trade_no ?? $l->order?->trade_no ?? '',
+                    $l->remark,
+                ];
+            }
+        })();
+
+        audit('finance.export', '导出资金流水 CSV');
+
+        return csv_download('finance_'.now()->format('Ymd_His').'.csv', $header, $rows);
+    }
+
     public function index(Request $request)
     {
         $type = $request->query('type');

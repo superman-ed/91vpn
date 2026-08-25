@@ -24,6 +24,27 @@ if (! function_exists('human_bytes')) {
     }
 }
 
+if (! function_exists('csv_download')) {
+    /**
+     * 流式下载 CSV（带 UTF-8 BOM，Excel 打开中文不乱码）。
+     * @param  string  $filename  下载文件名
+     * @param  array  $header  表头行
+     * @param  iterable  $rows  数据行（每行一个数组）；用生成器可低内存导出大数据
+     */
+    function csv_download(string $filename, array $header, iterable $rows): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        return response()->streamDownload(function () use ($header, $rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");   // UTF-8 BOM
+            fputcsv($out, $header);
+            foreach ($rows as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+}
+
 if (! function_exists('audit')) {
     /**
      * 记录一条后台操作审计日志。
