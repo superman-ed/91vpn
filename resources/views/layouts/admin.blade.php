@@ -9,6 +9,34 @@
     <link rel="stylesheet" href="/stisla/assets/css/components.css">
     <meta name="turbo-prefetch" content="true">
     <script src="/js/turbo.min.js" defer></script>
+    <style>
+        /* 后台通用精美样式：所有列表页复用 */
+        .adm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+        .adm-head h4 { font-size: 18px; font-weight: 700; color: #34395e; margin: 0; }
+        .adm-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .adm-search .form-control { border-radius: 9px; border-color: #eef0f5; }
+        .adm-btn { border-radius: 9px; font-weight: 600; background: linear-gradient(135deg,#6777ef,#5a67e8); border: none; color: #fff; }
+        .adm-btn:hover { filter: brightness(1.05); color: #fff; }
+        .adm-panel { border: none; border-radius: 14px; box-shadow: 0 5px 18px rgba(103,119,239,.08); overflow: hidden; }
+        .adm-panel .card-body { padding: 0; }
+        .adm-table { margin: 0; }
+        .adm-table thead th { border: none; background: #fafbff; color: #98a6ad; font-size: 12px; font-weight: 600; padding: 12px 20px; white-space: nowrap; }
+        .adm-table tbody td { border-top: 1px solid #f4f6fb; padding: 13px 20px; font-size: 13.5px; color: #54667a; vertical-align: middle; }
+        .adm-table tbody tr:hover { background: #fafbff; }
+        .adm-table .btn-sm { border-radius: 7px; }
+        .adm-pill { padding: 4px 11px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .adm-pill.ok { background: #e9f9ed; color: #2fa84f; }
+        .adm-pill.warn { background: #fff5e6; color: #e6912a; }
+        .adm-pill.danger { background: #fdecea; color: #fc544b; }
+        .adm-pill.info { background: #e7f3ff; color: #3a8ee6; }
+        .adm-pill.primary { background: #eef0ff; color: #6777ef; }
+        .adm-pill.muted { background: #f2f3f5; color: #98a6ad; }
+        .adm-foot { padding: 14px 20px; border-top: 1px solid #f4f6fb; }
+        .adm-foot .pagination { margin: 0; justify-content: flex-end; }
+        .adm-foot .page-item.active .page-link { background: #6777ef; border-color: #6777ef; }
+        .adm-foot .page-link { color: #6777ef; border-radius: 7px; margin: 0 2px; border-color: #eef0f5; }
+        .adm-empty { text-align: center; color: #98a6ad; padding: 44px 0; }
+    </style>
 </head>
 <body>
 <div id="app">
