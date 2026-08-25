@@ -3,14 +3,15 @@
 @section('content')
 <style>
 .ad-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
-.ad-stat { flex: 1; min-width: 190px; border-radius: 14px; padding: 20px 22px; color: #fff; position: relative; overflow: hidden; }
+.ad-stat { flex: 1; min-width: 155px; border-radius: 14px; padding: 16px 18px; color: #fff; position: relative; overflow: hidden; }
 .ad-stat.a { background: linear-gradient(135deg,#6777ef,#5a67e8); box-shadow: 0 8px 22px rgba(103,119,239,.22); }
 .ad-stat.b { background: linear-gradient(135deg,#63c76a,#3fae57); box-shadow: 0 8px 22px rgba(99,199,106,.22); }
 .ad-stat.c { background: linear-gradient(135deg,#ffb020,#ff9f1a); box-shadow: 0 8px 22px rgba(255,160,20,.22); }
 .ad-stat.d { background: linear-gradient(135deg,#7c4ddb,#6636c0); box-shadow: 0 8px 22px rgba(124,77,219,.22); }
 .ad-stat .ic { position: absolute; right: 16px; top: 16px; font-size: 34px; opacity: .22; }
-.ad-stat .n { font-size: 28px; font-weight: 800; line-height: 1.1; }
-.ad-stat .t { font-size: 13px; opacity: .9; margin-top: 4px; }
+.ad-stat .ic { font-size: 30px; }
+.ad-stat .n { font-size: 23px; font-weight: 800; line-height: 1.1; }
+.ad-stat .t { font-size: 12.5px; opacity: .9; margin-top: 4px; }
 .ad-stat .sub { font-size: 12px; opacity: .85; margin-top: 8px; }
 .ad-mini { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .ad-minicard { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 13px; padding: 15px 18px; box-shadow: 0 4px 14px rgba(103,119,239,.07); }
@@ -45,6 +46,8 @@
 <div class="ad-stats">
     <div class="ad-stat a"><i class="fas fa-users ic"></i><div class="n">{{ number_format($userCount) }}</div><div class="t">用户总数</div><div class="sub">今日新增 +{{ $todayUsers }}</div></div>
     <div class="ad-stat b"><i class="fas fa-yen-sign ic"></i><div class="n">¥{{ number_format($revenue, 2) }}</div><div class="t">累计收入</div><div class="sub">今日 +¥{{ number_format($todayRevenue, 2) }}</div></div>
+    <div class="ad-stat" style="background:linear-gradient(135deg,#ffb020,#ff9f1a);box-shadow:0 8px 22px rgba(255,160,20,.22)"><i class="fas fa-hand-holding-dollar ic"></i><div class="n">−¥{{ number_format($totalRebate, 2) }}</div><div class="t">累计返佣</div><div class="sub">邀请返利支出</div></div>
+    <div class="ad-stat" style="background:linear-gradient(135deg,#3aa0c7,#2a86ab);box-shadow:0 8px 22px rgba(58,160,199,.22)"><i class="fas fa-sack-dollar ic"></i><div class="n">¥{{ number_format($netProfit, 2) }}</div><div class="t">纯毛利</div><div class="sub">收入 − 返佣</div></div>
     <div class="ad-stat c"><i class="fas fa-cart-shopping ic"></i><div class="n">{{ number_format($paidOrders) }}</div><div class="t">已支付订单</div><div class="sub">今日 +{{ $todayOrders }} 单</div></div>
     <div class="ad-stat d"><i class="fas fa-server ic"></i><div class="n">{{ $onlineNodes }}/{{ $nodeCount }}</div><div class="t">在线节点</div><div class="sub">共 {{ $planCount }} 个套餐</div></div>
 </div>
