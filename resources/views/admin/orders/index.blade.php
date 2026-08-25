@@ -18,9 +18,10 @@
 </div>
 
 <div class="ad-stats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
-    <div style="flex:1;min-width:160px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">¥{{ number_format($totalRevenue, 2) }}</div><div style="font-size:12.5px;opacity:.9">累计收入</div></div>
-    <div style="flex:1;min-width:160px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#5a67e8)"><div style="font-size:22px;font-weight:800">¥{{ number_format($todayRevenue, 2) }}</div><div style="font-size:12.5px;opacity:.9">今日收入</div></div>
-    <div style="flex:1;min-width:160px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#ffb020,#ff9f1a)"><div style="font-size:22px;font-weight:800">{{ $todayCount }}</div><div style="font-size:12.5px;opacity:.9">今日订单</div></div>
+    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">¥{{ number_format($totalRevenue, 2) }}</div><div style="font-size:12.5px;opacity:.9">累计收入(实收)</div></div>
+    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#ffb020,#ff9f1a)"><div style="font-size:22px;font-weight:800">−¥{{ number_format($totalRebate, 2) }}</div><div style="font-size:12.5px;opacity:.9">累计返佣支出</div></div>
+    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#7c4ddb,#6636c0)"><div style="font-size:22px;font-weight:800">¥{{ number_format($netProfit, 2) }}</div><div style="font-size:12.5px;opacity:.9">纯毛利(收入−返佣)</div></div>
+    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#5a67e8)"><div style="font-size:22px;font-weight:800">¥{{ number_format($todayRevenue, 2) }}</div><div style="font-size:12.5px;opacity:.9">今日收入</div></div>
 </div>
 
 <div class="adm-tools" style="margin-bottom:18px">
@@ -39,7 +40,13 @@
                 <td><span style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:#34395e">{{ $o->order_no }}</span></td>
                 <td style="color:#34395e;font-weight:600">{{ $o->user?->email ?? '—' }}</td>
                 <td>{{ $o->plan?->name ?? '—' }}</td>
-                <td style="font-weight:700;color:#34395e">¥{{ number_format($o->amount, 2) }}</td>
+                <td>
+                    <span style="font-weight:700;color:#34395e">¥{{ number_format($o->amount, 2) }}</span>
+                    @if($o->coupon_id && $o->plan)
+                        @php $discount = max(0, (float) $o->plan->price - (float) $o->amount); @endphp
+                        @if($discount > 0)<br><span class="adm-pill ok" style="font-size:11px">券抵 ¥{{ number_format($discount, 2) }}</span>@endif
+                    @endif
+                </td>
                 <td>
                     @switch($o->status)
                         @case('paid')<span class="adm-pill ok">已支付</span>@break

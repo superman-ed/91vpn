@@ -51,9 +51,10 @@ class OrderController extends Controller
                 'queued' => Order::where('status', 'queued')->count(),
                 'cancelled' => Order::where('status', 'cancelled')->count(),
             ],
-            'totalRevenue' => Order::where('status', 'paid')->sum('amount'),
+            'totalRevenue' => $totalRevenue = Order::where('status', 'paid')->sum('amount'),
+            'totalRebate' => $totalRebate = \App\Models\Payback::sum('amount'),
+            'netProfit' => $totalRevenue - $totalRebate,
             'todayRevenue' => Order::where('status', 'paid')->whereDate('paid_at', today())->sum('amount'),
-            'todayCount' => Order::where('status', 'paid')->whereDate('paid_at', today())->count(),
         ]);
     }
 

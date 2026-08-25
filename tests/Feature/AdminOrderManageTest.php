@@ -48,6 +48,17 @@ it('filters orders by date range', function () {
     expect($res->viewData('orders')->total())->toBe(1);   // 只剩今天那单
 });
 
+it('computes net profit as revenue minus rebate', function () {
+    $u = User::factory()->create();
+    Order::create(['user_id' => $u->id, 'plan_id' => aoPlan()->id, 'amount' => 100, 'status' => 'paid', 'period' => 'month', 'paid_at' => now()]);
+    \App\Models\Payback::create(['user_id' => $u->id, 'from_user_id' => $u->id, 'amount' => 12.5]);
+
+    $res = $this->actingAs($this->admin)->get('/admin/orders')->assertOk();
+    expect((float) $res->viewData('totalRevenue'))->toBe(100.0);
+    expect((float) $res->viewData('totalRebate'))->toBe(12.5);
+    expect((float) $res->viewData('netProfit'))->toBe(87.5);
+});
+
 it('searches orders by user email', function () {
     $u = User::factory()->create(['email' => 'findme@test.local']);
     Order::create(['user_id' => $u->id, 'plan_id' => aoPlan()->id, 'amount' => 30, 'status' => 'paid', 'period' => 'month']);
