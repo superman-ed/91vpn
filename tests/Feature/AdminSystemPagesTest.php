@@ -30,10 +30,10 @@ it('filters login logs by ip', function () {
         ->assertOk()->assertSee('9.9.9.9')->assertDontSee('8.8.8.8');
 });
 
-it('aggregates client families on device page (latest per user)', function () {
+it('aggregates device platforms latest-per-user on device page', function () {
     $a = User::factory()->create();
     $b = User::factory()->create();
-    // a 先用 v2rayN，后换 Shadowrocket → 应只算最近的 Shadowrocket
+    // a 先用 v2rayN(Windows)，后换 Shadowrocket(iOS) → 应只算最近的 iOS
     SubscribeLog::create(['user_id' => $a->id, 'client' => 'v2rayN/6.0', 'fetched_at' => now()->subHour()]);
     SubscribeLog::create(['user_id' => $a->id, 'client' => 'Shadowrocket/1.9', 'fetched_at' => now()]);
     SubscribeLog::create(['user_id' => $b->id, 'client' => 'Shadowrocket/2.0', 'fetched_at' => now()]);
@@ -41,12 +41,11 @@ it('aggregates client families on device page (latest per user)', function () {
     $res = $this->actingAs(sysAdmin())->get('/admin/system/devices');
     $res->assertOk()
         ->assertViewHas('totalUsers', 2)
-        ->assertViewHas('totalFetches', 3)
-        ->assertSee('小火箭 Shadowrocket');
+        ->assertViewHas('totalFetches', 3);
 
-    $fam = $res->viewData('byFamily');
-    expect($fam->get('小火箭 Shadowrocket'))->toBe(2);   // a(最近) + b
-    expect($fam->has('v2rayN (Windows)'))->toBeFalse();  // a 的旧记录不计
+    $plat = $res->viewData('byPlatform');
+    expect($plat->get('iOS'))->toBe(2);          // a(最近) + b
+    expect($plat->has('Windows'))->toBeFalse();  // a 的旧记录不计
 });
 
 it('classifies device platforms from client UA', function () {
@@ -58,7 +57,7 @@ it('classifies device platforms from client UA', function () {
     SubscribeLog::create(['user_id' => $c->id, 'client' => 'Shadowrocket/2.2', 'fetched_at' => now()]);
 
     $res = $this->actingAs(sysAdmin())->get('/admin/system/devices');
-    $res->assertOk()->assertSee('设备 / 平台分布');
+    $res->assertOk()->assertSee('设备平台分布');
 
     $plat = $res->viewData('byPlatform');
     expect($plat->get('Windows'))->toBe(1);
