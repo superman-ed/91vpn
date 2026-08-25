@@ -27,6 +27,45 @@ class CouponController extends Controller
         return redirect('/admin/coupons')->with('status', '优惠券已创建');
     }
 
+    /** POST /admin/coupons/batch —— 批量生成同规则优惠券（活动发券） */
+    public function batchStore(Request $request)
+    {
+        $data = $request->validate([
+            'count' => ['required', 'integer', 'min:1', 'max:500'],
+            'prefix' => ['nullable', 'string', 'max:12', 'alpha_num'],
+            'type' => ['required', 'in:percent,amount'],
+            'value' => ['required', 'numeric', 'min:0'],
+            'periods' => ['nullable', 'array'],
+            'periods.*' => ['in:month,quarter,half_year,year'],
+            'max_use' => ['nullable', 'integer'],
+            'expires_at' => ['nullable', 'date'],
+        ]);
+        $prefix = strtoupper($data['prefix'] ?? '');
+        $periods = ! empty($data['periods']) ? array_values($data['periods']) : null;
+
+        $existing = Coupon::pluck('code')->flip();
+        $rows = [];
+        $seen = [];
+        while (count($rows) < $data['count']) {
+            $code = $prefix.\Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(10 - min(4, strlen($prefix))));
+            if (isset($existing[$code]) || isset($seen[$code])) {
+                continue;
+            }
+            $seen[$code] = true;
+            $rows[] = [
+                'code' => $code, 'note' => '', 'type' => $data['type'], 'value' => $data['value'],
+                'periods' => $periods ? json_encode($periods) : null,
+                'max_use' => $data['max_use'] ?? -1, 'used' => 0,
+                'expires_at' => $data['expires_at'] ?? null, 'enabled' => true, 'show_on_checkout' => false,
+                'created_at' => now(), 'updated_at' => now(),
+            ];
+        }
+        Coupon::insert($rows);
+        audit('coupon.create', "批量生成 {$data['count']} 张优惠券".($prefix ? "（前缀 {$prefix}）" : ''));
+
+        return redirect('/admin/coupons')->with('status', "已批量生成 {$data['count']} 张优惠券");
+    }
+
     public function edit(Coupon $coupon)
     {
         return view('admin.coupons.form', ['coupon' => $coupon]);

@@ -104,6 +104,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');
     Route::post('nodes/{node}/regenerate-secret', [AdminNodeController::class, 'regenerateSecret'])->name('admin.nodes.regenerate-secret');
     Route::resource('plans', AdminPlanController::class)->except('show')->names('admin.plans');
+    Route::post('plans/{plan}/toggle-sale', [AdminPlanController::class, 'toggleSale'])->name('admin.plans.toggle-sale');
+    Route::post('plans/{plan}/move', [AdminPlanController::class, 'move'])->name('admin.plans.move');
     Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
     Route::get('users/export', [AdminUserController::class, 'export'])->name('admin.users.export');
     Route::get('users', [AdminUserController::class, 'index'])->name('admin.users.index');
@@ -142,6 +144,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('tickets/{ticket}/close', [AdminTicketController::class, 'close']);
     Route::get('coupons', [AdminCouponController::class, 'index'])->name('admin.coupons.index');
     Route::get('coupons/create', [AdminCouponController::class, 'create']);
+    Route::post('coupons/batch', [AdminCouponController::class, 'batchStore'])->name('admin.coupons.batch');
     Route::post('coupons', [AdminCouponController::class, 'store']);
     Route::get('coupons/{coupon}/edit', [AdminCouponController::class, 'edit']);
     Route::put('coupons/{coupon}', [AdminCouponController::class, 'update']);

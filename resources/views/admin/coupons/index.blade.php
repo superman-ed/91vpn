@@ -1,9 +1,42 @@
 @extends('layouts.admin')
 @section('title', '优惠券管理')
 @section('content')
+@php
+    $totalUsed = $coupons->sum('used');
+    $active = $coupons->where('enabled', true)->filter(fn ($c) => ! $c->expires_at || $c->expires_at->isFuture())->count();
+@endphp
 <div class="adm-head">
-    <h4><i class="fas fa-ticket-alt text-primary"></i> 优惠券管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $coupons->count() }} 张</span></h4>
-    <a href="/admin/coupons/create" class="btn adm-btn"><i class="fas fa-plus"></i> 生成优惠券</a>
+    <h4><i class="fas fa-ticket-alt text-primary"></i> 优惠券管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $coupons->count() }} 张 · 有效 {{ $active }} · 已核销 {{ $totalUsed }}</span></h4>
+    <div class="adm-tools">
+        <button type="button" class="btn btn-light" style="border-radius:9px" onclick="document.getElementById('batchBox').style.display='block';this.style.display='none'"><i class="fas fa-layer-group"></i> 批量生成</button>
+        <a href="/admin/coupons/create" class="btn adm-btn"><i class="fas fa-plus"></i> 生成优惠券</a>
+    </div>
+</div>
+
+@if(session('status'))<div class="alert alert-success" style="border-radius:10px">{{ session('status') }}</div>@endif
+
+{{-- 批量生成 --}}
+<div id="batchBox" class="card adm-panel" style="margin-bottom:18px;{{ $errors->has('count') || old('count') ? '' : 'display:none' }}">
+    <div class="card-header" style="border:none;padding:16px 20px 4px"><h4 style="font-size:14px;color:#34395e;margin:0"><i class="fas fa-layer-group text-primary"></i> 批量生成（活动发券）</h4></div>
+    <form method="POST" action="/admin/coupons/batch" style="padding:14px 20px 18px">@csrf
+        <div class="row">
+            <div class="form-group col-md-2"><label style="font-size:13px;color:#7a869a;font-weight:600">数量</label><input name="count" type="number" min="1" max="500" value="{{ old('count', 20) }}" class="form-control" style="border-radius:9px" required></div>
+            <div class="form-group col-md-2"><label style="font-size:13px;color:#7a869a;font-weight:600">码前缀（选填）</label><input name="prefix" value="{{ old('prefix') }}" class="form-control" placeholder="如 SPRING" style="border-radius:9px;font-family:monospace"></div>
+            <div class="form-group col-md-2"><label style="font-size:13px;color:#7a869a;font-weight:600">类型</label><select name="type" class="form-control" style="border-radius:9px"><option value="percent">百分比折扣</option><option value="amount">固定减(元)</option></select></div>
+            <div class="form-group col-md-2"><label style="font-size:13px;color:#7a869a;font-weight:600">额度</label><input name="value" type="number" step="0.01" min="0" value="{{ old('value', 10) }}" class="form-control" style="border-radius:9px" required></div>
+            <div class="form-group col-md-2"><label style="font-size:13px;color:#7a869a;font-weight:600">每张可用次数</label><input name="max_use" type="number" value="{{ old('max_use', 1) }}" class="form-control" style="border-radius:9px"><small class="text-muted" style="font-size:11px">-1=无限</small></div>
+            <div class="form-group col-md-2"><label style="font-size:13px;color:#7a869a;font-weight:600">到期日（选填）</label><input name="expires_at" type="date" value="{{ old('expires_at') }}" class="form-control" style="border-radius:9px"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <span style="font-size:13px;color:#7a869a;font-weight:600">适用时长(不勾=全部)：</span>
+            @foreach(['month' => '月付', 'quarter' => '季付', 'half_year' => '半年', 'year' => '年付'] as $k => $label)
+            <label style="display:flex;align-items:center;gap:5px;margin:0;cursor:pointer"><input type="checkbox" name="periods[]" value="{{ $k }}"> {{ $label }}</label>
+            @endforeach
+            <button class="btn adm-btn" style="border-radius:9px;margin-left:auto"><i class="fas fa-bolt"></i> 生成</button>
+        </div>
+        @error('count')<div class="text-danger" style="font-size:12.5px;margin-top:6px">{{ $message }}</div>@enderror
+        @error('prefix')<div class="text-danger" style="font-size:12.5px;margin-top:6px">{{ $message }}</div>@enderror
+    </form>
 </div>
 
 <div class="card adm-panel">
@@ -18,7 +51,13 @@
                 <td>{{ $c->type === 'percent' ? '百分比' : '固定减' }}</td>
                 <td style="font-weight:700;color:#34395e">{{ $c->type === 'percent' ? $c->value.'%' : '¥'.$c->value }}</td>
                 <td>{{ empty($c->periods) ? '全部' : collect($c->periods)->map(fn ($p) => period_name($p))->implode('、') }}</td>
-                <td>{{ $c->used }} / {{ $c->max_use < 0 ? '∞' : $c->max_use }}</td>
+                <td>
+                    <div style="font-size:13px;color:#34395e">{{ $c->used }} / {{ $c->max_use < 0 ? '∞' : $c->max_use }}</div>
+                    @if($c->max_use > 0)
+                    @php $pct = min(100, round($c->used / $c->max_use * 100)); @endphp
+                    <div style="height:4px;background:#eef1f8;border-radius:3px;margin-top:3px;max-width:90px;overflow:hidden"><div style="height:100%;width:{{ $pct }}%;background:{{ $pct >= 100 ? '#fc544b' : '#6777ef' }}"></div></div>
+                    @endif
+                </td>
                 <td class="text-muted">{{ $c->expires_at?->format('Y-m-d') ?? '永久' }}</td>
                 <td>
                     @if($c->enabled)<span class="adm-pill ok">启用</span>@else<span class="adm-pill muted">停用</span>@endif

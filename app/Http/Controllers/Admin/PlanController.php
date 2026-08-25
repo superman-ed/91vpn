@@ -13,11 +13,43 @@ class PlanController extends Controller
 
     public function index()
     {
-        $plans = Plan::orderBy('name')
+        $plans = Plan::orderBy('sort')->orderBy('name')
             ->orderByRaw("FIELD(period,'month','quarter','half_year','year')")
             ->get();
 
         return view('admin.plans.index', ['plans' => $plans]);
+    }
+
+    /** POST /admin/plans/{plan}/toggle-sale —— 一键上架/下架 */
+    public function toggleSale(Plan $plan)
+    {
+        $plan->update(['on_sale' => ! $plan->on_sale]);
+        audit('plan.update', ($plan->on_sale ? '上架' : '下架')."套餐「{$plan->name}」", $plan);
+
+        return back()->with('status', $plan->on_sale ? '已上架' : '已下架');
+    }
+
+    /** POST /admin/plans/{plan}/move —— 排序上移/下移（与相邻套餐互换 sort） */
+    public function move(Request $request, Plan $plan)
+    {
+        $dir = $request->input('dir') === 'up' ? 'up' : 'down';
+        $neighbor = Plan::where('sort', $dir === 'up' ? '<' : '>', $plan->sort)
+            ->orderBy('sort', $dir === 'up' ? 'desc' : 'asc')->first();
+
+        if (! $neighbor) {   // 同 sort 值时退化为按 id 邻接
+            $neighbor = Plan::where('id', $dir === 'up' ? '<' : '>', $plan->id)
+                ->where('sort', $plan->sort)->orderBy('id', $dir === 'up' ? 'desc' : 'asc')->first();
+        }
+        if ($neighbor) {
+            [$a, $b] = [$plan->sort, $neighbor->sort];
+            if ($a === $b) {
+                $b = $dir === 'up' ? $a - 1 : $a + 1;
+            }
+            $plan->update(['sort' => $b]);
+            $neighbor->update(['sort' => $a]);
+        }
+
+        return back();
     }
 
     public function create()

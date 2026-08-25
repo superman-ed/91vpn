@@ -21,8 +21,15 @@
                 <td>{{ class_name($p->class) }}</td>
                 <td class="text-muted">{{ $p->speed_limit ?: '不限' }}{{ $p->speed_limit ? 'M' : '' }} / {{ $p->ip_limit ?: '不限' }}{{ $p->ip_limit ? '台' : '' }}</td>
                 <td class="text-muted">{{ $p->duration_days }}天</td>
-                <td>@if($p->on_sale)<span class="adm-pill ok">在售</span>@else<span class="adm-pill muted">下架</span>@endif</td>
                 <td>
+                    <form method="POST" action="/admin/plans/{{ $p->id }}/toggle-sale" class="d-inline">@csrf
+                        @if($p->on_sale)<button class="btn btn-sm" style="border:none;background:#e9f9ed;color:#2fa84f;border-radius:20px;font-weight:600;font-size:12px" title="点击下架">在售</button>
+                        @else<button class="btn btn-sm" style="border:none;background:#f2f3f5;color:#98a6ad;border-radius:20px;font-weight:600;font-size:12px" title="点击上架">下架</button>@endif
+                    </form>
+                </td>
+                <td style="white-space:nowrap">
+                    <form method="POST" action="/admin/plans/{{ $p->id }}/move" class="d-inline">@csrf<input type="hidden" name="dir" value="up"><button class="btn btn-light btn-sm" title="上移" style="padding:2px 7px"><i class="fas fa-arrow-up"></i></button></form>
+                    <form method="POST" action="/admin/plans/{{ $p->id }}/move" class="d-inline">@csrf<input type="hidden" name="dir" value="down"><button class="btn btn-light btn-sm" title="下移" style="padding:2px 7px"><i class="fas fa-arrow-down"></i></button></form>
                     <a href="/admin/plans/{{ $p->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
                     <form method="POST" action="/admin/plans/{{ $p->id }}" class="d-inline" onsubmit="return confirm('确认删除该套餐？')">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
