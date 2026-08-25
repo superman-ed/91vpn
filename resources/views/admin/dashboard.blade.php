@@ -57,9 +57,33 @@
     </a>
 </div>
 
+@php
+    $presets = [
+        '今日' => [now()->toDateString(), now()->toDateString()],
+        '近7天' => [now()->subDays(6)->toDateString(), now()->toDateString()],
+        '近30天' => [now()->subDays(29)->toDateString(), now()->toDateString()],
+        '本月' => [now()->startOfMonth()->toDateString(), now()->toDateString()],
+    ];
+@endphp
 <div class="card ad-card">
-    <div class="card-header"><h4><i class="fas fa-chart-column text-primary"></i> 近 14 天收入</h4></div>
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px">
+        <h4><i class="fas fa-chart-column text-primary"></i> 收入趋势</h4>
+        <form method="GET" class="d-flex align-items-center flex-wrap" style="gap:6px">
+            <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm" style="width:auto;border-radius:8px">
+            <span class="text-muted">~</span>
+            <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm" style="width:auto;border-radius:8px">
+            <button class="btn btn-sm adm-btn">查询</button>
+            @foreach($presets as $label => $range)
+            <a href="/admin?from={{ $range[0] }}&to={{ $range[1] }}" class="btn btn-sm btn-light" style="border-radius:8px">{{ $label }}</a>
+            @endforeach
+        </form>
+    </div>
     <div class="card-body">
+        <div class="d-flex flex-wrap mb-3" style="gap:24px">
+            <div><div style="font-size:20px;font-weight:800;color:#3fae57">¥{{ number_format($rangeRevenue, 2) }}</div><div class="text-muted" style="font-size:12px">区间收入</div></div>
+            <div><div style="font-size:20px;font-weight:800;color:#6777ef">{{ $rangeOrders }}</div><div class="text-muted" style="font-size:12px">区间订单</div></div>
+            <div><div style="font-size:20px;font-weight:800;color:#7c4ddb">{{ $rangeUsers }}</div><div class="text-muted" style="font-size:12px">区间新增用户</div></div>
+        </div>
         <div class="ad-chart">
             @foreach($chart as $c)
             <div class="ad-bar {{ $c['value'] == 0 ? 'zero' : '' }}" style="height:{{ max(3, round($c['value'] / $chartMax * 100)) }}%" title="{{ $c['label'] }}：¥{{ number_format($c['value'], 2) }}"></div>
