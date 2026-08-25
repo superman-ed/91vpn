@@ -1,0 +1,53 @@
+{
+  "log": { "loglevel": "warning" },
+
+  "stats": {},
+
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    },
+    "system": { "statsInboundUplink": true, "statsInboundDownlink": true }
+  },
+
+  "api": {
+    "tag": "api",
+    "services": ["StatsService"]
+  },
+
+  "inbounds": [
+    {
+      "tag": "proxy",
+      "port": 17103,
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          { "id": "第1个用户的uuid", "email": "1", "level": 0 },
+          { "id": "第2个用户的uuid", "email": "2", "level": 0 }
+        ]
+      },
+      "streamSettings": { "network": "tcp" }
+    },
+
+    {
+      "tag": "api",
+      "port": 10085,
+      "listen": "127.0.0.1",
+      "protocol": "dokodemo-door",
+      "settings": { "address": "127.0.0.1" }
+    }
+  ],
+
+  "outbounds": [
+    { "tag": "direct", "protocol": "freedom" }
+  ],
+
+  "routing": {
+    "rules": [
+      { "type": "field", "inboundTag": ["api"], "outboundTag": "api" }
+    ]
+  }
+}
