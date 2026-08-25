@@ -11,7 +11,8 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $q = $request->query('q');
-        $users = User::when($q, fn ($query) => $query->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%"))
+        $users = User::where('is_admin', false)   // 管理员在「管理员」页单独管理
+            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
             ->orderByDesc('id')->paginate(30)->withQueryString();
 
         return view('admin.users.index', ['users' => $users, 'q' => $q]);
