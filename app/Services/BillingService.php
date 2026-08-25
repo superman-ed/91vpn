@@ -184,8 +184,9 @@ class BillingService
                 'user_id' => $user->id,
                 'amount' => -$locked->amount,
                 'type' => 'consume',
+                'order_id' => $locked->id,
                 'balance_after' => $user->fresh()->money,
-                'remark' => "购买套餐 #{$locked->id}",
+                'remark' => "购买套餐 {$locked->order_no}",
             ]);
         });
     }

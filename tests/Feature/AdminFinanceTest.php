@@ -24,6 +24,18 @@ it('shows finance ledger with type totals', function () {
     expect((float) $res->viewData('sumBonus'))->toBe(1.0);
 });
 
+it('links consume log to its order and shows order_no', function () {
+    $u = User::factory()->create(['money' => 100, 'class' => 0, 'class_expire' => now()->subDay()]);
+    $plan = \App\Models\Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30]);
+    $order = \App\Models\Order::create(['user_id' => $u->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+
+    $this->actingAs($u)->post("/user/order/{$order->id}/pay", ['method' => 'balance']);
+
+    $log = BalanceLog::where('type', 'consume')->first();
+    expect($log->order_id)->toBe($order->id);
+    $this->actingAs($this->admin)->get('/admin/finance')->assertOk()->assertSee($order->fresh()->order_no);
+});
+
 it('filters ledger by type', function () {
     $u = User::factory()->create();
     BalanceLog::create(['user_id' => $u->id, 'amount' => 100, 'type' => 'recharge', 'balance_after' => 100, 'remark' => 'r']);

@@ -25,7 +25,7 @@ class FinanceController extends Controller
 
         $logs = (clone $base)
             ->when(in_array($type, self::TYPES, true), fn ($query) => $query->where('type', $type))
-            ->with('user')->latest()->paginate(30)->withQueryString();
+            ->with('user', 'order')->latest()->paginate(30)->withQueryString();
 
         return view('admin.finance.index', [
             'logs' => $logs,

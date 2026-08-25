@@ -34,7 +34,7 @@
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
-            <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>变动</th><th>变动后余额</th><th>备注</th></tr></thead>
+            <thead><tr><th>时间</th><th>用户</th><th>类型</th><th>变动</th><th>变动后余额</th><th>关联订单 / 交易号</th><th>备注</th></tr></thead>
             <tbody>
             @forelse($logs as $l)
             @php $isIn = $l->amount > 0; @endphp
@@ -44,9 +44,15 @@
                 <td><span class="adm-pill {{ $typePill[$l->type] ?? 'muted' }}">{{ $typeName[$l->type] ?? $l->type }}</span></td>
                 <td style="font-weight:700;color:{{ $isIn ? '#2fa84f' : '#fc544b' }}">{{ $isIn ? '+' : '' }}{{ number_format($l->amount, 2) }}</td>
                 <td>¥{{ number_format($l->balance_after, 2) }}</td>
+                <td style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12px">
+                    @if($l->order)
+                        <span style="color:#34395e">{{ $l->order->order_no }}</span>
+                        @if($l->order->trade_no)<br><span class="text-muted">交易号 {{ $l->order->trade_no }}</span>@endif
+                    @else <span class="text-muted">—</span>@endif
+                </td>
                 <td class="text-muted">{{ $l->remark }}</td>
             </tr>
-            @empty<tr><td colspan="6"><div class="adm-empty"><i class="fas fa-money-bill-transfer fa-2x mb-2 d-block"></i>暂无资金流水</div></td></tr>@endforelse
+            @empty<tr><td colspan="7"><div class="adm-empty"><i class="fas fa-money-bill-transfer fa-2x mb-2 d-block"></i>暂无资金流水</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>
