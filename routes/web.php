@@ -115,6 +115,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);
     Route::delete('admins/{user}', [App\Http\Controllers\Admin\AdminController::class, 'destroy']);
     Route::get('finance', [App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
+    Route::get('rebates', [App\Http\Controllers\Admin\RebateController::class, 'index'])->name('admin.rebates.index');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
     Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.orders.cancel');

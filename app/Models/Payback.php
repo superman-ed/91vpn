@@ -15,4 +15,15 @@ class Payback extends Model
     {
         return $this->belongsTo(User::class, 'from_user_id');
     }
+
+    /** 受益人（邀请人） */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
 }
