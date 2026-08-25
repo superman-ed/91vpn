@@ -42,6 +42,8 @@ class DashboardController extends Controller
             'userCount' => User::count(),
             'onlineUsers' => \App\Models\AliveIp::where('last_seen', '>=', now()->subSeconds(\App\Models\AliveIp::ONLINE_WINDOW))->distinct()->count('user_id'),
             'activeToday' => User::whereDate('last_used_at', $today)->count(),
+            'todayTraffic' => (int) (\App\Models\NodeDailyTraffic::whereDate('date', $today)->sum('u') + \App\Models\NodeDailyTraffic::whereDate('date', $today)->sum('d')),
+            'totalTraffic' => (int) (\App\Models\NodeDailyTraffic::sum('u') + \App\Models\NodeDailyTraffic::sum('d')),
             'nodeCount' => Node::count(),
             'onlineNodes' => Node::where('online', true)->count(),
             'planCount' => Plan::count(),

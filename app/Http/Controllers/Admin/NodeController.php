@@ -11,7 +11,17 @@ class NodeController extends Controller
 {
     public function index()
     {
-        return view('admin.nodes.index', ['nodes' => Node::orderBy('sort')->orderBy('id')->get()]);
+        $todayByNode = \App\Models\NodeDailyTraffic::whereDate('date', today())
+            ->selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
+            ->groupBy('node_id')->get()->keyBy('node_id');
+        $totalByNode = \App\Models\NodeDailyTraffic::selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
+            ->groupBy('node_id')->get()->keyBy('node_id');
+
+        return view('admin.nodes.index', [
+            'nodes' => Node::orderBy('sort')->orderBy('id')->get(),
+            'todayByNode' => $todayByNode,
+            'totalByNode' => $totalByNode,
+        ]);
     }
 
     public function create()

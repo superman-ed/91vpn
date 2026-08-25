@@ -51,6 +51,7 @@
     <div class="ad-stat c"><i class="fas fa-shopping-cart ic"></i><div class="n">{{ number_format($paidOrders) }}</div><div class="t">已支付订单</div><div class="sub">今日 +{{ $todayOrders }} 单</div></div>
     <div class="ad-stat d"><i class="fas fa-server ic"></i><div class="n">{{ $onlineNodes }}/{{ $nodeCount }}</div><div class="t">在线节点</div><div class="sub">共 {{ $planCount }} 个套餐</div></div>
     <a class="ad-stat" href="/admin/online" style="background:linear-gradient(135deg,#2ec27e,#25a06a);box-shadow:0 8px 22px rgba(46,194,126,.22);text-decoration:none"><i class="fas fa-signal ic"></i><div class="n"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#fff;margin-right:6px;animation:dblink 1.4s infinite;vertical-align:middle"></span>{{ $onlineUsers }}</div><div class="t">当前在线用户</div><div class="sub">今日活跃 {{ $activeToday }} 人</div></a>
+    <div class="ad-stat" style="background:linear-gradient(135deg,#e0567b,#c93f66);box-shadow:0 8px 22px rgba(224,86,123,.22)"><i class="fas fa-tachometer-alt ic"></i><div class="n">{{ human_bytes($todayTraffic) }}</div><div class="t">今日流量</div><div class="sub">累计 {{ human_bytes($totalTraffic) }}</div></div>
 </div>
 <style>@keyframes dblink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }</style>
 

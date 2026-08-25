@@ -45,6 +45,23 @@
     </div>
 </div>
 
+@php $trafMax = max(1, (int) $trend->max('traffic')); @endphp
+<div class="card adm-panel" style="margin-bottom:18px">
+    <div class="card-header" style="border:none;padding:16px 20px 0"><h4 style="font-size:14px;color:#34395e;margin:0"><i class="fas fa-tachometer-alt text-primary"></i> 近 30 日流量消耗 <span class="text-muted" style="font-weight:400;font-size:12px">（原始带宽）</span></h4></div>
+    <div style="padding:14px 20px 18px">
+        <div style="display:flex;align-items:flex-end;gap:3px;height:110px">
+            @foreach($trend as $t)
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%" title="{{ $t['label'] }}　{{ human_bytes($t['traffic']) }}">
+                <div style="width:100%;max-width:16px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#e0567b,#c93f66);height:{{ max(round($t['traffic'] / $trafMax * 100), $t['traffic'] > 0 ? 2 : 0) }}px"></div>
+            </div>
+            @endforeach
+        </div>
+        <div style="display:flex;gap:3px;margin-top:6px">
+            @foreach($trend as $i => $t)<div style="flex:1;text-align:center;font-size:9.5px;color:#b5bdc9">{{ $i % 3 === 0 ? $t['label'] : '' }}</div>@endforeach
+        </div>
+    </div>
+</div>
+
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">

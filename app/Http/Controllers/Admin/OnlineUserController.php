@@ -34,6 +34,8 @@ class OnlineUserController extends Controller
         // 近 30 日趋势（无快照的日期补 0）
         $days = 30;
         $stats = DailyStat::where('date', '>=', today()->subDays($days - 1))->get()->keyBy(fn ($s) => $s->date->toDateString());
+        $traffic = \App\Models\NodeDailyTraffic::where('date', '>=', today()->subDays($days - 1))
+            ->selectRaw('date, sum(u + d) as raw')->groupBy('date')->get()->keyBy(fn ($s) => $s->date->toDateString());
         $trend = collect();
         for ($d = today()->subDays($days - 1); $d->lte(today()); $d->addDay()) {
             $row = $stats->get($d->toDateString());
@@ -41,6 +43,7 @@ class OnlineUserController extends Controller
                 'label' => $d->format('m-d'),
                 'dau' => (int) ($row->dau ?? 0),
                 'peak' => (int) ($row->peak_online ?? 0),
+                'traffic' => (int) ($traffic->get($d->toDateString())->raw ?? 0),
             ]);
         }
 

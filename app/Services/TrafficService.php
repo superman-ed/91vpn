@@ -15,8 +15,11 @@ class TrafficService
     {
         $rate = (float) $node->traffic_rate;
         $count = 0;
+        $rawU = 0;      // 本批原始流量(服务器真实带宽)
+        $rawD = 0;
+        $billedTotal = 0;
 
-        DB::transaction(function () use ($node, $logs, $rate, &$count) {
+        DB::transaction(function () use ($node, $logs, $rate, &$count, &$rawU, &$rawD, &$billedTotal) {
             foreach ($logs as $log) {
                 $userId = $log['user_id'] ?? null;
                 $u = (int) ($log['u'] ?? 0);
@@ -27,6 +30,9 @@ class TrafficService
 
                 $billedU = (int) round($u * $rate);
                 $billedD = (int) round($d * $rate);
+                $rawU += $u;
+                $rawD += $d;
+                $billedTotal += $billedU + $billedD;
 
                 User::where('id', $userId)->update([
                     'u' => DB::raw("u + {$billedU}"),
@@ -47,6 +53,20 @@ class TrafficService
                         'd' => DB::raw("d + {$billedD}"),
                     ]);
                 $count++;
+            }
+
+            // 节点每日流量汇总(原始 + 计费),供全站/节点带宽统计
+            if ($rawU > 0 || $rawD > 0) {
+                \App\Models\NodeDailyTraffic::firstOrCreate(
+                    ['node_id' => $node->id, 'date' => now()->toDateString()],
+                );
+                \App\Models\NodeDailyTraffic::where('node_id', $node->id)
+                    ->whereDate('date', now()->toDateString())
+                    ->update([
+                        'u' => DB::raw("u + {$rawU}"),
+                        'd' => DB::raw("d + {$rawD}"),
+                        'billed' => DB::raw("billed + {$billedTotal}"),
+                    ]);
             }
         });
 
