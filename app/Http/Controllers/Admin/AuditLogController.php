@@ -18,6 +18,7 @@ class AuditLogController extends Controller
         'announcement' => '公告',
         'admin' => '管理员',
         'ticket' => '工单',
+        'promo' => '推广',
         'setting' => '设置',
     ];
 

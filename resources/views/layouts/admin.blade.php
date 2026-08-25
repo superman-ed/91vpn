@@ -74,6 +74,7 @@
                     <li class="{{ request()->is('admin/orders*') ? 'active' : '' }}"><a class="nav-link" href="/admin/orders"><i class="fas fa-receipt"></i><span>订单管理</span></a></li>
                     <li class="{{ request()->is('admin/finance*') ? 'active' : '' }}"><a class="nav-link" href="/admin/finance"><i class="fas fa-money-bill-wave"></i><span>资金流水</span></a></li>
                     <li class="{{ request()->is('admin/rebates*') ? 'active' : '' }}"><a class="nav-link" href="/admin/rebates"><i class="fas fa-hand-holding-usd"></i><span>返佣记录</span></a></li>
+                    <li class="{{ request()->is('admin/promo*') ? 'active' : '' }}"><a class="nav-link" href="/admin/promo"><i class="fas fa-bullhorn"></i><span>推广代理</span></a></li>
                     <li class="{{ request()->is('admin/online*') ? 'active' : '' }}"><a class="nav-link" href="/admin/online"><i class="fas fa-signal"></i><span>在线用户</span></a></li>
                     <li class="menu-header">支持</li>
                     <li class="{{ request()->is('admin/tickets*') ? 'active' : '' }}"><a class="nav-link" href="/admin/tickets"><i class="far fa-comments"></i><span>工单管理</span></a></li>

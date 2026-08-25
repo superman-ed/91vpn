@@ -85,8 +85,9 @@ class RegisterController extends Controller
             'utm_source' => $request->session()->get('utm.source'),
             'utm_medium' => $request->session()->get('utm.medium'),
             'utm_campaign' => $request->session()->get('utm.campaign'),
+            'promo_code' => $this->validPromoCode($request->session()->get('promo')),
         ]);
-        $request->session()->forget('utm');
+        $request->session()->forget(['utm', 'promo']);
 
         if ($invite) {
             $invite->update(['used_by' => $user->id]);
@@ -108,5 +109,15 @@ class RegisterController extends Controller
         Auth::login($user);
 
         return redirect('/user');
+    }
+
+    /** 仅当推广码存在且启用时才归因，否则忽略 */
+    private function validPromoCode(?string $code): ?string
+    {
+        if (! $code) {
+            return null;
+        }
+
+        return \App\Models\PromoChannel::where('code', $code)->where('enabled', true)->exists() ? $code : null;
     }
 }

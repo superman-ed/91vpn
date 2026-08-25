@@ -21,7 +21,7 @@ class User extends Authenticatable
         'class', 'class_expire', 'next_reset_at',
         'node_speed_limit', 'node_ip_limit',
         'money', 'ref_by', 'ref_code', 'reg_ip', 'reg_referer',
-        'utm_source', 'utm_medium', 'utm_campaign',
+        'utm_source', 'utm_medium', 'utm_campaign', 'promo_code',
         'invite_token', 'api_token',
         'is_admin', 'banned', 'last_check_in', 'last_used_at',
     ];

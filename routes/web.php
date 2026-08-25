@@ -121,6 +121,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('finance/export', [App\Http\Controllers\Admin\FinanceController::class, 'export'])->name('admin.finance.export');
     Route::get('finance', [App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
     Route::get('rebates', [App\Http\Controllers\Admin\RebateController::class, 'index'])->name('admin.rebates.index');
+    Route::get('promo', [App\Http\Controllers\Admin\PromoController::class, 'index'])->name('admin.promo.index');
+    Route::post('promo', [App\Http\Controllers\Admin\PromoController::class, 'store'])->name('admin.promo.store');
+    Route::get('promo/{channel}', [App\Http\Controllers\Admin\PromoController::class, 'show'])->name('admin.promo.show');
+    Route::put('promo/{channel}', [App\Http\Controllers\Admin\PromoController::class, 'update'])->name('admin.promo.update');
+    Route::delete('promo/{channel}', [App\Http\Controllers\Admin\PromoController::class, 'destroy'])->name('admin.promo.destroy');
     Route::get('online', [App\Http\Controllers\Admin\OnlineUserController::class, 'index'])->name('admin.online.index');
     Route::get('system/login-logs', [App\Http\Controllers\Admin\LoginLogController::class, 'index'])->name('admin.system.login-logs');
     Route::get('system/devices', [App\Http\Controllers\Admin\DeviceStatController::class, 'index'])->name('admin.system.devices');

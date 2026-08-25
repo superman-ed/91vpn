@@ -15,6 +15,7 @@
         'announcement.create' => '发布公告', 'announcement.update' => '更新公告', 'announcement.delete' => '删除公告',
         'admin.create' => '新建管理员', 'admin.grant' => '授予管理员', 'admin.revoke' => '撤销管理员',
         'ticket.reply' => '回复工单', 'ticket.close' => '关闭工单',
+        'promo.create' => '创建推广码', 'promo.update' => '更新推广码', 'promo.delete' => '删除推广码',
         'order.export' => '导出订单', 'finance.export' => '导出流水', 'user.export' => '导出用户',
     ];
     $pill = function ($a) {
