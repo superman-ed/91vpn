@@ -24,6 +24,50 @@ if (! function_exists('human_bytes')) {
     }
 }
 
+if (! function_exists('client_family')) {
+    /** 从 User-Agent 归类客户端家族(用于设备/客户端统计) */
+    function client_family(string $ua): string
+    {
+        $ua = trim($ua);
+        if ($ua === '') {
+            return '未知';
+        }
+        $map = [
+            'Shadowrocket' => '小火箭 Shadowrocket',
+            'Quantumult' => 'Quantumult',
+            'Stash' => 'Stash',
+            'Surge' => 'Surge',
+            'Loon' => 'Loon',
+            'ClashMetaForAndroid' => 'Clash Meta (安卓)',
+            'ClashforWindows' => 'Clash for Windows',
+            'clash-verge' => 'Clash Verge',
+            'ClashX' => 'ClashX',
+            'FlClash' => 'FlClash',
+            'mihomo' => 'mihomo',
+            'clash' => 'Clash 系',
+            'v2rayNG' => 'v2rayNG (安卓)',
+            'v2rayN' => 'v2rayN (Windows)',
+            'sing-box' => 'sing-box',
+            'SFA' => 'sing-box (安卓)',
+            'SFI' => 'sing-box (iOS)',
+            'Hiddify' => 'Hiddify',
+            'NekoBox' => 'NekoBox',
+            'v2rayU' => 'v2rayU',
+        ];
+        foreach ($map as $needle => $name) {
+            if (stripos($ua, $needle) !== false) {
+                return $name;
+            }
+        }
+        // 浏览器直接访问订阅
+        if (preg_match('/Mozilla|Chrome|Safari|Firefox|Edg/i', $ua)) {
+            return '浏览器';
+        }
+
+        return '其它';
+    }
+}
+
 if (! function_exists('linkify')) {
     /** 纯文本转安全 HTML：转义 + 网址高亮成超链接 + 保留换行 */
     function linkify(?string $text): string

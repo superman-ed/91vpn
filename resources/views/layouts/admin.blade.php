@@ -81,6 +81,9 @@
                     <li class="{{ request()->is('admin/announcements*') ? 'active' : '' }}"><a class="nav-link" href="/admin/announcements"><i class="fas fa-bullhorn"></i><span>公告管理</span></a></li>
                     <li class="{{ request()->is('admin/admins*') ? 'active' : '' }}"><a class="nav-link" href="/admin/admins"><i class="fas fa-user-shield"></i><span>管理员</span></a></li>
                     <li class="{{ request()->is('admin/settings*') ? 'active' : '' }}"><a class="nav-link" href="/admin/settings"><i class="fas fa-cog"></i><span>站点设置</span></a></li>
+                    <li class="menu-header">系统</li>
+                    <li class="{{ request()->is('admin/system/login-logs*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/login-logs"><i class="fas fa-sign-in-alt"></i><span>登录日志</span></a></li>
+                    <li class="{{ request()->is('admin/system/devices*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/devices"><i class="fas fa-mobile-alt"></i><span>设备统计</span></a></li>
                     <li class="menu-header"></li>
                     <li><a class="nav-link" href="/user"><i class="fas fa-arrow-left"></i><span>返回用户端</span></a></li>
                 </ul>
