@@ -26,17 +26,43 @@ it('injects the third-party widget and hides the self-built panel when configure
         ->assertDontSee('id="cs-bubble"', false);   // 自建气泡隐藏
 });
 
-it('loads Crisp and binds the logged-in user identity when a website id is set', function () {
+it('loads Crisp but stays anonymous by default (identity binding off)', function () {
     Setting::put('crisp_website_id', '233710e4-9a5f-4b81-be1e-a1cb6fe17a62');
     $user = User::factory()->create(['email' => 'vip@test.local', 'name' => '小明']);
 
     $res = $this->actingAs($user)->get('/user');
     $res->assertOk()
         ->assertSee('client.crisp.chat/l.js', false)
-        ->assertSee('233710e4-9a5f-4b81-be1e-a1cb6fe17a62', false)
-        ->assertSee('vip@test.local', false)          // 身份透传
-        ->assertSee('user:nickname', false)
-        ->assertDontSee('id="cs-bubble"', false);      // 自建面板隐藏
+        ->assertDontSee('vip@test.local', false)       // 默认不透传身份 → 匿名，省档案额度
+        ->assertDontSee('user:email', false)
+        ->assertDontSee('id="cs-bubble"', false);
+});
+
+it('binds the logged-in user identity when the switch is on', function () {
+    Setting::put('crisp_website_id', '233710e4-9a5f-4b81-be1e-a1cb6fe17a62');
+    Setting::put('crisp_bind_identity', '1');
+    $user = User::factory()->create(['email' => 'vip@test.local', 'name' => '小明']);
+
+    $res = $this->actingAs($user)->get('/user');
+    $res->assertOk()
+        ->assertSee('client.crisp.chat/l.js', false)
+        ->assertSee('vip@test.local', false)           // 开关开 → 身份透传
+        ->assertSee('user:nickname', false);
+});
+
+it('persists the identity switch from the settings form', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $this->actingAs($admin)->put('/admin/settings', [
+        'crisp_website_id' => '233710e4-9a5f-4b81-be1e-a1cb6fe17a62',
+        'crisp_bind_identity' => '1',
+    ]);
+    expect(setting('crisp_bind_identity', '0'))->toBe('1');
+
+    // 不勾选 → 关
+    $this->actingAs($admin)->put('/admin/settings', [
+        'crisp_website_id' => '233710e4-9a5f-4b81-be1e-a1cb6fe17a62',
+    ]);
+    expect(setting('crisp_bind_identity', '0'))->toBe('0');
 });
 
 it('prefers Crisp over the generic third-party widget', function () {

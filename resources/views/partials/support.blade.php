@@ -18,7 +18,7 @@
             d.getElementsByTagName('head')[0].appendChild(s);
         })();
         window.$crisp.push(['safe', true]);
-        @if($csUser)
+        @if($csUser && setting('crisp_bind_identity', '0') === '1')
         window.$crisp.push(['set', 'user:email', [{{ Illuminate\Support\Js::from($csUser->email) }}]]);
         window.$crisp.push(['set', 'user:nickname', [{{ Illuminate\Support\Js::from($csUser->name ?: $csUser->email) }}]]);
         @endif

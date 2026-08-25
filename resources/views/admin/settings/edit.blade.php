@@ -89,7 +89,14 @@
                 </div>
                 <hr style="margin:6px 0 18px;border-color:#eef1f8">
                 <div class="row">
-                    <div class="form-group col-md-12"><label>Crisp Website ID（推荐）</label><input name="crisp_website_id" value="{{ old('crisp_website_id', $crispWebsiteId) }}" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace" placeholder="233710e4-9a5f-4b81-be1e-a1cb6fe17a62"><small class="text-muted">填入 Crisp 后台的 Website ID（36 位）即自动加载 Crisp，并把当前登录用户的邮箱/昵称透传给客服，无需粘贴代码。</small></div>
+                    <div class="form-group col-md-12"><label>Crisp Website ID（推荐）</label><input name="crisp_website_id" value="{{ old('crisp_website_id', $crispWebsiteId) }}" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace" placeholder="233710e4-9a5f-4b81-be1e-a1cb6fe17a62"><small class="text-muted">填入 Crisp 后台的 Website ID（36 位）即自动加载 Crisp，无需粘贴代码。</small></div>
+                    <div class="form-group col-md-12">
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0">
+                            <input type="checkbox" name="crisp_bind_identity" value="1" @checked(old('crisp_bind_identity', $crispBindIdentity)) style="width:17px;height:17px">
+                            <span>透传登录用户身份给客服（邮箱 / 昵称）</span>
+                        </label>
+                        <small class="text-muted d-block mt-1">开：客服能认出咨询者是哪个用户，体验好，但每个登录用户会占用一个 Crisp「客户档案」——<b>免费版仅 100 个且已识别档案不自动回收</b>，放量运营会占满。<br>关（默认）：匿名咨询，Crisp 自动回收不活跃访客档案，100 额度滚动使用，免费版可长期使用。</small>
+                    </div>
                     <div class="form-group col-md-12"><label>其它第三方客服代码（选填）</label><textarea name="support_widget" rows="4" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px" placeholder="非 Crisp（如 Tawk.to / 美洽）时，整段粘贴其官方 &lt;script&gt; 代码。已填 Crisp ID 时本项忽略。">{{ old('support_widget', $supportWidget) }}</textarea><small class="text-muted">⚠️ 代码会原样注入用户端页面，请只粘贴可信来源的官方客服代码。</small></div>
                 </div>
             </div>
