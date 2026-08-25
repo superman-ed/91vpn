@@ -20,7 +20,7 @@
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
-            <thead><tr><th>ID</th><th>用户</th><th>等级</th><th>剩余流量</th><th>到期</th><th>余额</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>ID</th><th>用户</th><th>等级</th><th>剩余流量</th><th>到期</th><th>注册时间</th><th>余额</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
             @forelse($users as $u)
             <tr>
@@ -29,6 +29,7 @@
                 <td><span class="adm-pill primary">{{ class_name($u->class) }}</span></td>
                 <td>{{ number_format(bytes_to_gb(max(0, $u->transfer_enable - $u->u - $u->d)), 1) }} GB</td>
                 <td class="text-muted">{{ $u->class_expire?->format('Y-m-d') ?? '—' }}</td>
+                <td class="text-muted">{{ $u->created_at?->format('Y-m-d') ?? '—' }}</td>
                 <td>¥{{ number_format($u->money, 2) }}</td>
                 <td>
                     @if($u->banned)<span class="adm-pill danger">封禁</span>
@@ -40,7 +41,7 @@
                     <form method="POST" action="/admin/users/{{ $u->id }}/toggle-ban" class="d-inline" onsubmit="return confirm('{{ $u->banned ? '确认解封？' : '确认封禁该用户？' }}')">@csrf<button class="btn btn-{{ $u->banned ? 'success' : 'outline-danger' }} btn-sm">{{ $u->banned ? '解封' : '封禁' }}</button></form>
                 </td>
             </tr>
-            @empty<tr><td colspan="8"><div class="adm-empty"><i class="fas fa-user-slash fa-2x mb-2 d-block"></i>没有找到用户</div></td></tr>@endforelse
+            @empty<tr><td colspan="9"><div class="adm-empty"><i class="fas fa-user-slash fa-2x mb-2 d-block"></i>没有找到用户</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>
