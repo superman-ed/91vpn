@@ -4,13 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\EmailLog;
+use App\Services\EmailCodeService;
 use Illuminate\Http\Request;
 
 class EmailLogController extends Controller
 {
-    /** GET /admin/system/emails —— 邮件发送记录 */
-    public function index(Request $request)
+    /** GET /admin/system/emails —— 邮件发送记录（可代查当前有效验证码） */
+    public function index(Request $request, EmailCodeService $codes)
     {
+        // 代查验证码：实时读缓存(不落库)，记审计
+        $peekEmail = trim((string) $request->query('peek', ''));
+        $peekCode = null;
+        $peekDone = false;
+        if ($peekEmail !== '') {
+            $peekCode = $codes->peek($peekEmail);
+            $peekDone = true;
+            audit('email.peek_code', "代查 {$peekEmail} 的验证码（".($peekCode ? '命中' : '无有效码').'）');
+        }
+
         $status = $request->query('status');
         $q = $request->query('q');
         $from = $request->query('from');
@@ -40,6 +51,9 @@ class EmailLogController extends Controller
                 'failed' => (clone $countBase)->where('status', 'failed')->count(),
                 'logged' => (clone $countBase)->where('status', 'logged')->count(),
             ],
+            'peekEmail' => $peekEmail,
+            'peekCode' => $peekCode,
+            'peekDone' => $peekDone,
         ]);
     }
 }

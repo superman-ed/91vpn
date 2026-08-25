@@ -51,3 +51,21 @@ it('lists and filters email logs by status', function () {
         ->assertOk()->assertSee('b@test.local')->assertDontSee('a@test.local')
         ->assertSee('Connection timed out');
 });
+
+it('peeks the current valid code from cache and records an audit', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    app(EmailCodeService::class); // ensure bound
+    \Illuminate\Support\Facades\Cache::put('email_code:lost@test.local', '654321', now()->addMinutes(5));
+
+    $res = $this->actingAs($admin)->get('/admin/system/emails?peek=lost@test.local');
+    $res->assertOk()->assertSee('654321')->assertViewHas('peekCode', '654321');
+
+    // 代查动作记入审计
+    expect(\App\Models\AuditLog::where('action', 'email.peek_code')->exists())->toBeTrue();
+});
+
+it('shows no valid code when cache is empty or expired', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $this->actingAs($admin)->get('/admin/system/emails?peek=nobody@test.local')
+        ->assertOk()->assertViewHas('peekCode', null)->assertSee('无有效验证码');
+});

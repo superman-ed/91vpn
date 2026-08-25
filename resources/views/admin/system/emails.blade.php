@@ -19,6 +19,31 @@
     </form>
 </div>
 
+{{-- 验证码代查：实时读缓存(5分钟有效)，不落库，每次代查记审计 --}}
+<div class="card adm-panel" style="margin-bottom:18px">
+    <div style="padding:16px 20px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-weight:700;color:#34395e"><i class="fas fa-key text-warning"></i> 验证码代查</span>
+            <form method="GET" class="d-flex" style="gap:6px;flex-wrap:wrap;margin:0">
+                <input type="hidden" name="status" value="{{ $status }}">
+                <input name="peek" value="{{ $peekEmail }}" class="form-control" placeholder="输入用户邮箱" style="min-width:220px;border-radius:9px">
+                <button class="btn adm-btn" style="border-radius:9px"><i class="fas fa-search"></i> 查当前验证码</button>
+            </form>
+            @if($peekDone)
+                @if($peekCode)
+                <span style="display:inline-flex;align-items:center;gap:8px;background:#e9f9ed;border:1px solid #bce8c8;border-radius:9px;padding:7px 14px">
+                    <span class="text-muted" style="font-size:12.5px">{{ $peekEmail }} 当前验证码</span>
+                    <b style="font-size:18px;letter-spacing:3px;color:#2fa84f;font-family:SFMono-Regular,Menlo,Consolas,monospace">{{ $peekCode }}</b>
+                </span>
+                @else
+                <span style="background:#fdecea;border:1px solid #f5c6c2;border-radius:9px;padding:8px 14px;color:#c9392f;font-size:13px">无有效验证码（未申请、已过期或已使用）</span>
+                @endif
+            @endif
+        </div>
+        <div class="text-muted" style="font-size:12px;margin-top:8px">仅能查到 5 分钟有效期内、尚未使用的验证码；每次代查都会记入「操作日志」。用户收不到邮件时可代查后口头/其它渠道告知本人。</div>
+    </div>
+</div>
+
 <div class="ad-stats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
     <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#4d5ed0)"><div style="font-size:22px;font-weight:800">{{ number_format($counts['all']) }}</div><div style="font-size:12.5px;opacity:.9">发送总数</div></div>
     <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">{{ number_format($counts['sent']) }}</div><div style="font-size:12.5px;opacity:.9">成功</div></div>
@@ -40,7 +65,7 @@
             @forelse($logs as $l)
             <tr>
                 <td class="text-muted">{{ $l->created_at?->format('Y-m-d H:i:s') }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $l->to_email }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $l->to_email }} @if($l->type === 'code')<a href="/admin/system/emails?peek={{ urlencode($l->to_email) }}{{ $status ? '&status='.$status : '' }}" title="代查该邮箱当前验证码" style="margin-left:4px;color:#e6912a"><i class="fas fa-key"></i></a>@endif</td>
                 <td><span class="adm-pill info">{{ $typeName[$l->type] ?? $l->type }}</span></td>
                 <td>{{ $l->subject }}</td>
                 <td><span class="adm-pill {{ $statusPill[$l->status] ?? 'muted' }}">{{ $statusName[$l->status] ?? $l->status }}</span></td>

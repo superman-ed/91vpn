@@ -9,6 +9,7 @@
         'order.mark_paid' => '标记支付', 'order.cancel' => '取消订单',
         'node.create' => '创建节点', 'node.update' => '更新节点', 'node.delete' => '删除节点',
         'node.regenerate_secret' => '重置密钥', 'setting.update' => '更新设置',
+        'email.peek_code' => '代查验证码',
     ];
     $pill = fn ($a) => str_starts_with($a, 'node.delete') || str_starts_with($a, 'user.ban') ? 'danger'
         : (str_starts_with($a, 'setting') ? 'primary' : (str_starts_with($a, 'order') ? 'warn' : 'info'));

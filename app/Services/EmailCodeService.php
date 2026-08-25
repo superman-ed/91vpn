@@ -80,6 +80,12 @@ class EmailCodeService
         ]);
     }
 
+    /** 代查当前有效验证码（实时读缓存，过期/已用则 null）。仅供后台客服代查，不落库。 */
+    public function peek(string $email): ?string
+    {
+        return Cache::get($this->key($email));
+    }
+
     /**
      * 校验验证码；成功后作废（一次性）。
      */
