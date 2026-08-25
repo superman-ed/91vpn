@@ -36,6 +36,16 @@
         .adm-foot .page-item.active .page-link { background: #6777ef; border-color: #6777ef; }
         .adm-foot .page-link { color: #6777ef; border-radius: 7px; margin: 0 2px; border-color: #eef0f5; }
         .adm-empty { text-align: center; color: #98a6ad; padding: 44px 0; }
+        /* 后台表单页通用 */
+        .adm-form-card { border: none; border-radius: 14px; box-shadow: 0 5px 18px rgba(103,119,239,.08); overflow: hidden; margin-bottom: 20px; }
+        .adm-form-card .card-header { border-bottom: 1px solid #f1f3fb; padding: 15px 22px; display: flex; align-items: center; gap: 9px; }
+        .adm-form-card .card-header .ic { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; background: linear-gradient(135deg,#6777ef,#5a67e8); }
+        .adm-form-card .card-header h4 { font-size: 15px; font-weight: 700; color: #34395e; margin: 0; }
+        .adm-form-card .card-body { padding: 22px; }
+        .adm-form-card .form-tip { font-size: 12.5px; color: #98a6ad; margin: -6px 0 14px; }
+        .adm-form label { font-size: 13px; color: #7a869a; font-weight: 600; margin-bottom: 4px; }
+        .adm-form .form-control, .adm-form select.form-control, .adm-form textarea { border-radius: 9px; border-color: #eef0f5; }
+        .adm-form .form-control:focus { border-color: #6777ef; box-shadow: 0 0 0 3px rgba(103,119,239,.12); }
     </style>
 </head>
 <body>
