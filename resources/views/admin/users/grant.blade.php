@@ -14,16 +14,30 @@
             @if($plans->isEmpty())
                 <div class="adm-empty"><i class="fas fa-box-open fa-2x mb-2 d-block"></i>暂无可开通套餐，请先在「套餐管理」创建</div>
             @else
-            <div class="form-group" style="max-width:480px">
-                <label>套餐</label>
-                <select name="plan_id" class="form-control @error('plan_id') is-invalid @enderror" required>
-                    @foreach($plans as $p)
-                    <option value="{{ $p->id }}">{{ $p->name }} · {{ period_name($p->period) }} · {{ $p->transfer_gb }}GB · {{ $p->duration_days }}天 · {{ class_name($p->class) }}</option>
-                    @endforeach
-                </select>
-                @error('plan_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <style>
+                .grant-plan { display:flex; align-items:center; gap:12px; border:1.5px solid #eef0f5; border-radius:11px; padding:12px 16px; margin-bottom:10px; cursor:pointer; transition:all .15s; }
+                .grant-plan:hover { border-color:#c9d0f7; }
+                .grant-plan.active { border-color:#6777ef; background:#f5f6ff; }
+                .grant-plan input { display:none; }
+                .grant-plan .nm { font-weight:700; color:#34395e; }
+                .grant-plan .meta { font-size:12.5px; color:#7a869a; margin-top:2px; }
+                .grant-plan .chk { margin-left:auto; color:#6777ef; opacity:0; }
+                .grant-plan.active .chk { opacity:1; }
+            </style>
+            <div style="max-width:560px">
+                @foreach($plans as $p)
+                <label class="grant-plan {{ $loop->first ? 'active' : '' }}" onclick="document.querySelectorAll('.grant-plan').forEach(e=>e.classList.remove('active'));this.classList.add('active')">
+                    <input type="radio" name="plan_id" value="{{ $p->id }}" {{ $loop->first ? 'checked' : '' }} required>
+                    <span>
+                        <span class="nm">{{ $p->name }}</span>
+                        <span class="meta">{{ period_name($p->period) }} · {{ $p->transfer_gb }}GB · {{ $p->duration_days }}天 · {{ class_name($p->class) }}</span>
+                    </span>
+                    <i class="fas fa-circle-check chk"></i>
+                </label>
+                @endforeach
             </div>
-            <button class="btn adm-btn"><i class="fas fa-check"></i> 确认开通</button>
+            @error('plan_id')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
+            <button class="btn adm-btn mt-2"><i class="fas fa-check"></i> 确认开通</button>
             @endif
         </div>
     </div>
