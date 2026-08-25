@@ -82,6 +82,8 @@ class UserController extends Controller
             $billing->adminAdjust($user, (float) $data['money'], auth()->user()->email);
         }
 
+        audit('user.update', "更新用户 {$user->email}", $user);
+
         return redirect('/admin/users')->with('status', "已更新用户 {$user->email}");
     }
 
@@ -91,6 +93,7 @@ class UserController extends Controller
             return back()->with('status', '管理员账号不可封禁，请到「管理员」页撤销其管理员权限后再操作');
         }
         $user->update(['banned' => ! $user->banned]);
+        audit('user.ban', ($user->banned ? '封禁' : '解封')."用户 {$user->email}", $user);
 
         return back()->with('status', $user->banned ? '已封禁' : '已解封');
     }
@@ -119,6 +122,8 @@ class UserController extends Controller
             'paid_at' => now(), 'delivered_at' => now(),
         ]);
 
+        audit('user.grant', "为 {$user->email} 开通「{$plan->name}」", $user);
+
         return redirect('/admin/users')->with('status', "已为 {$user->email} 开通「{$plan->name}」");
     }
 
@@ -126,6 +131,7 @@ class UserController extends Controller
     public function resetTraffic(User $user)
     {
         $user->update(['u' => 0, 'd' => 0]);
+        audit('user.reset_traffic', "重置 {$user->email} 已用流量", $user);
 
         return back()->with('status', "已重置 {$user->email} 的已用流量");
     }
@@ -135,6 +141,7 @@ class UserController extends Controller
     {
         $data = $request->validate(['password' => ['required', 'string', 'min:8']]);
         $user->update(['password' => Hash::make($data['password'])]);
+        audit('user.reset_password', "重置 {$user->email} 登录密码", $user);
 
         return back()->with('status', "已重置 {$user->email} 的登录密码");
     }

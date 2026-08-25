@@ -24,6 +24,26 @@ if (! function_exists('human_bytes')) {
     }
 }
 
+if (! function_exists('audit')) {
+    /**
+     * 记录一条后台操作审计日志。
+     * @param  string  $action  动作 slug，如 'user.update'、'order.mark_paid'
+     * @param  string  $description  人类可读描述
+     * @param  \Illuminate\Database\Eloquent\Model|null  $target  被操作对象
+     */
+    function audit(string $action, string $description = '', $target = null): void
+    {
+        \App\Models\AuditLog::create([
+            'admin_id' => auth()->id(),
+            'action' => $action,
+            'description' => \Illuminate\Support\Str::limit($description, 490, ''),
+            'target_type' => $target ? class_basename($target) : null,
+            'target_id' => $target?->getKey(),
+            'ip' => request()->ip() ?? '',
+        ]);
+    }
+}
+
 if (! function_exists('client_family')) {
     /** 从 User-Agent 归类客户端家族(用于设备/客户端统计) */
     function client_family(string $ua): string

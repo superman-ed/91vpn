@@ -33,7 +33,8 @@ class NodeController extends Controller
     {
         $data = $this->validated($request);
         $data['secret'] = Str::random(32);
-        Node::create($data);
+        $node = Node::create($data);
+        audit('node.create', "创建节点「{$node->name}」", $node);
 
         return redirect('/admin/nodes')->with('status', '节点已创建');
     }
@@ -46,12 +47,14 @@ class NodeController extends Controller
     public function update(Request $request, Node $node)
     {
         $node->update($this->validated($request));
+        audit('node.update', "更新节点「{$node->name}」", $node);
 
         return redirect('/admin/nodes')->with('status', '节点已更新');
     }
 
     public function destroy(Node $node)
     {
+        audit('node.delete', "删除节点「{$node->name}」", $node);
         $node->delete();
 
         return redirect('/admin/nodes')->with('status', '节点已删除');
@@ -61,6 +64,7 @@ class NodeController extends Controller
     public function regenerateSecret(Node $node)
     {
         $node->update(['secret' => Str::random(32)]);
+        audit('node.regenerate_secret', "重置节点「{$node->name}」通信密钥", $node);
 
         return back()->with('status', '节点密钥已重新生成，请同步更新节点后端配置');
     }

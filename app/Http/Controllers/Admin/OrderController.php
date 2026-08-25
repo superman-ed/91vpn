@@ -65,6 +65,7 @@ class OrderController extends Controller
             return back()->with('status', '该订单非待支付状态');
         }
         $billing->completeOrder($order, 'manual');
+        audit('order.mark_paid', "手动标记订单 {$order->order_no} 已支付并发货", $order);
 
         return back()->with('status', "订单 #{$order->id} 已标记支付并发货");
     }
@@ -76,6 +77,7 @@ class OrderController extends Controller
             return back()->with('status', '仅待支付订单可取消');
         }
         $order->update(['status' => 'cancelled']);
+        audit('order.cancel', "取消订单 {$order->order_no}", $order);
 
         return back()->with('status', "订单 #{$order->id} 已取消");
     }

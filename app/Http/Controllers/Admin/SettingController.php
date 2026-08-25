@@ -76,6 +76,8 @@ class SettingController extends Controller
         Setting::put('crisp_bind_identity', $request->boolean('crisp_bind_identity') ? '1' : '0');
         Setting::put('support_widget', $data['support_widget'] ?? '');
 
+        audit('setting.update', '更新站点设置');
+
         return redirect('/admin/settings')->with('status', '设置已保存');
     }
 }
