@@ -5,27 +5,58 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     public function index(Request $request)
     {
         $q = $request->query('q');
-        $users = User::where('is_admin', false)   // 管理员在「管理员」页单独管理
+        $status = $request->query('status');   // member/free/expired/banned
+
+        $base = User::where('is_admin', false);
+
+        $users = (clone $base)
             ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
+            ->when($status, fn ($query) => $this->applyStatus($query, $status))
             ->orderByDesc('id')->paginate(30)->withQueryString();
 
-        return view('admin.users.index', ['users' => $users, 'q' => $q]);
+        return view('admin.users.index', [
+            'users' => $users,
+            'q' => $q,
+            'status' => $status,
+            'counts' => [
+                'all' => (clone $base)->count(),
+                'member' => $this->applyStatus(clone $base, 'member')->count(),
+                'free' => $this->applyStatus(clone $base, 'free')->count(),
+                'expired' => $this->applyStatus(clone $base, 'expired')->count(),
+                'banned' => $this->applyStatus(clone $base, 'banned')->count(),
+            ],
+        ]);
+    }
+
+    private function applyStatus($query, string $status)
+    {
+        return match ($status) {
+            'member' => $query->where('banned', false)->where('class', '>', 0)->where('class_expire', '>', now()),
+            'free' => $query->where('banned', false)->where('class', 0),
+            'expired' => $query->where('banned', false)->where('class', '>', 0)->where('class_expire', '<=', now()),
+            'banned' => $query->where('banned', true),
+            default => $query,
+        };
     }
 
     public function edit(User $user)
     {
+        abort_if($user->is_admin, 403, '管理员请在「管理员」页管理');
+
         return view('admin.users.form', ['user' => $user]);
     }
 
     public function update(Request $request, User $user)
     {
         $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:32'],
             'class' => ['required', 'integer', 'min:0', 'max:9'],
             'transfer_enable_gb' => ['required', 'numeric', 'min:0'],
             'class_expire' => ['nullable', 'date'],
@@ -34,9 +65,12 @@ class UserController extends Controller
             'money' => ['nullable', 'numeric'],
         ]);
 
+        $quota = (int) round($data['transfer_enable_gb'] * (1024 ** 3));
         $user->update([
+            'name' => $data['name'] ?? $user->name,
             'class' => $data['class'],
-            'transfer_enable' => (int) round($data['transfer_enable_gb'] * (1024 ** 3)),
+            'transfer_enable' => $quota,
+            'base_transfer_enable' => $quota,   // 同步基准，避免月度重置归位回旧配额
             'class_expire' => $data['class_expire'] ?? $user->class_expire,
             'node_speed_limit' => $data['node_speed_limit'] ?? 0,
             'node_ip_limit' => $data['node_ip_limit'] ?? 0,
@@ -51,5 +85,22 @@ class UserController extends Controller
         $user->update(['banned' => ! $user->banned]);
 
         return back()->with('status', $user->banned ? '已封禁' : '已解封');
+    }
+
+    /** 重置已用流量(u/d 清零) */
+    public function resetTraffic(User $user)
+    {
+        $user->update(['u' => 0, 'd' => 0]);
+
+        return back()->with('status', "已重置 {$user->email} 的已用流量");
+    }
+
+    /** 重置登录密码 */
+    public function resetPassword(Request $request, User $user)
+    {
+        $data = $request->validate(['password' => ['required', 'string', 'min:8']]);
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        return back()->with('status', "已重置 {$user->email} 的登录密码");
     }
 }

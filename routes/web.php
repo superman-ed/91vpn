@@ -105,6 +105,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
     Route::put('users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
     Route::post('users/{user}/toggle-ban', [AdminUserController::class, 'toggleBan'])->name('admin.users.toggle-ban');
+    Route::post('users/{user}/reset-traffic', [AdminUserController::class, 'resetTraffic'])->name('admin.users.reset-traffic');
+    Route::post('users/{user}/reset-password', [AdminUserController::class, 'resetPassword'])->name('admin.users.reset-password');
     Route::get('admins', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('admin.admins.index');
     Route::get('admins/create', [App\Http\Controllers\Admin\AdminController::class, 'create']);
     Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);

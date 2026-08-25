@@ -1,13 +1,20 @@
 @extends('layouts.admin')
 @section('title', '用户管理')
 @section('content')
+@php $tabs = ['' => '全部', 'member' => '会员', 'free' => '免费', 'expired' => '已过期', 'banned' => '封禁']; @endphp
 <div class="adm-head">
-    <h4><i class="fas fa-users text-primary"></i> 用户管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $users->total() }} 人</span></h4>
+    <h4><i class="fas fa-users text-primary"></i> 用户管理</h4>
     <form method="GET" class="adm-search adm-tools">
+        <input type="hidden" name="status" value="{{ $status }}">
         <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索邮箱 / 昵称" style="min-width:200px">
         <button class="btn adm-btn"><i class="fas fa-search"></i> 搜索</button>
-        @if($q)<a href="/admin/users" class="btn btn-light" style="border-radius:9px">清除</a>@endif
+        @if($q)<a href="/admin/users{{ $status ? '?status='.$status : '' }}" class="btn btn-light" style="border-radius:9px">清除</a>@endif
     </form>
+</div>
+<div class="adm-tools" style="margin-bottom:18px">
+    @foreach($tabs as $k => $label)
+    <a href="/admin/users{{ $k ? '?status='.$k : '' }}" class="btn btn-sm {{ (string) $status === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }} <span style="opacity:.7">{{ $k ? ($counts[$k] ?? 0) : $counts['all'] }}</span></a>
+    @endforeach
 </div>
 
 <div class="card adm-panel">
