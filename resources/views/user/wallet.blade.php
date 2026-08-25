@@ -113,10 +113,11 @@
     </div>
     <div class="table-responsive" data-pane="orders">
         <table class="table wallet-table">
-            <thead><tr><th>商品</th><th>金额</th><th>状态</th><th>操作</th><th>时间</th></tr></thead>
+            <thead><tr><th>订单号</th><th>商品</th><th>金额</th><th>状态</th><th>操作</th><th>时间</th></tr></thead>
             <tbody>
             @forelse($orders as $o)
             <tr>
+                <td><span style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#98a6ad">{{ $o->order_no }}</span></td>
                 <td style="color:#34395e;font-weight:600">{{ $o->plan?->name ?? '—' }}</td>
                 <td>¥{{ number_format($o->amount, 2) }}</td>
                 <td>
@@ -137,7 +138,7 @@
                 </td>
                 <td class="text-muted">{{ $o->created_at?->format('Y-m-d H:i') }}</td>
             </tr>
-            @empty<tr><td colspan="5"><div class="wallet-empty"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>暂无购买记录</div></td></tr>@endforelse
+            @empty<tr><td colspan="6"><div class="wallet-empty"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>暂无购买记录</div></td></tr>@endforelse
             </tbody>
         </table>
         @if($orders->hasPages())<div class="wallet-pager">{{ $orders->links('pagination::bootstrap-4') }}</div>@endif

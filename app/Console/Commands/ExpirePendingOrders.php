@@ -27,7 +27,7 @@ class ExpirePendingOrders extends Command
             ->chunkById(200, function ($orders) use ($epay, $billing, &$count) {
                 foreach ($orders as $order) {
                     // 关单前最后确认：网关已支付则补发货，绝不误杀
-                    if ($epay->configured() && $epay->isPaidOnGateway((string) $order->id)) {
+                    if ($epay->configured() && $epay->isPaidOnGateway($order->order_no)) {
                         try {
                             $billing->settleOrder($order, 'epay');
                         } catch (\Throwable $e) {

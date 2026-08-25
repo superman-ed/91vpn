@@ -32,7 +32,7 @@ class ReconcilePayments extends Command
             ->orderBy('id')
             ->chunkById(100, function ($orders) use ($epay, $billing, &$count) {
                 foreach ($orders as $order) {
-                    if (! $epay->isPaidOnGateway((string) $order->id)) {
+                    if (! $epay->isPaidOnGateway($order->order_no)) {
                         continue;
                     }
                     try {

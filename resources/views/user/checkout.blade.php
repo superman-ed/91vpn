@@ -55,7 +55,7 @@
                 @if($order->coupon_id)
                 <div class="row-line discount"><span class="lbl">优惠码 {{ $order->coupon?->code }}</span><span class="val">-¥{{ number_format($discount, 2) }}</span></div>
                 @endif
-                <div class="row-line"><span class="lbl">订单号</span><span class="val">#{{ $order->id }}</span></div>
+                <div class="row-line"><span class="lbl">订单号</span><span class="val" style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px">{{ $order->order_no }}</span></div>
                 <div class="row-line"><span class="lbl">下单时间</span><span class="val">{{ $order->created_at?->format('Y-m-d H:i') }}</span></div>
             </div>
         </div>

@@ -22,7 +22,7 @@ class PaymentController extends Controller
             return response('fail');
         }
 
-        $order = Order::find($params['out_trade_no'] ?? null);
+        $order = Order::where('order_no', $params['out_trade_no'] ?? '')->first();
         if (! $order) {
             return response('fail');
         }

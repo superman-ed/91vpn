@@ -52,7 +52,7 @@ it('redirects to the gateway when configured', function () {
     $res = $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'alipay']);
     $res->assertStatus(303);   // Turbo 302→303
     expect($res->headers->get('Location'))->toContain('pay.example.com/submit.php')
-        ->toContain('sign=')->toContain('out_trade_no='.$order->id);
+        ->toContain('sign=')->toContain('out_trade_no='.$order->order_no);
     expect($order->fresh()->status)->toBe('pending');   // 未发货，等回调
 });
 
@@ -80,7 +80,7 @@ it('settles the order on a valid TRADE_SUCCESS notify', function () {
     $order = gwOrder($user, gwPlan());
     $epay = app(EpayService::class);
 
-    $params = ['pid' => '1001', 'trade_no' => 'GW123', 'out_trade_no' => (string) $order->id, 'type' => 'alipay', 'name' => 'VIP①', 'money' => '30.00', 'trade_status' => 'TRADE_SUCCESS'];
+    $params = ['pid' => '1001', 'trade_no' => 'GW123', 'out_trade_no' => $order->order_no, 'type' => 'alipay', 'name' => 'VIP①', 'money' => '30.00', 'trade_status' => 'TRADE_SUCCESS'];
     $params['sign'] = $epay->sign($params);
 
     $this->post('/pay/epay/notify', $params)->assertOk()->assertSee('success');
@@ -94,7 +94,7 @@ it('rejects a notify with a bad signature', function () {
     $user = User::factory()->create();
     $order = gwOrder($user, gwPlan());
 
-    $params = ['pid' => '1001', 'out_trade_no' => (string) $order->id, 'type' => 'alipay', 'money' => '30.00', 'trade_status' => 'TRADE_SUCCESS', 'sign' => 'deadbeef'];
+    $params = ['pid' => '1001', 'out_trade_no' => $order->order_no, 'type' => 'alipay', 'money' => '30.00', 'trade_status' => 'TRADE_SUCCESS', 'sign' => 'deadbeef'];
 
     $this->post('/pay/epay/notify', $params)->assertOk()->assertSee('fail');
     expect($order->fresh()->status)->toBe('pending');
@@ -106,7 +106,7 @@ it('rejects a notify whose amount was tampered', function () {
     $order = gwOrder($user, gwPlan());
     $epay = app(EpayService::class);
 
-    $params = ['pid' => '1001', 'out_trade_no' => (string) $order->id, 'type' => 'alipay', 'money' => '0.01', 'trade_status' => 'TRADE_SUCCESS'];
+    $params = ['pid' => '1001', 'out_trade_no' => $order->order_no, 'type' => 'alipay', 'money' => '0.01', 'trade_status' => 'TRADE_SUCCESS'];
     $params['sign'] = $epay->sign($params);   // 签名合法但金额不符订单
 
     $this->post('/pay/epay/notify', $params)->assertOk()->assertSee('fail');

@@ -32,11 +32,11 @@
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
-            <thead><tr><th>ID</th><th>用户</th><th>套餐</th><th>金额</th><th>状态</th><th>支付方式</th><th>时间</th><th>操作</th></tr></thead>
+            <thead><tr><th>订单号</th><th>用户</th><th>套餐</th><th>金额</th><th>状态</th><th>支付方式</th><th>时间</th><th>操作</th></tr></thead>
             <tbody>
             @forelse($orders as $o)
             <tr>
-                <td class="text-muted">#{{ $o->id }}</td>
+                <td><span style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:#34395e">{{ $o->order_no }}</span></td>
                 <td style="color:#34395e;font-weight:600">{{ $o->user?->email ?? '—' }}</td>
                 <td>{{ $o->plan?->name ?? '—' }}</td>
                 <td style="font-weight:700;color:#34395e">¥{{ number_format($o->amount, 2) }}</td>

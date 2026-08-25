@@ -89,7 +89,7 @@ class EpayService
     {
         $params = [
             'pid' => $this->pid(),
-            'out_trade_no' => (string) $order->id,
+            'out_trade_no' => $order->order_no,
             'notify_url' => url('/pay/epay/notify'),
             'return_url' => url('/pay/epay/return'),
             'name' => $order->plan?->name ?? "订单#{$order->id}",

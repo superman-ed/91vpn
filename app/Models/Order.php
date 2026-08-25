@@ -8,9 +8,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Order extends Model
 {
     protected $fillable = [
-        'user_id', 'plan_id', 'coupon_id', 'amount', 'status', 'period', 'pay_method',
+        'user_id', 'plan_id', 'coupon_id', 'order_no', 'amount', 'status', 'period', 'pay_method',
         'paid_at', 'activate_at', 'delivered_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            if (empty($order->order_no)) {
+                $order->order_no = now()->format('YmdHis').str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 
     protected $casts = [
         'amount' => 'decimal:2',
