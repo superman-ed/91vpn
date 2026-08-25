@@ -29,7 +29,10 @@ class PromoController extends Controller
             $regCount = (int) ($reg[$ch->code] ?? 0);
             $p = $paidRows->get($ch->code);
             return [$ch->code => [
+                'pv' => (int) $ch->pv,
+                'uv' => (int) $ch->uv,
                 'reg' => $regCount,
+                'regRate' => $ch->uv > 0 ? round($regCount / $ch->uv * 100, 1) : 0,   // 注册转化率(按去重访客)
                 'paid' => (int) ($p->paid_users ?? 0),
                 'rate' => $regCount > 0 ? round((int) ($p->paid_users ?? 0) / $regCount * 100, 1) : 0,
                 'revenue' => (float) ($p->revenue ?? 0),

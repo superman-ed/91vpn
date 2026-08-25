@@ -24,15 +24,17 @@
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
-            <thead><tr><th>代理 / 渠道</th><th>推广码</th><th>推广链接</th><th>注册</th><th>付费</th><th>付费率</th><th>带来营收</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>代理 / 渠道</th><th>推广码</th><th>推广链接</th><th>访问(PV/UV)</th><th>注册</th><th>注册率</th><th>付费</th><th>付费率</th><th>带来营收</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
             @forelse($channels as $c)
-            @php $s = $stats[$c->code] ?? ['reg' => 0, 'paid' => 0, 'rate' => 0, 'revenue' => 0]; $link = url('/register?ch='.$c->code); @endphp
+            @php $s = $stats[$c->code] ?? ['pv' => 0, 'uv' => 0, 'reg' => 0, 'regRate' => 0, 'paid' => 0, 'rate' => 0, 'revenue' => 0]; $link = url('/register?ch='.$c->code); @endphp
             <tr>
                 <td><a href="/admin/promo/{{ $c->id }}" style="color:#34395e;font-weight:600">{{ $c->name }}</a>@if($c->note)<div class="text-muted" style="font-size:12px">{{ $c->note }}</div>@endif</td>
                 <td><span style="font-family:SFMono-Regular,Menlo,Consolas,monospace;color:#6777ef;font-weight:600">{{ $c->code }}</span></td>
                 <td style="max-width:240px"><div style="display:flex;align-items:center;gap:6px"><input value="{{ $link }}" readonly onclick="this.select()" style="flex:1;min-width:0;font-size:12px;border:1px solid #eef0f5;border-radius:7px;padding:4px 8px;color:#54667a"><button type="button" class="btn btn-light btn-sm" style="border-radius:7px" onclick="navigator.clipboard.writeText('{{ $link }}');this.innerText='已复制'">复制</button></div></td>
+                <td class="text-muted" style="font-size:12.5px">{{ $s['pv'] }} / {{ $s['uv'] }}</td>
                 <td style="font-weight:600">{{ $s['reg'] }}</td>
+                <td>@php $rc = $s['regRate'] >= 15 ? '#2fa84f' : ($s['regRate'] >= 5 ? '#e6912a' : '#98a6ad'); @endphp<span style="color:{{ $rc }};font-weight:600">{{ $s['regRate'] }}%</span></td>
                 <td>{{ $s['paid'] }}</td>
                 <td>@php $col = $s['rate'] >= 20 ? '#2fa84f' : ($s['rate'] >= 8 ? '#e6912a' : '#98a6ad'); @endphp<span style="color:{{ $col }};font-weight:700">{{ $s['rate'] }}%</span></td>
                 <td style="font-weight:700;color:#e6960f">¥{{ number_format($s['revenue'], 2) }}</td>
@@ -42,7 +44,7 @@
                     <form method="POST" action="/admin/promo/{{ $c->id }}" class="d-inline" onsubmit="return confirm('删除该推广码？历史归因保留')">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
-            @empty<tr><td colspan="9"><div class="adm-empty"><i class="fas fa-bullhorn fa-2x mb-2 d-block"></i>还没有推广码，上方新建一个分给你的代理</div></td></tr>@endforelse
+            @empty<tr><td colspan="11"><div class="adm-empty"><i class="fas fa-bullhorn fa-2x mb-2 d-block"></i>还没有推广码，上方新建一个分给你的代理</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>

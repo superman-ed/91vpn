@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PromoChannel extends Model
 {
-    protected $fillable = ['code', 'name', 'note', 'enabled'];
+    protected $fillable = ['code', 'name', 'note', 'enabled', 'pv', 'uv'];
 
     protected $casts = ['enabled' => 'boolean'];
 
