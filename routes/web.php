@@ -99,6 +99,7 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');
+    Route::post('nodes/{node}/regenerate-secret', [AdminNodeController::class, 'regenerateSecret'])->name('admin.nodes.regenerate-secret');
     Route::resource('plans', AdminPlanController::class)->except('show')->names('admin.plans');
     Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
     Route::get('users', [AdminUserController::class, 'index'])->name('admin.users.index');

@@ -42,7 +42,7 @@ class SubscriptionService
             $conf = [
                 'v' => '2', 'ps' => $n->name, 'add' => $n->server, 'port' => (string) $n->port,
                 'id' => $user->uuid, 'aid' => '0', 'scy' => 'auto', 'net' => $n->net,
-                'type' => 'none', 'host' => '', 'path' => '', 'tls' => '',
+                'type' => 'none', 'host' => $n->host, 'path' => $n->path, 'tls' => $n->tls ? 'tls' : '',
             ];
             return 'vmess://'.base64_encode(json_encode($conf, JSON_UNESCAPED_UNICODE));
         })->implode("\n");
@@ -117,7 +117,7 @@ class SubscriptionService
     /** 单个节点转 Clash vmess 条目（注入用户 uuid） */
     private function nodeToProxy(Node $node, User $user): array
     {
-        return [
+        $proxy = [
             'name' => $node->name,
             'type' => 'vmess',
             'server' => $node->server,
@@ -128,6 +128,21 @@ class SubscriptionService
             'network' => $node->net,
             'udp' => true,
         ];
+
+        if ($node->tls) {
+            $proxy['tls'] = true;
+            if ($node->host !== '') {
+                $proxy['servername'] = $node->host;
+            }
+        }
+        if ($node->net === 'ws') {
+            $proxy['ws-opts'] = [
+                'path' => $node->path ?: '/',
+                'headers' => $node->host !== '' ? ['Host' => $node->host] : [],
+            ];
+        }
+
+        return $proxy;
     }
 
     private function loadTemplate(): array

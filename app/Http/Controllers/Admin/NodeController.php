@@ -47,19 +47,35 @@ class NodeController extends Controller
         return redirect('/admin/nodes')->with('status', '节点已删除');
     }
 
+    /** 重新生成节点通信密钥 */
+    public function regenerateSecret(Node $node)
+    {
+        $node->update(['secret' => Str::random(32)]);
+
+        return back()->with('status', '节点密钥已重新生成，请同步更新节点后端配置');
+    }
+
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'server' => ['required', 'string', 'max:255'],
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
             'type' => ['required', 'in:vmess'],
             'net' => ['required', 'in:tcp,ws'],
+            'host' => ['nullable', 'string', 'max:255'],
+            'path' => ['nullable', 'string', 'max:255'],
+            'tls' => ['nullable', 'boolean'],
             'traffic_rate' => ['required', 'numeric', 'min:0'],
             'node_class' => ['required', 'integer', 'min:0', 'max:9'],
             'node_group' => ['nullable', 'integer', 'min:0'],
             'speed_limit' => ['nullable', 'integer', 'min:0'],
             'sort' => ['nullable', 'integer'],
         ]);
+        $data['host'] = $data['host'] ?? '';
+        $data['path'] = $data['path'] ?? '';
+        $data['tls'] = $request->boolean('tls');
+
+        return $data;
     }
 }
