@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LoginLog extends Model
 {
-    protected $fillable = ['user_id', 'ip', 'location', 'user_agent', 'logged_at'];
+    protected $fillable = ['user_id', 'status', 'email', 'ip', 'location', 'user_agent', 'reason', 'logged_at'];
 
     protected $casts = ['logged_at' => 'datetime'];
 

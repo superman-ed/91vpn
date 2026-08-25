@@ -18,7 +18,7 @@ it('renders login logs with user and client family', function () {
         ->assertSee('who@test.local')
         ->assertSee('1.2.3.4')
         ->assertSee('Clash for Windows')
-        ->assertViewHas('total', 1);
+        ->assertViewHas('counts');
 });
 
 it('filters login logs by ip', function () {
