@@ -2,7 +2,7 @@
 @section('title', '优惠券管理')
 @section('content')
 <div class="adm-head">
-    <h4><i class="fas fa-ticket text-primary"></i> 优惠券管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $coupons->count() }} 张</span></h4>
+    <h4><i class="fas fa-ticket-alt text-primary"></i> 优惠券管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $coupons->count() }} 张</span></h4>
     <a href="/admin/coupons/create" class="btn adm-btn"><i class="fas fa-plus"></i> 生成优惠券</a>
 </div>
 
@@ -29,7 +29,7 @@
                     <form method="POST" action="/admin/coupons/{{ $c->id }}" class="d-inline" onsubmit="return confirm('确认删除该优惠券？')">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
-            @empty<tr><td colspan="9"><div class="adm-empty"><i class="fas fa-ticket fa-2x mb-2 d-block"></i>暂无优惠券，点右上角「生成优惠券」</div></td></tr>@endforelse
+            @empty<tr><td colspan="9"><div class="adm-empty"><i class="fas fa-ticket-alt fa-2x mb-2 d-block"></i>暂无优惠券，点右上角「生成优惠券」</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>

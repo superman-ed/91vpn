@@ -33,7 +33,7 @@
             @if($queued->isNotEmpty())
                 <i class="fas fa-hourglass-half text-info"></i> 有 {{ $queued->count() }} 个套餐排队中，最近一个预计 <strong>{{ $queued->first()->activate_at?->format('Y-m-d H:i') }}</strong> 生效（当前套餐到期后自动切换，详情见<a href="/user/wallet">我的钱包</a>）。
             @else
-                <i class="fas fa-circle-check text-success"></i> 当前套餐生效中。
+                <i class="fas fa-check-circle text-success"></i> 当前套餐生效中。
             @endif
         </div>
         @if($user->canEndCurrentPackage())

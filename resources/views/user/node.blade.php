@@ -48,7 +48,7 @@
             <button class="btn ns-btn ns-btn-primary" id="copySubBtn"><i class="fas fa-copy"></i> 复制订阅链接</button>
             <a href="/user/downloads" class="btn ns-btn btn-outline-primary"><i class="fas fa-download"></i> 前往下载 / 一键导入</a>
             <form method="POST" action="/user/node/reset-sub" class="d-inline" onsubmit="return confirm('重置后旧链接立即失效，约10分钟后新链接生效，确认？')">@csrf
-                <button class="ns-reset"><i class="fas fa-rotate"></i> 重置订阅链接</button>
+                <button class="ns-reset"><i class="fas fa-sync-alt"></i> 重置订阅链接</button>
             </form>
         </div>
     </div>
@@ -64,7 +64,7 @@
         </div>
         <div class="ns-actions">
             <form method="POST" action="/user/node/reset-passwd" onsubmit="return confirm('重置后需在所有客户端重新导入订阅，约10分钟生效，确认？')">@csrf
-                <button class="btn ns-btn ns-btn-primary"><i class="fas fa-rotate"></i> 重置连接凭证</button>
+                <button class="btn ns-btn ns-btn-primary"><i class="fas fa-sync-alt"></i> 重置连接凭证</button>
             </form>
         </div>
     </div>

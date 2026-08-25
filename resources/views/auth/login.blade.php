@@ -26,7 +26,7 @@
     <div class="form-group">
         <div class="custom-control custom-checkbox"><input type="checkbox" name="remember" class="custom-control-input" id="remember"><label class="custom-control-label" for="remember" style="font-weight:500;color:#7a869a">记住我</label></div>
     </div>
-    <button class="btn btn-auth btn-block mb-3"><i class="fas fa-right-to-bracket"></i> 登 录</button>
+    <button class="btn btn-auth btn-block mb-3"><i class="fas fa-sign-in-alt"></i> 登 录</button>
     <div class="auth-links"><a href="/password/forgot">忘记密码？</a> · <a href="/register">注册新账号</a></div>
 </form>
 @endsection

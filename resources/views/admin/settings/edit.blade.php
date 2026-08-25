@@ -12,7 +12,7 @@
 <div class="adm-head"><h4><i class="fas fa-cog text-primary"></i> 站点设置</h4></div>
 
 <div class="set-tabs">
-    <button type="button" class="active" data-tab="notice"><i class="fas fa-circle-info"></i> 购买须知</button>
+    <button type="button" class="active" data-tab="notice"><i class="fas fa-info-circle"></i> 购买须知</button>
     <button type="button" data-tab="pay"><i class="fas fa-credit-card"></i> 支付网关</button>
     <button type="button" data-tab="rebate"><i class="fas fa-gift"></i> 邀请返利</button>
     <button type="button" data-tab="mail"><i class="fas fa-envelope"></i> 邮件发送</button>
@@ -22,7 +22,7 @@
 
     <div class="set-pane active" data-pane="notice">
         <div class="card adm-form-card">
-            <div class="card-header"><span class="ic"><i class="fas fa-circle-info"></i></span><h4>购买须知</h4></div>
+            <div class="card-header"><span class="ic"><i class="fas fa-info-circle"></i></span><h4>购买须知</h4></div>
             <div class="card-body">
                 <p class="form-tip">每行一条，显示在收银台底部；留空则恢复内置默认文案。</p>
                 <textarea name="buy_notice" rows="6" class="form-control">{{ old('buy_notice', $buyNotice) }}</textarea>

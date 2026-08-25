@@ -8,7 +8,7 @@
 
 <form method="POST" action="{{ $node->exists ? '/admin/nodes/'.$node->id : '/admin/nodes' }}" class="adm-form">@csrf @if($node->exists)@method('PUT')@endif
     <div class="card adm-form-card">
-        <div class="card-header"><span class="ic"><i class="fas fa-sliders"></i></span><h4>基本信息</h4></div>
+        <div class="card-header"><span class="ic"><i class="fas fa-sliders-h"></i></span><h4>基本信息</h4></div>
         <div class="card-body">
             <div class="row">
                 <div class="form-group col-md-6"><label>节点名称</label><input name="name" value="{{ old('name', $node->name) }}" class="form-control" placeholder="如：香港01" required></div>
@@ -26,7 +26,7 @@
     </div>
 
     <div class="card adm-form-card">
-        <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#63c76a,#3fae57)"><i class="fas fa-gauge-high"></i></span><h4>计费 / 权限</h4></div>
+        <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#63c76a,#3fae57)"><i class="fas fa-tachometer-alt"></i></span><h4>计费 / 权限</h4></div>
         <div class="card-body">
             <div class="row">
                 <div class="form-group col-md-3"><label>流量倍率</label><input name="traffic_rate" type="number" step="0.1" value="{{ old('traffic_rate', $node->traffic_rate) }}" class="form-control" required></div>

@@ -7,7 +7,7 @@
     $typePill = ['recharge' => 'ok', 'consume' => 'warn', 'rebate' => 'info', 'bonus' => 'primary', 'adjust' => 'muted'];
 @endphp
 <div class="adm-head">
-    <h4><i class="fas fa-money-bill-transfer text-primary"></i> 资金流水</h4>
+    <h4><i class="fas fa-money-bill-wave text-primary"></i> 资金流水</h4>
     <form method="GET" class="adm-search adm-tools">
         <input type="hidden" name="type" value="{{ $type }}">
         <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索用户邮箱" style="min-width:170px">
@@ -54,7 +54,7 @@
                 </td>
                 <td class="text-muted">{{ $l->remark }}</td>
             </tr>
-            @empty<tr><td colspan="7"><div class="adm-empty"><i class="fas fa-money-bill-transfer fa-2x mb-2 d-block"></i>暂无资金流水</div></td></tr>@endforelse
+            @empty<tr><td colspan="7"><div class="adm-empty"><i class="fas fa-money-bill-wave fa-2x mb-2 d-block"></i>暂无资金流水</div></td></tr>@endforelse
             </tbody>
         </table>
     </div>

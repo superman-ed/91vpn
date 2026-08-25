@@ -37,7 +37,7 @@
 <div class="auth-wrap">
     <div class="auth-card">
         <div class="auth-brand">
-            <div class="logo"><i class="fas fa-shield-halved"></i>91VPN</div>
+            <div class="logo"><i class="fas fa-shield-alt"></i>91VPN</div>
             <div class="tagline">安全 · 稳定 · 高速</div>
         </div>
         <div class="auth-inner">

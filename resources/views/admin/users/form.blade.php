@@ -13,7 +13,7 @@
 </div>
 
 <div class="card adm-form-card">
-    <div class="card-header"><span class="ic"><i class="fas fa-circle-info"></i></span><h4>账号信息</h4></div>
+    <div class="card-header"><span class="ic"><i class="fas fa-info-circle"></i></span><h4>账号信息</h4></div>
     <div class="card-body">
         <div class="row" style="font-size:13.5px;color:#54667a">
             <div class="col-md-3 mb-2">状态：@if($user->banned)<span class="adm-pill danger">封禁</span>@elseif($user->class > 0 && $user->class_expire && $user->class_expire->isFuture())<span class="adm-pill ok">会员</span>@elseif($user->class > 0)<span class="adm-pill warn">已过期</span>@else<span class="adm-pill muted">免费</span>@endif</div>
@@ -30,7 +30,7 @@
 
 <form method="POST" action="/admin/users/{{ $user->id }}" class="adm-form">@csrf @method('PUT')
     <div class="card adm-form-card">
-        <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#63c76a,#3fae57)"><i class="fas fa-sliders"></i></span><h4>套餐 / 权益</h4></div>
+        <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#63c76a,#3fae57)"><i class="fas fa-sliders-h"></i></span><h4>套餐 / 权益</h4></div>
         <div class="card-body">
             <div class="row">
                 <div class="form-group col-md-4"><label>昵称</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control"></div>
@@ -47,11 +47,11 @@
 </form>
 
 <div class="card adm-form-card">
-    <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#fc544b,#e0362d)"><i class="fas fa-triangle-exclamation"></i></span><h4>账号操作</h4></div>
+    <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#fc544b,#e0362d)"><i class="fas fa-exclamation-triangle"></i></span><h4>账号操作</h4></div>
     <div class="card-body adm-form">
         <div class="d-flex flex-wrap align-items-end" style="gap:24px">
             <form method="POST" action="/admin/users/{{ $user->id }}/reset-traffic" onsubmit="return confirm('确认将该用户已用流量清零？')">@csrf
-                <button class="btn btn-outline-primary" style="border-radius:9px"><i class="fas fa-rotate"></i> 重置已用流量</button>
+                <button class="btn btn-outline-primary" style="border-radius:9px"><i class="fas fa-sync-alt"></i> 重置已用流量</button>
             </form>
             @unless($user->is_admin)
             <form method="POST" action="/admin/users/{{ $user->id }}/toggle-ban" onsubmit="return confirm('{{ $user->banned ? '确认解封？' : '确认封禁该用户？' }}')">@csrf

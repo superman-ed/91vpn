@@ -13,7 +13,7 @@
     <div class="form-group">
         <label>邮箱验证码</label>
         <div class="input-group">
-            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-shield-halved"></i></span></div>
+            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-shield-alt"></i></span></div>
             <input type="text" name="email_code" class="form-control" placeholder="邮箱收到的验证码" required>
             <div class="input-group-append"><button type="button" class="btn btn-outline-primary" id="sendCode" style="border-radius:0 10px 10px 0">发送</button></div>
         </div>

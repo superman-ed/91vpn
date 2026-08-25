@@ -42,7 +42,7 @@
 
 @if($chart->isNotEmpty())
 <div class="card tc-card">
-    <div class="card-header"><h4><i class="fas fa-chart-column text-primary"></i> 每日用量趋势</h4></div>
+    <div class="card-header"><h4><i class="fas fa-chart-bar text-primary"></i> 每日用量趋势</h4></div>
     <div class="card-body">
         <div class="tc-chart">
             @foreach($chart as $r)

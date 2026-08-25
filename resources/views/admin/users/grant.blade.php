@@ -32,7 +32,7 @@
                         <span class="nm">{{ $p->name }}</span>
                         <span class="meta">{{ period_name($p->period) }} · {{ $p->transfer_gb }}GB · {{ $p->duration_days }}天 · {{ class_name($p->class) }}</span>
                     </span>
-                    <i class="fas fa-circle-check chk"></i>
+                    <i class="fas fa-check-circle chk"></i>
                 </label>
                 @endforeach
             </div>

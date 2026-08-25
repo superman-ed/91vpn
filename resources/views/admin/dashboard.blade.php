@@ -46,15 +46,15 @@
 <div class="ad-stats">
     <div class="ad-stat a"><i class="fas fa-users ic"></i><div class="n">{{ number_format($userCount) }}</div><div class="t">用户总数</div><div class="sub">今日新增 +{{ $todayUsers }}</div></div>
     <div class="ad-stat b"><i class="fas fa-yen-sign ic"></i><div class="n">¥{{ number_format($revenue, 2) }}</div><div class="t">累计收入</div><div class="sub">今日 +¥{{ number_format($todayRevenue, 2) }}</div></div>
-    <div class="ad-stat" style="background:linear-gradient(135deg,#ffb020,#ff9f1a);box-shadow:0 8px 22px rgba(255,160,20,.22)"><i class="fas fa-hand-holding-dollar ic"></i><div class="n">−¥{{ number_format($totalRebate, 2) }}</div><div class="t">累计返佣</div><div class="sub">邀请返利支出</div></div>
-    <div class="ad-stat" style="background:linear-gradient(135deg,#3aa0c7,#2a86ab);box-shadow:0 8px 22px rgba(58,160,199,.22)"><i class="fas fa-sack-dollar ic"></i><div class="n">¥{{ number_format($netProfit, 2) }}</div><div class="t">纯毛利</div><div class="sub">收入 − 返佣</div></div>
-    <div class="ad-stat c"><i class="fas fa-cart-shopping ic"></i><div class="n">{{ number_format($paidOrders) }}</div><div class="t">已支付订单</div><div class="sub">今日 +{{ $todayOrders }} 单</div></div>
+    <div class="ad-stat" style="background:linear-gradient(135deg,#ffb020,#ff9f1a);box-shadow:0 8px 22px rgba(255,160,20,.22)"><i class="fas fa-hand-holding-usd ic"></i><div class="n">−¥{{ number_format($totalRebate, 2) }}</div><div class="t">累计返佣</div><div class="sub">邀请返利支出</div></div>
+    <div class="ad-stat" style="background:linear-gradient(135deg,#3aa0c7,#2a86ab);box-shadow:0 8px 22px rgba(58,160,199,.22)"><i class="fas fa-coins ic"></i><div class="n">¥{{ number_format($netProfit, 2) }}</div><div class="t">纯毛利</div><div class="sub">收入 − 返佣</div></div>
+    <div class="ad-stat c"><i class="fas fa-shopping-cart ic"></i><div class="n">{{ number_format($paidOrders) }}</div><div class="t">已支付订单</div><div class="sub">今日 +{{ $todayOrders }} 单</div></div>
     <div class="ad-stat d"><i class="fas fa-server ic"></i><div class="n">{{ $onlineNodes }}/{{ $nodeCount }}</div><div class="t">在线节点</div><div class="sub">共 {{ $planCount }} 个套餐</div></div>
 </div>
 
 <div class="ad-mini">
     <div class="ad-minicard"><span class="mi" style="background:#e9f9ed;color:#3fae57"><i class="fas fa-yen-sign"></i></span><span><div class="n">¥{{ number_format($todayRevenue, 2) }}</div><div class="t">今日收入</div></span></div>
-    <div class="ad-minicard"><span class="mi" style="background:#eef0ff;color:#6777ef"><i class="fas fa-cart-shopping"></i></span><span><div class="n">{{ $todayOrders }}</div><div class="t">今日订单</div></span></div>
+    <div class="ad-minicard"><span class="mi" style="background:#eef0ff;color:#6777ef"><i class="fas fa-shopping-cart"></i></span><span><div class="n">{{ $todayOrders }}</div><div class="t">今日订单</div></span></div>
     <div class="ad-minicard"><span class="mi" style="background:#f3ecff;color:#7c4ddb"><i class="fas fa-user-plus"></i></span><span><div class="n">{{ $todayUsers }}</div><div class="t">今日新增用户</div></span></div>
 </div>
 
@@ -81,7 +81,7 @@
 @endphp
 <div class="card ad-card">
     <div class="card-header d-flex align-items-center justify-content-between flex-wrap" style="gap:10px">
-        <h4><i class="fas fa-chart-column text-primary"></i> 收入趋势</h4>
+        <h4><i class="fas fa-chart-bar text-primary"></i> 收入趋势</h4>
         <form method="GET" class="d-flex align-items-center flex-wrap" style="gap:6px">
             <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm" style="width:auto;border-radius:8px">
             <span class="text-muted">~</span>
@@ -139,7 +139,7 @@
     <div class="card-body ad-quick">
         <a href="/admin/nodes/create" class="btn btn-primary"><i class="fas fa-server"></i> 添加节点</a>
         <a href="/admin/plans/create" class="btn btn-outline-primary"><i class="fas fa-box"></i> 添加套餐</a>
-        <a href="/admin/coupons/create" class="btn btn-outline-primary"><i class="fas fa-ticket"></i> 生成优惠券</a>
+        <a href="/admin/coupons/create" class="btn btn-outline-primary"><i class="fas fa-ticket-alt"></i> 生成优惠券</a>
         <a href="/admin/announcements/create" class="btn btn-outline-primary"><i class="fas fa-bullhorn"></i> 发布公告</a>
         <a href="/admin/settings" class="btn btn-outline-primary"><i class="fas fa-cog"></i> 站点设置</a>
     </div>

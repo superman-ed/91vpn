@@ -156,7 +156,7 @@
     </div>
 </div>
 <div class="card">
-    <div class="card-header"><h4><i class="fas fa-circle-info text-primary"></i> 购买须知</h4></div>
+    <div class="card-header"><h4><i class="fas fa-info-circle text-primary"></i> 购买须知</h4></div>
     <div class="card-body">
         <ul class="buy-notice">
             @foreach(buy_notice_lines() as $line)
