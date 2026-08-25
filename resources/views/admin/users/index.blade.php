@@ -37,6 +37,7 @@
                     @else<span class="adm-pill ok">正常</span>@endif
                 </td>
                 <td>
+                    <a href="/admin/users/{{ $u->id }}/grant" class="btn btn-success btn-sm">开通</a>
                     <a href="/admin/users/{{ $u->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
                     <form method="POST" action="/admin/users/{{ $u->id }}/toggle-ban" class="d-inline" onsubmit="return confirm('{{ $u->banned ? '确认解封？' : '确认封禁该用户？' }}')">@csrf<button class="btn btn-{{ $u->banned ? 'success' : 'outline-danger' }} btn-sm">{{ $u->banned ? '解封' : '封禁' }}</button></form>
                 </td>

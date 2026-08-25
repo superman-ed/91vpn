@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\Plan;
 use App\Models\User;
+use App\Services\BillingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -85,6 +88,36 @@ class UserController extends Controller
         $user->update(['banned' => ! $user->banned]);
 
         return back()->with('status', $user->banned ? '已封禁' : '已解封');
+    }
+
+    /** 开通套餐：选套餐页 */
+    public function grant(User $user)
+    {
+        abort_if($user->is_admin, 403);
+
+        return view('admin.users.grant', [
+            'user' => $user,
+            'plans' => Plan::where('is_data_pack', false)
+                ->orderBy('name')->orderByRaw("FIELD(period,'month','quarter','half_year','year')")->get(),
+        ]);
+    }
+
+    /** 开通套餐：发货 + 记一条管理员订单 */
+    public function doGrant(Request $request, User $user, BillingService $billing)
+    {
+        abort_if($user->is_admin, 403);
+        $data = $request->validate(['plan_id' => ['required', 'exists:plans,id']]);
+        $plan = Plan::findOrFail($data['plan_id']);
+        abort_if($plan->is_data_pack, 422);
+
+        $billing->deliver($user, $plan);
+        Order::create([
+            'user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 0,
+            'status' => 'paid', 'period' => $plan->period, 'pay_method' => 'admin',
+            'paid_at' => now(), 'delivered_at' => now(),
+        ]);
+
+        return redirect('/admin/users')->with('status', "已为 {$user->email} 开通「{$plan->name}」");
     }
 
     /** 重置已用流量(u/d 清零) */
