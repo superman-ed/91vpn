@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class FinanceController extends Controller
 {
-    private const TYPES = ['recharge', 'consume', 'rebate', 'bonus'];
+    private const TYPES = ['recharge', 'consume', 'rebate', 'bonus', 'adjust'];
 
     public function index(Request $request)
     {
@@ -43,6 +43,7 @@ class FinanceController extends Controller
                 'consume' => (clone $base)->where('type', 'consume')->count(),
                 'rebate' => (clone $base)->where('type', 'rebate')->count(),
                 'bonus' => (clone $base)->where('type', 'bonus')->count(),
+                'adjust' => (clone $base)->where('type', 'adjust')->count(),
             ],
         ]);
     }

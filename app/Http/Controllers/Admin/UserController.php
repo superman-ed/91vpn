@@ -54,7 +54,7 @@ class UserController extends Controller
         return view('admin.users.form', ['user' => $user]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user, BillingService $billing)
     {
         $data = $request->validate([
             'name' => ['nullable', 'string', 'max:32'],
@@ -75,8 +75,12 @@ class UserController extends Controller
             'class_expire' => $data['class_expire'] ?? $user->class_expire,
             'node_speed_limit' => $data['node_speed_limit'] ?? 0,
             'node_ip_limit' => $data['node_ip_limit'] ?? 0,
-            'money' => $data['money'] ?? $user->money,
         ]);
+
+        // 余额变动走调账入口,自动补记资金流水
+        if ($data['money'] !== null) {
+            $billing->adminAdjust($user, (float) $data['money'], auth()->user()->email);
+        }
 
         return redirect('/admin/users')->with('status', "已更新用户 {$user->email}");
     }

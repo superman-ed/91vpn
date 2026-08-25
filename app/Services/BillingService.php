@@ -191,6 +191,26 @@ class BillingService
         });
     }
 
+    /** 管理员人工调账：把余额调到目标值,差额记 adjust 流水(不触发返佣)。差额为 0 时不写 */
+    public function adminAdjust(User $user, float $target, ?string $operator = null): void
+    {
+        DB::transaction(function () use ($user, $target, $operator) {
+            $locked = User::whereKey($user->getKey())->lockForUpdate()->first();
+            $delta = round($target - (float) $locked->money, 2);
+            if ($delta === 0.0) {
+                return;
+            }
+            $locked->update(['money' => $target]);
+            BalanceLog::create([
+                'user_id' => $locked->id,
+                'amount' => $delta,
+                'type' => 'adjust',
+                'balance_after' => $target,
+                'remark' => '管理员调账'.($operator ? "（{$operator}）" : ''),
+            ]);
+        });
+    }
+
     /** 充值到账：加余额 + 记流水(可带交易号) + 触发返佣。模拟与网关充值共用 */
     public function applyRecharge(User $user, float $amount, ?string $tradeNo = null, string $remark = '充值'): void
     {
