@@ -16,6 +16,7 @@
     <button type="button" data-tab="pay"><i class="fas fa-credit-card"></i> 支付网关</button>
     <button type="button" data-tab="rebate"><i class="fas fa-gift"></i> 邀请返利</button>
     <button type="button" data-tab="mail"><i class="fas fa-envelope"></i> 邮件发送</button>
+    <button type="button" data-tab="support"><i class="fas fa-headset"></i> 在线客服</button>
 </div>
 
 <form method="POST" action="/admin/settings" class="adm-form">@csrf @method('PUT')
@@ -71,6 +72,21 @@
                     <div class="form-group col-md-6"><label>密码 / 授权码</label><input name="smtp_password" type="password" value="{{ old('smtp_password', $smtpPassword) }}" class="form-control" placeholder="邮箱 SMTP 授权码"></div>
                     <div class="form-group col-md-6"><label>发件人地址（选填，默认同用户名）</label><input name="smtp_from" value="{{ old('smtp_from', $smtpFrom) }}" class="form-control"></div>
                     <div class="form-group col-md-6"><label>发件人名称</label><input name="smtp_from_name" value="{{ old('smtp_from_name', $smtpFromName) }}" class="form-control"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="set-pane" data-pane="support">
+        <div class="card adm-form-card">
+            <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#3aa0c7,#2a86ab)"><i class="fas fa-headset"></i></span><h4>在线客服</h4></div>
+            <div class="card-body">
+                <p class="form-tip">用户端右下角悬浮客服。默认展示自建面板（Telegram / 客服群 / 工单）；若下方填入第三方客服代码（如 Tawk.to、Crisp），则自动切换为真人聊天窗口，自建面板隐藏。</p>
+                <div class="row">
+                    <div class="form-group col-md-6"><label>Telegram 客服链接</label><input name="support_tg" value="{{ old('support_tg', $supportTg) }}" class="form-control" placeholder="https://t.me/your_support"><small class="text-muted">留空则面板不显示该入口。</small></div>
+                    <div class="form-group col-md-6"><label>客服群 / 交流群链接</label><input name="support_group" value="{{ old('support_group', $supportGroup) }}" class="form-control" placeholder="https://t.me/your_group"></div>
+                    <div class="form-group col-md-12"><label>在线时段（选填）</label><input name="support_hours" value="{{ old('support_hours', $supportHours) }}" class="form-control" placeholder="例：每日 10:00 - 24:00 在线，其余时段请提交工单"></div>
+                    <div class="form-group col-md-12"><label>第三方客服代码（选填）</label><textarea name="support_widget" rows="4" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px" placeholder="粘贴 Tawk.to / Crisp / 美洽 等提供的 &lt;script&gt; 嵌入代码，整段粘贴即可">{{ old('support_widget', $supportWidget) }}</textarea><small class="text-muted">⚠️ 代码会原样注入用户端页面，请只粘贴可信来源的官方客服代码。</small></div>
                 </div>
             </div>
         </div>

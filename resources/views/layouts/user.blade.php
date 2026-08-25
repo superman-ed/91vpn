@@ -104,5 +104,6 @@ window.copySub = function (text) {
     }
 };
 </script>
+@include('partials.support')
 </body>
 </html>

@@ -24,6 +24,10 @@ class SettingController extends Controller
             'smtpPassword' => setting('smtp_password', ''),
             'smtpFrom' => setting('smtp_from', ''),
             'smtpFromName' => setting('smtp_from_name', '91VPN'),
+            'supportTg' => setting('support_tg', ''),
+            'supportGroup' => setting('support_group', ''),
+            'supportHours' => setting('support_hours', ''),
+            'supportWidget' => setting('support_widget', ''),
         ]);
     }
 
@@ -43,6 +47,10 @@ class SettingController extends Controller
             'smtp_password' => ['nullable', 'string', 'max:255'],
             'smtp_from' => ['nullable', 'string', 'max:255'],
             'smtp_from_name' => ['nullable', 'string', 'max:64'],
+            'support_tg' => ['nullable', 'string', 'max:255'],
+            'support_group' => ['nullable', 'string', 'max:255'],
+            'support_hours' => ['nullable', 'string', 'max:128'],
+            'support_widget' => ['nullable', 'string', 'max:8000'],
         ]);
 
         Setting::put('buy_notice', $data['buy_notice'] ?? '');
@@ -58,6 +66,10 @@ class SettingController extends Controller
         Setting::put('smtp_password', $data['smtp_password'] ?? '');
         Setting::put('smtp_from', $data['smtp_from'] ?? '');
         Setting::put('smtp_from_name', $data['smtp_from_name'] ?? '91VPN');
+        Setting::put('support_tg', $data['support_tg'] ?? '');
+        Setting::put('support_group', $data['support_group'] ?? '');
+        Setting::put('support_hours', $data['support_hours'] ?? '');
+        Setting::put('support_widget', $data['support_widget'] ?? '');
 
         return redirect('/admin/settings')->with('status', '设置已保存');
     }
