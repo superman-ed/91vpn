@@ -87,6 +87,9 @@ Route::middleware('auth')->group(function () {
 // 订阅下发（公开，客户端凭 token 拉取，不需登录）
 Route::get('/sub/{token}', [SubController::class, 'show'])->name('sub');
 
+// 自研客户端设备上报（Bearer api_token 认证，框架先行）
+Route::post('/api/device/report', [App\Http\Controllers\Api\DeviceController::class, 'report']);
+
 // 节点对接 WebAPI（节点后端调用，node.secret 鉴权）
 Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
     Route::get('/users', [ModMuUserController::class, 'index']);

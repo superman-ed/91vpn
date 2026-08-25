@@ -62,8 +62,40 @@
     @endif
 </div>
 
+{{-- 自研客户端精确设备（框架先行，等客户端接入后有数据） --}}
+<div class="card adm-panel" style="margin-bottom:18px">
+    <div class="card-header" style="border:none;padding:16px 20px 4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <h4 style="font-size:14px;color:#34395e;margin:0"><i class="fas fa-rocket text-primary"></i> 自研客户端设备 <span class="text-muted" style="font-weight:400;font-size:12px">（精确机型 / 系统版本 / App 版本，由客户端主动上报）</span></h4>
+        @if($deviceCount > 0)<span class="text-muted" style="font-size:12.5px">{{ $deviceCount }} 台设备 · {{ $deviceUserCount }} 用户 · <span style="color:#2fa84f">在线 {{ $onlineDevices }}</span></span>@endif
+    </div>
+    @if($deviceCount === 0)
+    <div style="padding:26px 20px;text-align:center;color:#98a6ad">
+        <i class="fas fa-rocket fa-2x mb-2 d-block" style="opacity:.4"></i>
+        接收框架已就绪，等自研客户端接入后自动统计<br>
+        <small>客户端向 <code style="background:#f1f3fb;padding:1px 6px;border-radius:4px">POST /api/device/report</code>（Bearer api_token）上报设备信息即可</small>
+    </div>
+    @else
+    <div class="row" style="padding:12px 12px 18px">
+        @foreach([['机型 TOP', $byModel], ['系统版本', $byOsVersion], ['App 版本', $byAppVersion]] as [$title, $dist])
+        <div class="col-md-4">
+            <div style="padding:6px 10px"><div style="font-size:12.5px;color:#98a6ad;font-weight:600;margin-bottom:8px">{{ $title }}</div>
+            @php $mx = max(1, $dist->max() ?? 1); @endphp
+            @forelse($dist as $k => $v)
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+                <div style="flex:1;min-width:0"><div style="font-size:12.5px;color:#34395e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $k ?: '未知' }}</div>
+                <div style="background:#f1f3fb;border-radius:5px;height:6px;margin-top:2px;overflow:hidden"><div style="height:100%;width:{{ round($v / $mx * 100) }}%;background:#6777ef;border-radius:5px"></div></div></div>
+                <span style="font-size:12px;color:#54667a">{{ $v }}</span>
+            </div>
+            @empty<div class="text-muted" style="font-size:12px">—</div>@endforelse
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+</div>
+
 <div class="card adm-panel">
-    <div class="card-header" style="border:none;padding:16px 20px 4px"><h4 style="font-size:14px;color:#34395e;margin:0"><i class="fas fa-list text-primary"></i> 最近拉取记录</h4></div>
+    <div class="card-header" style="border:none;padding:16px 20px 4px"><h4 style="font-size:14px;color:#34395e;margin:0"><i class="fas fa-list text-primary"></i> 最近拉取记录 <span class="text-muted" style="font-weight:400;font-size:12px">（订阅 UA，覆盖所有客户端）</span></h4></div>
     <div class="table-responsive">
         <table class="table adm-table">
             <thead><tr><th>时间</th><th>用户</th><th>设备平台</th><th>订阅类型</th><th>IP</th></tr></thead>

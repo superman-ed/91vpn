@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => App\Http\Middleware\AdminOnly::class,
         ]);
         // 节点 WebAPI、支付网关异步回调是机器对机器调用，豁免 CSRF
-        $middleware->validateCsrfTokens(except: ['mod_mu/*', 'pay/epay/*']);
+        $middleware->validateCsrfTokens(except: ['mod_mu/*', 'pay/epay/*', 'api/*']);
         $middleware->trustProxies(at: '*', headers:
             Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
             Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
