@@ -28,7 +28,7 @@
     </div>
 </div>
 
-<form method="POST" action="/admin/users/{{ $user->id }}" class="adm-form">@csrf @method('PUT')
+<form method="POST" action="/admin/users/{{ $user->id }}" class="adm-form" id="userEditForm" data-orig-money="{{ (float) $user->money }}">@csrf @method('PUT')
     <div class="card adm-form-card">
         <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#63c76a,#3fae57)"><i class="fas fa-sliders-h"></i></span><h4>套餐 / 权益</h4></div>
         <div class="card-body">
@@ -45,6 +45,25 @@
         </div>
     </div>
 </form>
+<script>
+(function () {
+    var f = document.getElementById('userEditForm');
+    if (!f) return;
+    f.addEventListener('submit', function (e) {
+        if (f.__moneyOk) return;
+        var orig = parseFloat(f.getAttribute('data-orig-money')) || 0;
+        var now = parseFloat(f.querySelector('[name=money]').value) || 0;
+        var delta = Math.round((now - orig) * 100) / 100;
+        if (delta === 0) return;
+        e.preventDefault();
+        var big = Math.abs(delta) >= 1000;
+        var msg = '余额将从 ¥' + orig.toFixed(2) + ' 调整为 ¥' + now.toFixed(2) +
+            '（' + (delta > 0 ? '+' : '') + delta.toFixed(2) + '）。'
+            + (big ? '\n\n⚠️ 大额调整，请再次核对！' : '') + '\n\n此调整会记入资金流水，确认？';
+        if (confirm(msg)) { f.__moneyOk = true; f.submit(); }
+    });
+})();
+</script>
 
 <div class="card adm-form-card">
     <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#fc544b,#e0362d)"><i class="fas fa-exclamation-triangle"></i></span><h4>账号操作</h4></div>

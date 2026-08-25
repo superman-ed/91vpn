@@ -114,5 +114,57 @@
 <script src="/stisla/assets/js/stisla.js"></script>
 <script src="/stisla/assets/js/scripts.js"></script>
 <script src="/stisla/assets/js/custom.js"></script>
+
+{{-- 统一危险操作确认组件：form 上加 data-confirm="提示"，高危再加 data-confirm-word="需输入的词" --}}
+<div id="dcOverlay" style="display:none;position:fixed;inset:0;background:rgba(20,24,40,.5);z-index:1200;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:14px;width:440px;max-width:92vw;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="width:38px;height:38px;border-radius:11px;background:#fdecea;color:#fc544b;display:flex;align-items:center;justify-content:center;font-size:18px"><i class="fas fa-exclamation-triangle"></i></span><h5 id="dcTitle" style="font-weight:700;color:#34395e;margin:0">确认操作</h5></div>
+        <div id="dcMsg" style="font-size:13.5px;color:#54667a;line-height:1.6;margin-bottom:14px"></div>
+        <div id="dcInputWrap" style="display:none;margin-bottom:14px">
+            <div style="font-size:12.5px;color:#98a6ad;margin-bottom:6px">请输入 <b id="dcWord" style="color:#fc544b;font-family:monospace"></b> 以确认：</div>
+            <input id="dcInput" class="form-control" autocomplete="off" style="border-radius:9px;font-family:monospace">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button type="button" id="dcCancel" class="btn btn-light" style="border-radius:9px">取消</button>
+            <button type="button" id="dcOk" class="btn btn-danger" style="border-radius:9px">确认执行</button>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var overlay = document.getElementById('dcOverlay'), pending = null;
+    var elMsg = document.getElementById('dcMsg'), elTitle = document.getElementById('dcTitle');
+    var wrap = document.getElementById('dcInputWrap'), input = document.getElementById('dcInput'), elWord = document.getElementById('dcWord');
+    var ok = document.getElementById('dcOk'), cancel = document.getElementById('dcCancel');
+
+    function close() { overlay.style.display = 'none'; pending = null; input.value = ''; }
+    function open(form) {
+        pending = form;
+        elMsg.textContent = form.getAttribute('data-confirm') || '确认执行该操作？';
+        elTitle.textContent = form.getAttribute('data-confirm-title') || '危险操作确认';
+        var word = form.getAttribute('data-confirm-word');
+        if (word) {
+            wrap.style.display = 'block'; elWord.textContent = word;
+            ok.disabled = true; setTimeout(function () { input.focus(); }, 50);
+            input.oninput = function () { ok.disabled = input.value.trim() !== word; };
+        } else {
+            wrap.style.display = 'none'; ok.disabled = false; input.oninput = null;
+        }
+        overlay.style.display = 'flex';
+    }
+    document.addEventListener('submit', function (e) {
+        var f = e.target;
+        if (f.matches && f.matches('form[data-confirm]') && !f.__dcPassed) {
+            e.preventDefault(); open(f);
+        }
+    }, true);
+    ok.addEventListener('click', function () {
+        if (ok.disabled || !pending) return;
+        var f = pending; f.__dcPassed = true; close(); f.submit();
+    });
+    cancel.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+})();
+</script>
 </body>
 </html>
