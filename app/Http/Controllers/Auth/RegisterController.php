@@ -82,7 +82,11 @@ class RegisterController extends Controller
             'ref_by' => $refByUserId,
             'reg_ip' => $request->ip(),
             'reg_referer' => Str::limit((string) $request->headers->get('referer'), 490, ''),
+            'utm_source' => $request->session()->get('utm.source'),
+            'utm_medium' => $request->session()->get('utm.medium'),
+            'utm_campaign' => $request->session()->get('utm.campaign'),
         ]);
+        $request->session()->forget('utm');
 
         if ($invite) {
             $invite->update(['used_by' => $user->id]);

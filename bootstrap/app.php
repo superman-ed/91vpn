@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // 信任 Cloudflare 隧道/反代转发的头，使 HTTPS/host 识别正确
-        $middleware->web(append: [App\Http\Middleware\TurboRedirects::class]);
+        $middleware->web(append: [App\Http\Middleware\TurboRedirects::class, App\Http\Middleware\CaptureUtm::class]);
         $middleware->alias([
             'node.secret' => App\Http\Middleware\NodeSecret::class,
             'admin' => App\Http\Middleware\AdminOnly::class,
