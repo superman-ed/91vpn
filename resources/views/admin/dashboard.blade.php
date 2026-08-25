@@ -12,6 +12,11 @@
 .ad-stat .n { font-size: 28px; font-weight: 800; line-height: 1.1; }
 .ad-stat .t { font-size: 13px; opacity: .9; margin-top: 4px; }
 .ad-stat .sub { font-size: 12px; opacity: .85; margin-top: 8px; }
+.ad-mini { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.ad-minicard { flex: 1; min-width: 180px; display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 13px; padding: 15px 18px; box-shadow: 0 4px 14px rgba(103,119,239,.07); }
+.ad-minicard .mi { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.ad-minicard .n { font-size: 20px; font-weight: 800; color: #34395e; line-height: 1.1; }
+.ad-minicard .t { font-size: 12.5px; color: #7a869a; }
 
 .ad-card { border: none; border-radius: 14px; box-shadow: 0 5px 18px rgba(103,119,239,.08); overflow: hidden; margin-bottom: 20px; }
 .ad-card .card-header { border-bottom: 1px solid #f1f3fb; padding: 15px 22px; }
@@ -42,6 +47,12 @@
     <div class="ad-stat b"><i class="fas fa-yen-sign ic"></i><div class="n">¥{{ number_format($revenue, 2) }}</div><div class="t">累计收入</div><div class="sub">今日 +¥{{ number_format($todayRevenue, 2) }}</div></div>
     <div class="ad-stat c"><i class="fas fa-cart-shopping ic"></i><div class="n">{{ number_format($paidOrders) }}</div><div class="t">已支付订单</div><div class="sub">今日 +{{ $todayOrders }} 单</div></div>
     <div class="ad-stat d"><i class="fas fa-server ic"></i><div class="n">{{ $onlineNodes }}/{{ $nodeCount }}</div><div class="t">在线节点</div><div class="sub">共 {{ $planCount }} 个套餐</div></div>
+</div>
+
+<div class="ad-mini">
+    <div class="ad-minicard"><span class="mi" style="background:#e9f9ed;color:#3fae57"><i class="fas fa-yen-sign"></i></span><span><div class="n">¥{{ number_format($todayRevenue, 2) }}</div><div class="t">今日收入</div></span></div>
+    <div class="ad-minicard"><span class="mi" style="background:#eef0ff;color:#6777ef"><i class="fas fa-cart-shopping"></i></span><span><div class="n">{{ $todayOrders }}</div><div class="t">今日订单</div></span></div>
+    <div class="ad-minicard"><span class="mi" style="background:#f3ecff;color:#7c4ddb"><i class="fas fa-user-plus"></i></span><span><div class="n">{{ $todayUsers }}</div><div class="t">今日新增用户</div></span></div>
 </div>
 
 <div class="ad-todo">
