@@ -42,17 +42,51 @@
             @endif
         </div>
         <button type="button" id="cs-bubble" onclick="csToggle()" aria-label="联系客服">
-            <i class="fas fa-headset"></i>
+            <span class="cs-ring"></span><span class="cs-ring cs-ring2"></span>
+            <span class="cs-dot"></span>
+            <i class="fas fa-comment-dots cs-i cs-i-open"></i>
+            <i class="fas fa-chevron-down cs-i cs-i-close"></i>
+            <span class="cs-label">在线客服</span>
         </button>
     </div>
 
     <style>
         #cs-widget { position: fixed; right: 22px; bottom: 22px; z-index: 1080; }
-        #cs-bubble { width: 54px; height: 54px; border-radius: 50%; border: none; cursor: pointer;
-            background: linear-gradient(135deg, #6777ef, #4d5ed0); color: #fff; font-size: 22px;
-            box-shadow: 0 8px 22px rgba(103,119,239,.45); transition: transform .18s, box-shadow .18s; }
-        #cs-bubble:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 12px 26px rgba(103,119,239,.55); }
-        #cs-widget.open #cs-bubble { transform: rotate(90deg); }
+        #cs-bubble { position: relative; width: 58px; height: 58px; border-radius: 50%; border: none;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+            background: linear-gradient(140deg, #7b8bff 0%, #6777ef 50%, #5a49d6 100%); color: #fff;
+            box-shadow: 0 10px 24px rgba(103,119,239,.42), inset 0 1px 1px rgba(255,255,255,.35);
+            transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s; }
+        #cs-bubble:hover { transform: translateY(-3px); box-shadow: 0 16px 30px rgba(103,119,239,.5), inset 0 1px 1px rgba(255,255,255,.35); }
+        #cs-bubble:active { transform: translateY(-1px) scale(.97); }
+        /* 图标切换 */
+        .cs-i { position: absolute; transition: opacity .18s, transform .22s; }
+        .cs-i-open { font-size: 23px; opacity: 1; transform: rotate(0) scale(1); }
+        .cs-i-close { font-size: 20px; opacity: 0; transform: rotate(-90deg) scale(.6); }
+        #cs-widget.open .cs-i-open { opacity: 0; transform: rotate(90deg) scale(.6); }
+        #cs-widget.open .cs-i-close { opacity: 1; transform: rotate(0) scale(1); }
+        /* 在线绿点 */
+        .cs-dot { position: absolute; top: 3px; right: 3px; width: 13px; height: 13px; border-radius: 50%;
+            background: #2ed47a; border: 2.5px solid #fff; box-shadow: 0 0 0 rgba(46,212,122,.6);
+            animation: cs-dot 2s ease-out infinite; }
+        #cs-widget.open .cs-dot { opacity: 0; }
+        @keyframes cs-dot { 0% { box-shadow: 0 0 0 0 rgba(46,212,122,.55); } 70%,100% { box-shadow: 0 0 0 7px rgba(46,212,122,0); } }
+        /* 呼吸光环 */
+        .cs-ring { position: absolute; inset: 0; border-radius: 50%; background: rgba(103,119,239,.35);
+            animation: cs-ring 2.6s ease-out infinite; pointer-events: none; }
+        .cs-ring2 { animation-delay: 1.3s; }
+        #cs-widget.open .cs-ring { display: none; }
+        @keyframes cs-ring { 0% { transform: scale(1); opacity: .5; } 80%,100% { transform: scale(1.7); opacity: 0; } }
+        /* 悬停滑出标签 */
+        .cs-label { position: absolute; right: 68px; white-space: nowrap; background: #34395e; color: #fff;
+            font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 9px; opacity: 0;
+            transform: translateX(8px); pointer-events: none; transition: opacity .18s, transform .18s;
+            box-shadow: 0 6px 16px rgba(45,55,90,.22); }
+        .cs-label::after { content: ''; position: absolute; right: -5px; top: 50%; transform: translateY(-50%) rotate(45deg);
+            width: 10px; height: 10px; background: #34395e; border-radius: 2px; }
+        #cs-bubble:hover .cs-label { opacity: 1; transform: translateX(0); }
+        #cs-widget.open .cs-label { display: none; }
+        @media (prefers-reduced-motion: reduce) { .cs-ring, .cs-dot { animation: none; } }
         #cs-panel { position: absolute; right: 0; bottom: 66px; width: 320px; max-width: calc(100vw - 44px);
             background: #fff; border-radius: 16px; box-shadow: 0 16px 44px rgba(45,55,90,.22);
             overflow: hidden; transform-origin: bottom right; opacity: 0; transform: translateY(10px) scale(.96);
