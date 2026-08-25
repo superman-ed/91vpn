@@ -20,7 +20,7 @@ class User extends Authenticatable
         'u', 'd', 'transfer_enable', 'base_transfer_enable', 'transfer_today',
         'class', 'class_expire', 'next_reset_at',
         'node_speed_limit', 'node_ip_limit',
-        'money', 'ref_by', 'ref_code',
+        'money', 'ref_by', 'ref_code', 'reg_ip', 'reg_referer',
         'invite_token', 'api_token',
         'is_admin', 'banned', 'last_check_in', 'last_used_at',
     ];

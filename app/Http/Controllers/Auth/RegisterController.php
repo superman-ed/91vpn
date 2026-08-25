@@ -80,6 +80,8 @@ class RegisterController extends Controller
             'invite_token' => Str::random(32),
             'api_token' => Str::random(60),
             'ref_by' => $refByUserId,
+            'reg_ip' => $request->ip(),
+            'reg_referer' => Str::limit((string) $request->headers->get('referer'), 490, ''),
         ]);
 
         if ($invite) {
