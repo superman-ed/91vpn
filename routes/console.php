@@ -25,3 +25,6 @@ Schedule::command('payment:reconcile')->everyFiveMinutes();
 
 // 每 10 分钟关闭超时未支付订单（关单前先查网关防误杀）
 Schedule::command('orders:expire-pending')->everyTenMinutes();
+
+// 每 10 分钟采样在线/日活写入 daily_stats（在线峰值累积当日最大），供历史趋势图
+Schedule::command('stats:snapshot')->everyTenMinutes();

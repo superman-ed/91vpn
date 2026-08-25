@@ -17,6 +17,34 @@
     <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#ffb020,#ff9f1a)"><div style="font-size:22px;font-weight:800">{{ human_bytes($todayTraffic) }}</div><div style="font-size:12.5px;opacity:.9">在线用户今日流量</div></div>
 </div>
 
+<div class="card adm-panel" style="margin-bottom:18px">
+    <div class="card-header" style="border:none;padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <h4 style="font-size:14px;color:#34395e;margin:0"><i class="fas fa-chart-bar text-primary"></i> 近 30 日趋势</h4>
+        <div style="font-size:12px;color:#98a6ad"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c7d0f5;margin-right:4px;vertical-align:middle"></span>日活 DAU&nbsp;&nbsp;<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3fae57;margin-right:4px;vertical-align:middle"></span>在线峰值</div>
+    </div>
+    <div style="padding:14px 20px 18px">
+        <div style="display:flex;align-items:flex-end;gap:3px;height:130px">
+            @foreach($trend as $t)
+            @php $duH = round($t['dau'] / $trendMax * 118); $pkH = round($t['peak'] / $trendMax * 118); @endphp
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;position:relative" title="{{ $t['label'] }}　日活 {{ $t['dau'] }}　峰值 {{ $t['peak'] }}">
+                <div style="width:100%;max-width:16px;position:relative;height:118px;display:flex;align-items:flex-end;justify-content:center">
+                    <div style="position:absolute;bottom:0;width:100%;border-radius:3px 3px 0 0;background:#c7d0f5;height:{{ max($duH, 2) }}px"></div>
+                    <div style="position:absolute;bottom:0;width:60%;border-radius:3px 3px 0 0;background:#3fae57;height:{{ $pkH }}px"></div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <div style="display:flex;gap:3px;margin-top:6px">
+            @foreach($trend as $i => $t)
+            <div style="flex:1;text-align:center;font-size:9.5px;color:#b5bdc9">{{ $i % 3 === 0 ? $t['label'] : '' }}</div>
+            @endforeach
+        </div>
+        @if($trend->sum('dau') === 0 && $trend->sum('peak') === 0)
+        <p class="text-muted" style="text-align:center;margin:8px 0 0;font-size:12.5px">暂无历史数据 —— 定时任务 <code>stats:snapshot</code> 每 10 分钟采样一次，运行一段时间后即有曲线。</p>
+        @endif
+    </div>
+</div>
+
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
