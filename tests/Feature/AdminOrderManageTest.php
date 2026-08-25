@@ -38,6 +38,16 @@ it('does not mark a non-pending order', function () {
     expect($order->fresh()->pay_method)->toBeNull();   // 未再次发货
 });
 
+it('filters orders by date range', function () {
+    $u = User::factory()->create(['email' => 'dated@test.local']);
+    $old = Order::create(['user_id' => $u->id, 'plan_id' => aoPlan()->id, 'amount' => 30, 'status' => 'paid', 'period' => 'month']);
+    Order::whereKey($old->id)->update(['created_at' => now()->subDays(10)]);
+    Order::create(['user_id' => $u->id, 'plan_id' => aoPlan()->id, 'amount' => 66, 'status' => 'paid', 'period' => 'month']);   // 今天
+
+    $res = $this->actingAs($this->admin)->get('/admin/orders?from='.now()->toDateString())->assertOk();
+    expect($res->viewData('orders')->total())->toBe(1);   // 只剩今天那单
+});
+
 it('searches orders by user email', function () {
     $u = User::factory()->create(['email' => 'findme@test.local']);
     Order::create(['user_id' => $u->id, 'plan_id' => aoPlan()->id, 'amount' => 30, 'status' => 'paid', 'period' => 'month']);

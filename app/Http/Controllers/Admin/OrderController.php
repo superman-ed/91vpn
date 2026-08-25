@@ -13,6 +13,17 @@ class OrderController extends Controller
     {
         $status = $request->query('status');
         $q = $request->query('q');
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        $dateFilter = function ($query) use ($from, $to) {
+            if ($from) {
+                $query->whereDate('created_at', '>=', $from);
+            }
+            if ($to) {
+                $query->whereDate('created_at', '<=', $to);
+            }
+        };
 
         $orders = Order::with(['user', 'plan'])
             ->when(in_array($status, ['paid', 'pending', 'queued', 'cancelled'], true), fn ($query) => $query->where('status', $status))
@@ -24,12 +35,15 @@ class OrderController extends Controller
                     }
                 });
             })
+            ->where($dateFilter)
             ->latest()->paginate(30)->withQueryString();
 
         return view('admin.orders.index', [
             'orders' => $orders,
             'status' => $status,
             'q' => $q,
+            'from' => $from,
+            'to' => $to,
             'counts' => [
                 'all' => Order::count(),
                 'paid' => Order::where('status', 'paid')->count(),

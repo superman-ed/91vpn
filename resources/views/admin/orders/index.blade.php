@@ -9,9 +9,11 @@
     <h4><i class="fas fa-receipt text-primary"></i> 订单管理</h4>
     <form method="GET" class="adm-search adm-tools">
         <input type="hidden" name="status" value="{{ $status }}">
-        <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索用户邮箱 / 订单号" style="min-width:200px">
-        <button class="btn adm-btn"><i class="fas fa-search"></i> 搜索</button>
-        @if($q)<a href="/admin/orders{{ $status ? '?status='.$status : '' }}" class="btn btn-light" style="border-radius:9px">清除</a>@endif
+        <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索用户邮箱 / 订单号" style="min-width:180px">
+        <input type="date" name="from" value="{{ $from }}" class="form-control" style="width:auto"><span class="text-muted">~</span>
+        <input type="date" name="to" value="{{ $to }}" class="form-control" style="width:auto">
+        <button class="btn adm-btn"><i class="fas fa-search"></i> 筛选</button>
+        @if($q || $from || $to)<a href="/admin/orders{{ $status ? '?status='.$status : '' }}" class="btn btn-light" style="border-radius:9px">清除</a>@endif
     </form>
 </div>
 
@@ -23,7 +25,7 @@
 
 <div class="adm-tools" style="margin-bottom:18px">
     @foreach($tabs as $k => $label)
-    <a href="/admin/orders?status={{ $k }}{{ $q ? '&q='.$q : '' }}" class="btn btn-sm {{ (string) $status === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }} <span style="opacity:.7">{{ $k ? ($counts[$k] ?? 0) : $counts['all'] }}</span></a>
+    <a href="/admin/orders?status={{ $k }}{{ $q ? '&q='.$q : '' }}{{ $from ? '&from='.$from : '' }}{{ $to ? '&to='.$to : '' }}" class="btn btn-sm {{ (string) $status === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }} <span style="opacity:.7">{{ $k ? ($counts[$k] ?? 0) : $counts['all'] }}</span></a>
     @endforeach
 </div>
 
