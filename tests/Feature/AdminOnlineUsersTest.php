@@ -49,6 +49,19 @@ it('shows empty state when nobody is online', function () {
         ->assertOk()->assertSee('当前没有在线用户');
 });
 
+it('shows site-wide today and cumulative traffic cards', function () {
+    $node = onlineNode();
+    \App\Models\NodeDailyTraffic::create(['node_id' => $node->id, 'date' => today()->toDateString(), 'u' => 1024 ** 3, 'd' => 0, 'billed' => 1024 ** 3]);
+    \App\Models\NodeDailyTraffic::create(['node_id' => $node->id, 'date' => today()->subDays(3)->toDateString(), 'u' => 1024 ** 3, 'd' => 0, 'billed' => 1024 ** 3]);
+
+    $this->actingAs(onlineAdmin())->get('/admin/online')
+        ->assertOk()
+        ->assertViewHas('siteTodayTraffic', 1024 ** 3)
+        ->assertViewHas('siteTotalTraffic', 2 * 1024 ** 3)
+        ->assertSee('全站今日流量')
+        ->assertSee('全站累计流量');
+});
+
 it('dashboard shows current online users and today active count', function () {
     $node = onlineNode();
     $u = User::factory()->create(['last_used_at' => now()]);

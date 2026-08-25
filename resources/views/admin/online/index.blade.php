@@ -12,9 +12,11 @@
 </div>
 
 <div class="ad-stats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
-    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">{{ $onlineUsers }}</div><div style="font-size:12.5px;opacity:.9"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-right:5px;animation:blink 1.4s infinite"></span>当前在线用户</div></div>
-    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#4d5ed0)"><div style="font-size:22px;font-weight:800">{{ $onlineDevices }}</div><div style="font-size:12.5px;opacity:.9">在线设备（去重 IP）</div></div>
-    <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#ffb020,#ff9f1a)"><div style="font-size:22px;font-weight:800">{{ human_bytes($todayTraffic) }}</div><div style="font-size:12.5px;opacity:.9">在线用户今日流量</div></div>
+    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">{{ $onlineUsers }}</div><div style="font-size:12.5px;opacity:.9"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-right:5px;animation:blink 1.4s infinite"></span>当前在线用户</div></div>
+    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#4d5ed0)"><div style="font-size:22px;font-weight:800">{{ $onlineDevices }}</div><div style="font-size:12.5px;opacity:.9">在线设备（去重 IP）</div></div>
+    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#e0567b,#c93f66)"><div style="font-size:22px;font-weight:800">{{ human_bytes($siteTodayTraffic) }}</div><div style="font-size:12.5px;opacity:.9">全站今日流量</div></div>
+    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#3aa0c7,#2a86ab)"><div style="font-size:22px;font-weight:800">{{ human_bytes($siteTotalTraffic) }}</div><div style="font-size:12.5px;opacity:.9">全站累计流量</div></div>
+    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#ffb020,#ff9f1a)"><div style="font-size:22px;font-weight:800">{{ human_bytes($onlineTodayTraffic) }}</div><div style="font-size:12.5px;opacity:.9">在线用户今日流量</div></div>
 </div>
 
 <div class="card adm-panel" style="margin-bottom:18px">
