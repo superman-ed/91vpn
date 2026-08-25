@@ -4,13 +4,20 @@ use App\Models\User;
 
 beforeEach(fn () => $this->admin = User::factory()->create(['is_admin' => true]));
 
-it('user management excludes admins', function () {
-    $normal = User::factory()->create(['email' => 'customer@test.local', 'is_admin' => false]);
-    $otherAdmin = User::factory()->create(['email' => 'admin2@test.local', 'is_admin' => true]);
+it('user management includes admins (admin is also a user)', function () {
+    User::factory()->create(['email' => 'customer@test.local', 'is_admin' => false]);
+    User::factory()->create(['email' => 'admin2@test.local', 'is_admin' => true]);
 
     $this->actingAs($this->admin)->get('/admin/users')->assertOk()
         ->assertSee('customer@test.local')
-        ->assertDontSee('admin2@test.local');
+        ->assertSee('admin2@test.local');   // 管理员也在用户管理里
+});
+
+it('refuses to ban an admin from user management', function () {
+    $other = User::factory()->create(['is_admin' => true, 'banned' => false]);
+
+    $this->actingAs($this->admin)->post("/admin/users/{$other->id}/toggle-ban");
+    expect($other->fresh()->banned)->toBeFalse();
 });
 
 it('admin page lists only admins', function () {

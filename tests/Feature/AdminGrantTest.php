@@ -31,9 +31,10 @@ it('shows the grant page with plans', function () {
     $this->actingAs($this->admin)->get("/admin/users/{$u->id}/grant")->assertOk()->assertSee('VIP①');
 });
 
-it('cannot grant to an admin', function () {
-    $other = User::factory()->create(['is_admin' => true]);
+it('can grant to an admin (admin is a user too)', function () {
+    $other = User::factory()->create(['is_admin' => true, 'class' => 0, 'class_expire' => now()->subDay()]);
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30]);
 
-    $this->actingAs($this->admin)->post("/admin/users/{$other->id}/grant", ['plan_id' => $plan->id])->assertForbidden();
+    $this->actingAs($this->admin)->post("/admin/users/{$other->id}/grant", ['plan_id' => $plan->id])->assertRedirect('/admin/users');
+    expect($other->fresh()->class)->toBe(1);
 });

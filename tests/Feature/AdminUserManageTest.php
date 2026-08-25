@@ -40,7 +40,7 @@ it('resets login password', function () {
     expect(Hash::check('newpass123', $u->fresh()->password))->toBeTrue();
 });
 
-it('cannot edit an admin from user management', function () {
+it('can edit an admin from user management (admin is a user)', function () {
     $other = User::factory()->create(['is_admin' => true]);
-    $this->actingAs($this->admin)->get("/admin/users/{$other->id}/edit")->assertForbidden();
+    $this->actingAs($this->admin)->get("/admin/users/{$other->id}/edit")->assertOk();
 });

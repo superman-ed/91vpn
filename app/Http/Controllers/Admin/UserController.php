@@ -17,7 +17,7 @@ class UserController extends Controller
         $q = $request->query('q');
         $status = $request->query('status');   // member/free/expired/banned
 
-        $base = User::where('is_admin', false);
+        $base = User::query();   // 含管理员(管理员也是用户)
 
         $users = (clone $base)
             ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
@@ -51,8 +51,6 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        abort_if($user->is_admin, 403, '管理员请在「管理员」页管理');
-
         return view('admin.users.form', ['user' => $user]);
     }
 
@@ -85,6 +83,9 @@ class UserController extends Controller
 
     public function toggleBan(User $user)
     {
+        if ($user->is_admin) {
+            return back()->with('status', '管理员账号不可封禁，请到「管理员」页撤销其管理员权限后再操作');
+        }
         $user->update(['banned' => ! $user->banned]);
 
         return back()->with('status', $user->banned ? '已封禁' : '已解封');
@@ -93,8 +94,6 @@ class UserController extends Controller
     /** 开通套餐：选套餐页 */
     public function grant(User $user)
     {
-        abort_if($user->is_admin, 403);
-
         return view('admin.users.grant', [
             'user' => $user,
             'plans' => Plan::where('is_data_pack', false)
@@ -105,7 +104,6 @@ class UserController extends Controller
     /** 开通套餐：发货 + 记一条管理员订单 */
     public function doGrant(Request $request, User $user, BillingService $billing)
     {
-        abort_if($user->is_admin, 403);
         $data = $request->validate(['plan_id' => ['required', 'exists:plans,id']]);
         $plan = Plan::findOrFail($data['plan_id']);
         abort_if($plan->is_data_pack, 422);

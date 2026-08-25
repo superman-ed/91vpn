@@ -53,9 +53,11 @@
             <form method="POST" action="/admin/users/{{ $user->id }}/reset-traffic" onsubmit="return confirm('确认将该用户已用流量清零？')">@csrf
                 <button class="btn btn-outline-primary" style="border-radius:9px"><i class="fas fa-rotate"></i> 重置已用流量</button>
             </form>
+            @unless($user->is_admin)
             <form method="POST" action="/admin/users/{{ $user->id }}/toggle-ban" onsubmit="return confirm('{{ $user->banned ? '确认解封？' : '确认封禁该用户？' }}')">@csrf
                 <button class="btn btn-outline-{{ $user->banned ? 'success' : 'danger' }}" style="border-radius:9px"><i class="fas fa-ban"></i> {{ $user->banned ? '解封账号' : '封禁账号' }}</button>
             </form>
+            @endunless
             <form method="POST" action="/admin/users/{{ $user->id }}/reset-password" class="d-flex align-items-end" style="gap:8px" onsubmit="return confirm('确认重置该用户登录密码？')">@csrf
                 <div class="form-group mb-0"><label>新登录密码</label><input name="password" type="text" class="form-control @error('password') is-invalid @enderror" placeholder="至少 8 位" style="min-width:180px" required></div>
                 <button class="btn btn-outline-danger" style="border-radius:9px"><i class="fas fa-key"></i> 重置密码</button>
