@@ -27,6 +27,7 @@ class SettingController extends Controller
             'supportTg' => setting('support_tg', ''),
             'supportGroup' => setting('support_group', ''),
             'supportHours' => setting('support_hours', ''),
+            'crispWebsiteId' => setting('crisp_website_id', ''),
             'supportWidget' => setting('support_widget', ''),
         ]);
     }
@@ -50,6 +51,7 @@ class SettingController extends Controller
             'support_tg' => ['nullable', 'string', 'max:255'],
             'support_group' => ['nullable', 'string', 'max:255'],
             'support_hours' => ['nullable', 'string', 'max:128'],
+            'crisp_website_id' => ['nullable', 'string', 'regex:/^[0-9a-f-]{36}$/i', 'max:36'],
             'support_widget' => ['nullable', 'string', 'max:8000'],
         ]);
 
@@ -69,6 +71,7 @@ class SettingController extends Controller
         Setting::put('support_tg', $data['support_tg'] ?? '');
         Setting::put('support_group', $data['support_group'] ?? '');
         Setting::put('support_hours', $data['support_hours'] ?? '');
+        Setting::put('crisp_website_id', $data['crisp_website_id'] ?? '');
         Setting::put('support_widget', $data['support_widget'] ?? '');
 
         return redirect('/admin/settings')->with('status', '设置已保存');

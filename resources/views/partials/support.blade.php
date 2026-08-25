@@ -1,12 +1,30 @@
 @php
+    $crispWebsiteId = setting('crisp_website_id', '');
     $supportWidget = setting('support_widget', '');
     $supportTg = setting('support_tg', '');
     $supportGroup = setting('support_group', '');
     $supportHours = setting('support_hours', '');
+    $csUser = auth()->user();
 @endphp
 
-@if($supportWidget !== '')
-    {{-- 第三方真人客服（Tawk.to / Crisp 等）：原样注入 --}}
+@if($crispWebsiteId !== '')
+    {{-- Crisp 在线客服 + 身份绑定（与真站网页端一致） --}}
+    <script>
+        window.$crisp = [];
+        window.CRISP_WEBSITE_ID = {{ Illuminate\Support\Js::from($crispWebsiteId) }};
+        (function () {
+            var d = document, s = d.createElement('script');
+            s.src = 'https://client.crisp.chat/l.js'; s.async = 1;
+            d.getElementsByTagName('head')[0].appendChild(s);
+        })();
+        window.$crisp.push(['safe', true]);
+        @if($csUser)
+        window.$crisp.push(['set', 'user:email', [{{ Illuminate\Support\Js::from($csUser->email) }}]]);
+        window.$crisp.push(['set', 'user:nickname', [{{ Illuminate\Support\Js::from($csUser->name ?: $csUser->email) }}]]);
+        @endif
+    </script>
+@elseif($supportWidget !== '')
+    {{-- 其它第三方真人客服（Tawk.to / 美洽 等）：原样注入 --}}
     {!! $supportWidget !!}
 @else
     {{-- 自建悬浮客服面板 --}}

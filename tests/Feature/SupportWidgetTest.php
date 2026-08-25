@@ -26,6 +26,36 @@ it('injects the third-party widget and hides the self-built panel when configure
         ->assertDontSee('id="cs-bubble"', false);   // 自建气泡隐藏
 });
 
+it('loads Crisp and binds the logged-in user identity when a website id is set', function () {
+    Setting::put('crisp_website_id', '233710e4-9a5f-4b81-be1e-a1cb6fe17a62');
+    $user = User::factory()->create(['email' => 'vip@test.local', 'name' => '小明']);
+
+    $res = $this->actingAs($user)->get('/user');
+    $res->assertOk()
+        ->assertSee('client.crisp.chat/l.js', false)
+        ->assertSee('233710e4-9a5f-4b81-be1e-a1cb6fe17a62', false)
+        ->assertSee('vip@test.local', false)          // 身份透传
+        ->assertSee('user:nickname', false)
+        ->assertDontSee('id="cs-bubble"', false);      // 自建面板隐藏
+});
+
+it('prefers Crisp over the generic third-party widget', function () {
+    Setting::put('crisp_website_id', '233710e4-9a5f-4b81-be1e-a1cb6fe17a62');
+    Setting::put('support_widget', '<script>window.__OTHER=1;</script>');
+
+    $res = $this->actingAs(User::factory()->create())->get('/user');
+    $res->assertOk()
+        ->assertSee('client.crisp.chat', false)
+        ->assertDontSee('window.__OTHER=1', false);    // 通用代码被忽略
+});
+
+it('rejects a malformed Crisp website id', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $this->actingAs($admin)->from('/admin/settings')
+        ->put('/admin/settings', ['crisp_website_id' => 'not-a-valid-id'])
+        ->assertSessionHasErrors('crisp_website_id');
+});
+
 it('still shows ticket entry when no instant channels are set', function () {
     $res = $this->actingAs(User::factory()->create())->get('/user');
     $res->assertOk()
