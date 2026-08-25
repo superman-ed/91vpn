@@ -86,6 +86,7 @@ it('settles the order on a valid TRADE_SUCCESS notify', function () {
     $this->post('/pay/epay/notify', $params)->assertOk()->assertSee('success');
     expect($order->fresh()->status)->toBe('paid');
     expect($order->fresh()->pay_method)->toBe('alipay');
+    expect($order->fresh()->trade_no)->toBe('GW123');   // 网关交易号已留存
     expect($user->fresh()->class)->toBe(1);
 });
 

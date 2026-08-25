@@ -32,6 +32,11 @@ class PaymentController extends Controller
             return response('fail');
         }
 
+        // 留存网关交易号(对账用)
+        if (! empty($params['trade_no'])) {
+            $order->update(['trade_no' => $params['trade_no']]);
+        }
+
         try {
             $billing->settleOrder($order, (string) ($params['type'] ?? 'epay'));   // 幂等：重复回调不会重复发货
         } catch (\Throwable $e) {
