@@ -66,3 +66,26 @@ it('shows the ready-placeholder when no devices reported yet', function () {
     $this->actingAs($admin)->get('/admin/system/devices')
         ->assertOk()->assertSee('接收框架已就绪');
 });
+
+it('backfills promo attribution from channel-package report', function () {
+    \App\Models\PromoChannel::create(['code' => 'ZHANGSAN', 'name' => '张三', 'enabled' => true]);
+    $user = User::factory()->create(['api_token' => 'TOKp', 'promo_code' => null]);
+
+    $this->postJson('/api/device/report', reportPayload(['promo_code' => 'zhangsan']), ['Authorization' => 'Bearer TOKp'])->assertOk();
+    expect($user->fresh()->promo_code)->toBe('ZHANGSAN');   // 归一化大写、回填
+});
+
+it('does not overwrite an existing promo attribution', function () {
+    \App\Models\PromoChannel::create(['code' => 'A', 'name' => 'a', 'enabled' => true]);
+    \App\Models\PromoChannel::create(['code' => 'B', 'name' => 'b', 'enabled' => true]);
+    $user = User::factory()->create(['api_token' => 'TOKq', 'promo_code' => 'A']);
+
+    $this->postJson('/api/device/report', reportPayload(['promo_code' => 'B']), ['Authorization' => 'Bearer TOKq'])->assertOk();
+    expect($user->fresh()->promo_code)->toBe('A');   // 首次来源不被覆盖
+});
+
+it('ignores an invalid promo code on report', function () {
+    $user = User::factory()->create(['api_token' => 'TOKr', 'promo_code' => null]);
+    $this->postJson('/api/device/report', reportPayload(['promo_code' => 'NOPE']), ['Authorization' => 'Bearer TOKr'])->assertOk();
+    expect($user->fresh()->promo_code)->toBeNull();
+});

@@ -29,7 +29,16 @@ class DeviceController extends Controller
             'model' => ['nullable', 'string', 'max:128'],
             'os_version' => ['nullable', 'string', 'max:32'],
             'app_version' => ['nullable', 'string', 'max:32'],
+            'promo_code' => ['nullable', 'string', 'max:64'],   // 渠道包首启带上来的推广码
         ]);
+
+        // 渠道包归因回填：用户尚未归因 + 推广码有效时才写入（首次来源不被覆盖）
+        if (! empty($data['promo_code']) && empty($user->promo_code)) {
+            $code = strtoupper($data['promo_code']);
+            if (\App\Models\PromoChannel::where('code', $code)->where('enabled', true)->exists()) {
+                $user->update(['promo_code' => $code]);
+            }
+        }
 
         $device = Device::updateOrCreate(
             ['user_id' => $user->id, 'device_id' => $data['device_id']],
