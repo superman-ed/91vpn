@@ -2,6 +2,7 @@
 
 use App\Models\AuditLog;
 use App\Models\DailyStat;
+use App\Models\Device;
 use App\Models\EmailLog;
 use App\Models\LoginLog;
 use App\Models\Node;
@@ -21,6 +22,7 @@ it('clears all demo tables and resets user runtime fields', function () {
     LoginLog::create(['user_id' => $user->id, 'status' => 'success', 'email' => $user->email, 'ip' => '1.1.1.1', 'logged_at' => now()]);
     SubscribeLog::create(['user_id' => $user->id, 'client' => 'Clash', 'fetched_at' => now()]);
     AuditLog::create(['admin_id' => $user->id, 'action' => 'user.update', 'description' => 'x', 'ip' => '1.1.1.1']);
+    Device::create(['user_id' => $user->id, 'device_id' => 'd1', 'platform' => 'android', 'model' => 'K70', 'last_seen' => now()]);
 
     $this->artisan('demo:clear --force')->assertSuccessful();
 
@@ -30,6 +32,7 @@ it('clears all demo tables and resets user runtime fields', function () {
     expect(LoginLog::count())->toBe(0);
     expect(SubscribeLog::count())->toBe(0);
     expect(AuditLog::count())->toBe(0);
+    expect(Device::count())->toBe(0);
 
     // 用户账号保留，但运行时字段重置
     $u = $user->fresh();

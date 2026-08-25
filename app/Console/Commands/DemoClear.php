@@ -19,6 +19,7 @@ class DemoClear extends Command
         'login_logs' => '登录日志',
         'subscribe_logs' => '订阅/设备记录',
         'audit_logs' => '操作日志',
+        'devices' => '安装设备',
     ];
 
     public function handle(): int
