@@ -116,17 +116,42 @@
 <script src="/stisla/assets/js/custom.js"></script>
 
 {{-- 统一危险操作确认组件：form 上加 data-confirm="提示"，高危再加 data-confirm-word="需输入的词" --}}
-<div id="dcOverlay" style="display:none;position:fixed;inset:0;background:rgba(20,24,40,.5);z-index:1200;align-items:center;justify-content:center">
-    <div style="background:#fff;border-radius:14px;width:440px;max-width:92vw;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="width:38px;height:38px;border-radius:11px;background:#fdecea;color:#fc544b;display:flex;align-items:center;justify-content:center;font-size:18px"><i class="fas fa-exclamation-triangle"></i></span><h5 id="dcTitle" style="font-weight:700;color:#34395e;margin:0">确认操作</h5></div>
-        <div id="dcMsg" style="font-size:13.5px;color:#54667a;line-height:1.6;margin-bottom:14px"></div>
-        <div id="dcInputWrap" style="display:none;margin-bottom:14px">
-            <div style="font-size:12.5px;color:#98a6ad;margin-bottom:6px">请输入 <b id="dcWord" style="color:#fc544b;font-family:monospace"></b> 以确认：</div>
-            <input id="dcInput" class="form-control" autocomplete="off" style="border-radius:9px;font-family:monospace">
+<style>
+    .dc-overlay { position:fixed; inset:0; background:rgba(16,20,35,.55); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); z-index:1200; align-items:center; justify-content:center; animation:dcFade .2s ease; }
+    .dc-card { background:#fff; border-radius:20px; width:440px; max-width:92vw; padding:32px 28px 24px; text-align:center; box-shadow:0 30px 80px rgba(16,20,45,.4); animation:dcPop .3s cubic-bezier(.34,1.56,.64,1); }
+    .dc-icon { position:relative; width:64px; height:64px; margin:0 auto 18px; border-radius:50%; background:linear-gradient(135deg,#ff7a72,#f6473c); color:#fff; display:flex; align-items:center; justify-content:center; font-size:27px; box-shadow:0 10px 26px rgba(246,71,60,.42); }
+    .dc-icon .ring { position:absolute; inset:0; border-radius:50%; border:3px solid rgba(246,71,60,.5); animation:dcRing 1.7s ease-out infinite; }
+    .dc-title { font-size:18px; font-weight:800; color:#2f3654; margin:0 0 9px; }
+    .dc-msg { font-size:13.5px; color:#64718a; line-height:1.7; margin-bottom:18px; white-space:pre-line; }
+    .dc-inwrap { text-align:left; margin-bottom:18px; }
+    .dc-inwrap .lb { font-size:12.5px; color:#98a6ad; margin-bottom:7px; }
+    .dc-inwrap .lb b { color:#f6473c; font-family:SFMono-Regular,Menlo,Consolas,monospace; }
+    .dc-in { width:100%; border:1.5px solid #eef0f5; border-radius:11px; padding:10px 13px; font-family:SFMono-Regular,Menlo,Consolas,monospace; font-size:14px; color:#34395e; transition:border-color .15s,box-shadow .15s; }
+    .dc-in:focus { outline:none; border-color:#f6473c; box-shadow:0 0 0 3px rgba(246,71,60,.14); }
+    .dc-acts { display:flex; gap:11px; }
+    .dc-btn { flex:1; border:none; border-radius:11px; padding:12px; font-weight:600; font-size:14px; cursor:pointer; transition:transform .15s,box-shadow .15s,background .15s,opacity .15s; }
+    .dc-btn.cancel { background:#f1f3f8; color:#64718a; }
+    .dc-btn.cancel:hover { background:#e7eaf1; }
+    .dc-btn.ok { background:linear-gradient(135deg,#fc6a63,#e0362d); color:#fff; box-shadow:0 7px 18px rgba(224,54,45,.34); }
+    .dc-btn.ok:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 11px 24px rgba(224,54,45,.42); }
+    .dc-btn.ok:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; }
+    @keyframes dcFade { from{opacity:0} to{opacity:1} }
+    @keyframes dcPop { from{opacity:0; transform:translateY(16px) scale(.93)} to{opacity:1; transform:none} }
+    @keyframes dcRing { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.55);opacity:0} }
+    @media (prefers-reduced-motion:reduce){ .dc-overlay,.dc-card{animation:none} .dc-icon .ring{display:none} }
+</style>
+<div id="dcOverlay" class="dc-overlay" style="display:none">
+    <div class="dc-card">
+        <div class="dc-icon"><span class="ring"></span><i class="fas fa-exclamation-triangle"></i></div>
+        <h5 id="dcTitle" class="dc-title">危险操作确认</h5>
+        <div id="dcMsg" class="dc-msg"></div>
+        <div id="dcInputWrap" class="dc-inwrap" style="display:none">
+            <div class="lb">请输入 <b id="dcWord"></b> 以确认</div>
+            <input id="dcInput" class="dc-in" autocomplete="off">
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button type="button" id="dcCancel" class="btn btn-light" style="border-radius:9px">取消</button>
-            <button type="button" id="dcOk" class="btn btn-danger" style="border-radius:9px">确认执行</button>
+        <div class="dc-acts">
+            <button type="button" id="dcCancel" class="dc-btn cancel">取消</button>
+            <button type="button" id="dcOk" class="dc-btn ok">确认执行</button>
         </div>
     </div>
 </div>
