@@ -18,13 +18,16 @@ class DeviceStatController extends Controller
             ->when($from, fn ($query) => $query->whereDate('fetched_at', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('fetched_at', '<=', $to));
 
-        // 每用户取最近一次拉取的 UA → 归类 → 统计"用某客户端的用户数"
+        // 每用户取最近一次拉取的 UA → 分别按「平台/系统」和「客户端软件」归类
         $latest = (clone $base)->orderByDesc('fetched_at')->get(['user_id', 'client'])
             ->unique('user_id');
+        $byPlatform = $latest->groupBy(fn ($r) => device_platform($r->client))
+            ->map->count()->sortDesc();
         $byFamily = $latest->groupBy(fn ($r) => client_family($r->client))
             ->map->count()->sortDesc();
 
         return view('admin.system.devices', [
+            'byPlatform' => $byPlatform,
             'byFamily' => $byFamily,
             'totalUsers' => $latest->count(),
             'totalFetches' => (clone $base)->count(),

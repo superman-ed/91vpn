@@ -109,6 +109,47 @@ if (! function_exists('client_family')) {
     }
 }
 
+if (! function_exists('device_platform')) {
+    /** 从 User-Agent 归类设备平台/系统（iOS / Android / Windows / macOS / Linux） */
+    function device_platform(string $ua): string
+    {
+        $ua = trim($ua);
+        if ($ua === '') {
+            return '未知';
+        }
+        // 客户端名直接推断平台
+        $byClient = [
+            'ClashMetaForAndroid' => 'Android', 'v2rayNG' => 'Android', 'NekoBox' => 'Android', 'SFA' => 'Android',
+            'Shadowrocket' => 'iOS', 'Quantumult' => 'iOS', 'Loon' => 'iOS', 'Stash' => 'iOS', 'SFI' => 'iOS', 'Surge' => 'iOS',
+            'ClashX' => 'macOS', 'v2rayU' => 'macOS',
+            'ClashforWindows' => 'Windows', 'v2rayN' => 'Windows',
+        ];
+        foreach ($byClient as $needle => $platform) {
+            if (stripos($ua, $needle) !== false) {
+                return $platform;
+            }
+        }
+        // 浏览器/通用 UA 解析操作系统
+        if (preg_match('/iPhone|iPad|iPod|iOS/i', $ua)) {
+            return 'iOS';
+        }
+        if (preg_match('/Android/i', $ua)) {
+            return 'Android';
+        }
+        if (preg_match('/Windows/i', $ua)) {
+            return 'Windows';
+        }
+        if (preg_match('/Macintosh|Mac OS X/i', $ua)) {
+            return 'macOS';
+        }
+        if (preg_match('/Linux/i', $ua)) {
+            return 'Linux';
+        }
+
+        return '其它';
+    }
+}
+
 if (! function_exists('linkify')) {
     /** 纯文本转安全 HTML：转义 + 网址高亮成超链接 + 保留换行 */
     function linkify(?string $text): string

@@ -48,3 +48,20 @@ it('aggregates client families on device page (latest per user)', function () {
     expect($fam->get('小火箭 Shadowrocket'))->toBe(2);   // a(最近) + b
     expect($fam->has('v2rayN (Windows)'))->toBeFalse();  // a 的旧记录不计
 });
+
+it('classifies device platforms from client UA', function () {
+    $a = User::factory()->create();
+    $b = User::factory()->create();
+    $c = User::factory()->create();
+    SubscribeLog::create(['user_id' => $a->id, 'client' => 'ClashforWindows/0.20', 'fetched_at' => now()]);
+    SubscribeLog::create(['user_id' => $b->id, 'client' => 'v2rayNG/1.8', 'fetched_at' => now()]);
+    SubscribeLog::create(['user_id' => $c->id, 'client' => 'Shadowrocket/2.2', 'fetched_at' => now()]);
+
+    $res = $this->actingAs(sysAdmin())->get('/admin/system/devices');
+    $res->assertOk()->assertSee('设备 / 平台分布');
+
+    $plat = $res->viewData('byPlatform');
+    expect($plat->get('Windows'))->toBe(1);
+    expect($plat->get('Android'))->toBe(1);
+    expect($plat->get('iOS'))->toBe(1);
+});
