@@ -21,7 +21,8 @@ class CouponController extends Controller
 
     public function store(Request $request)
     {
-        Coupon::create($this->validated($request));
+        $coupon = Coupon::create($this->validated($request));
+        audit('coupon.create', "创建优惠券「{$coupon->code}」", $coupon);
 
         return redirect('/admin/coupons')->with('status', '优惠券已创建');
     }
@@ -34,12 +35,14 @@ class CouponController extends Controller
     public function update(Request $request, Coupon $coupon)
     {
         $coupon->update($this->validated($request, $coupon));
+        audit('coupon.update', "更新优惠券「{$coupon->code}」", $coupon);
 
         return redirect('/admin/coupons')->with('status', '优惠券已更新');
     }
 
     public function destroy(Coupon $coupon)
     {
+        audit('coupon.delete', "删除优惠券「{$coupon->code}」", $coupon);
         $coupon->delete();
 
         return redirect('/admin/coupons')->with('status', '优惠券已删除');

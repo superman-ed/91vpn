@@ -10,9 +10,20 @@
         'node.create' => '创建节点', 'node.update' => '更新节点', 'node.delete' => '删除节点',
         'node.regenerate_secret' => '重置密钥', 'setting.update' => '更新设置',
         'email.peek_code' => '代查验证码',
+        'plan.create' => '创建套餐', 'plan.update' => '更新套餐', 'plan.delete' => '删除套餐',
+        'coupon.create' => '创建优惠券', 'coupon.update' => '更新优惠券', 'coupon.delete' => '删除优惠券',
+        'announcement.create' => '发布公告', 'announcement.update' => '更新公告', 'announcement.delete' => '删除公告',
+        'admin.create' => '新建管理员', 'admin.grant' => '授予管理员', 'admin.revoke' => '撤销管理员',
+        'ticket.reply' => '回复工单', 'ticket.close' => '关闭工单',
+        'order.export' => '导出订单', 'finance.export' => '导出流水', 'user.export' => '导出用户',
     ];
-    $pill = fn ($a) => str_starts_with($a, 'node.delete') || str_starts_with($a, 'user.ban') ? 'danger'
-        : (str_starts_with($a, 'setting') ? 'primary' : (str_starts_with($a, 'order') ? 'warn' : 'info'));
+    $pill = function ($a) {
+        if (str_contains($a, '.delete') || str_contains($a, '.revoke') || $a === 'user.ban') return 'danger';
+        if (str_starts_with($a, 'admin.')) return 'warn';
+        if (str_contains($a, '.export') || $a === 'email.peek_code') return 'muted';
+        if (str_starts_with($a, 'setting')) return 'primary';
+        return 'info';
+    };
 @endphp
 <div class="adm-head">
     <h4><i class="fas fa-clipboard-list text-primary"></i> 操作日志 <span class="text-muted" style="font-size:13px;font-weight:400">管理员后台操作审计</span></h4>

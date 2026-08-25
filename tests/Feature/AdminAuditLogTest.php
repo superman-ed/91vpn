@@ -35,6 +35,31 @@ it('records an audit entry when admin marks an order paid', function () {
     expect(AuditLog::where('action', 'order.mark_paid')->exists())->toBeTrue();
 });
 
+it('records audit when granting admin to an existing user', function () {
+    $target = User::factory()->create(['email' => 'promote@test.local', 'is_admin' => false]);
+
+    $this->actingAs(auditAdmin())->post('/admin/admins', ['email' => 'promote@test.local']);
+
+    expect(AuditLog::where('action', 'admin.grant')->where('target_id', $target->id)->exists())->toBeTrue();
+    expect($target->fresh()->is_admin)->toBeTrue();
+});
+
+it('records audit when deleting a plan', function () {
+    $plan = Plan::create(['name' => '旧套餐', 'price' => 5, 'period' => 'month', 'transfer_gb' => 50]);
+
+    $this->actingAs(auditAdmin())->delete("/admin/plans/{$plan->id}");
+
+    expect(AuditLog::where('action', 'plan.delete')->exists())->toBeTrue();
+});
+
+it('records audit when deleting a coupon', function () {
+    $coupon = \App\Models\Coupon::create(['code' => 'SAVE10', 'type' => 'amount', 'value' => 10]);
+
+    $this->actingAs(auditAdmin())->delete("/admin/coupons/{$coupon->id}");
+
+    expect(AuditLog::where('action', 'coupon.delete')->exists())->toBeTrue();
+});
+
 it('lists and filters audit logs by group', function () {
     $admin = auditAdmin();
     AuditLog::create(['admin_id' => $admin->id, 'action' => 'user.update', 'description' => '更新用户 a', 'ip' => '1.1.1.1']);

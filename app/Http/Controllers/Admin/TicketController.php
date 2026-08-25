@@ -36,6 +36,7 @@ class TicketController extends Controller
         $data = $request->validate(['content' => ['required', 'string']]);
         $ticket->replies()->create(['user_id' => auth()->id(), 'is_admin' => true, 'content' => $data['content']]);
         $ticket->update(['last_reply_at' => now()]);
+        audit('ticket.reply', "回复工单 #{$ticket->id}「".\Illuminate\Support\Str::limit($ticket->subject, 24)."」", $ticket);
 
         return back()->with('status', '已回复');
     }
@@ -43,6 +44,7 @@ class TicketController extends Controller
     public function close(Ticket $ticket)
     {
         $ticket->update(['status' => 'closed']);
+        audit('ticket.close', "关闭工单 #{$ticket->id}", $ticket);
 
         return back()->with('status', '工单已关闭');
     }

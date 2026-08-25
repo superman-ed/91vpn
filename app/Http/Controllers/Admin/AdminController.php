@@ -36,6 +36,7 @@ class AdminController extends Controller
 
         if ($existing) {
             $existing->update(['is_admin' => true]);
+            audit('admin.grant', "将 {$existing->email} 提升为管理员", $existing);
 
             return redirect('/admin/admins')->with('status', "已将 {$existing->email} 提升为管理员");
         }
@@ -57,6 +58,7 @@ class AdminController extends Controller
             'class_expire' => now(),
             'is_admin' => true,
         ]);
+        audit('admin.create', "新建管理员账号 {$data['email']}");
 
         return redirect('/admin/admins')->with('status', "管理员 {$data['email']} 已创建");
     }
@@ -72,6 +74,7 @@ class AdminController extends Controller
         }
 
         $user->update(['is_admin' => false]);
+        audit('admin.revoke', "撤销 {$user->email} 的管理员权限", $user);
 
         return back()->with('status', "已撤销 {$user->email} 的管理员权限");
     }

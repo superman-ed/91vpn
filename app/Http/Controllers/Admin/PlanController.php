@@ -52,6 +52,8 @@ class PlanController extends Controller
                 'sort' => $data['sort'] ?? 0, 'on_sale' => $request->boolean('on_sale'),
             ]);
 
+            audit('plan.create', "创建流量包「{$data['name']}」");
+
             return redirect('/admin/plans')->with('status', '流量包已创建');
         }
 
@@ -82,6 +84,8 @@ class PlanController extends Controller
             return back()->withErrors(['prices' => '至少填写一个时长的价格'])->withInput();
         }
 
+        audit('plan.create', "创建套餐「{$data['name']}」（{$created} 个时长）");
+
         return redirect('/admin/plans')->with('status', "已创建 {$created} 个时长套餐");
     }
 
@@ -93,11 +97,13 @@ class PlanController extends Controller
     public function update(Request $request, Plan $plan)
     {
         $plan->update($this->validated($request));
+        audit('plan.update', "更新套餐「{$plan->name}」", $plan);
         return redirect('/admin/plans')->with('status', '套餐已更新');
     }
 
     public function destroy(Plan $plan)
     {
+        audit('plan.delete', "删除套餐「{$plan->name}」", $plan);
         $plan->delete();
         return redirect('/admin/plans')->with('status', '套餐已删除');
     }

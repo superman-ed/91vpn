@@ -13,6 +13,11 @@ class AuditLogController extends Controller
         'user' => '用户',
         'order' => '订单',
         'node' => '节点',
+        'plan' => '套餐',
+        'coupon' => '优惠券',
+        'announcement' => '公告',
+        'admin' => '管理员',
+        'ticket' => '工单',
         'setting' => '设置',
     ];
 
