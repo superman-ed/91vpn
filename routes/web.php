@@ -115,6 +115,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);
     Route::delete('admins/{user}', [App\Http\Controllers\Admin\AdminController::class, 'destroy']);
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+    Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
+    Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.orders.cancel');
     Route::get('tickets', [AdminTicketController::class, 'index'])->name('admin.tickets.index');
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('admin.tickets.show');
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply']);
