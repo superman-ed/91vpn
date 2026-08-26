@@ -35,7 +35,10 @@ class PaymentController extends Controller
             try {
                 $billing->creditRecharge($recharge, $tradeNo);   // 幂等
             } catch (\Throwable $e) {
-                Log::warning('epay recharge failed', ['recharge' => $recharge->id, 'err' => $e->getMessage()]);
+                // 已付款但到账失败：返回 fail 让网关重试，避免用户付款却余额未到且静默卡死
+                Log::error('epay recharge failed（已付款到账失败，返回fail待重试）', ['recharge' => $recharge->id, 'err' => $e->getMessage()]);
+
+                return response('fail');
             }
 
             return response('success');
@@ -55,7 +58,10 @@ class PaymentController extends Controller
         try {
             $billing->settleOrder($order, (string) ($params['type'] ?? 'epay'));   // 幂等：重复回调不会重复发货
         } catch (\Throwable $e) {
-            Log::warning('epay settle failed', ['order' => $order->id, 'err' => $e->getMessage()]);
+            // 已付款但发货失败(如数据库瞬时错误)：返回 fail 让网关重试，避免钱货两空静默卡死
+            Log::error('epay settle failed（已付款发货失败，返回fail待重试）', ['order' => $order->id, 'err' => $e->getMessage()]);
+
+            return response('fail');
         }
 
         return response('success');

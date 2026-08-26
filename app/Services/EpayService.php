@@ -62,26 +62,34 @@ class EpayService
         return $sign !== '' && hash_equals($this->sign($params), $sign);
     }
 
-    /** 主动查单：查询该商户订单在网关是否已支付成功（用于回调漏单对账） */
-    public function isPaidOnGateway(string $outTradeNo): bool
+    /**
+     * 主动查单（对账/关单前确认）。三态返回，避免"查询失败"被当成"未支付"而误杀已付订单：
+     *   true  = 网关确认已支付成功
+     *   false = 网关明确返回"该单未支付"
+     *   null  = 查询失败/不确定(未配置、网络异常、HTTP错误、返回码非1)——调用方应保守不关单
+     */
+    public function isPaidOnGateway(string $outTradeNo): ?bool
     {
         if (! $this->configured()) {
-            return false;
+            return null;
         }
 
         try {
             $resp = Http::asForm()->timeout(10)
                 ->post($this->url().'/api/EasyPay/queryOrder', ['orderNo' => $outTradeNo]);
         } catch (\Throwable $e) {
-            return false;
+            return null;   // 网络异常 → 不确定
         }
 
         if (! $resp->ok()) {
-            return false;
+            return null;   // HTTP 错误 → 不确定
         }
         $json = $resp->json() ?? [];
+        if ((int) ($json['code'] ?? 0) !== 1) {
+            return null;   // 查询未成功返回 → 不确定，保守不关单
+        }
 
-        return (int) ($json['code'] ?? 0) === 1 && (($json['data']['status'] ?? '') === 'success');
+        return ($json['data']['status'] ?? '') === 'success';   // 明确已付=true / 明确未付=false
     }
 
     /** 生成跳转到网关的支付地址（页面支付 submit.php）。未映射的渠道不传 type → 网关收银台 */

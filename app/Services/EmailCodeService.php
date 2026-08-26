@@ -97,8 +97,22 @@ class EmailCodeService
         $stored = Cache::get($this->key($email));
         if ($stored !== null && hash_equals($stored, $code)) {
             Cache::forget($this->key($email));
+            Cache::forget($this->failKey($email));
+
             return true;
         }
+        // 失败锁定：连续错 5 次即作废该码，阻断暴力撞码
+        $fails = (int) Cache::get($this->failKey($email), 0) + 1;
+        Cache::put($this->failKey($email), $fails, now()->addMinutes(self::TTL_MINUTES));
+        if ($fails >= 5) {
+            Cache::forget($this->key($email));   // 作废,须重新申请
+        }
+
         return false;
+    }
+
+    private function failKey(string $email): string
+    {
+        return 'email_code_fail:'.strtolower(trim($email));
     }
 }

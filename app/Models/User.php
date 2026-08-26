@@ -182,12 +182,13 @@ class User extends Authenticatable
         return $this->class > 0 && $this->class_expire !== null && $this->class_expire->isFuture();
     }
 
-    // 当前生效套餐的周期（取最近一次已发货订单），无则 null
+    // 当前生效套餐的周期（取最近一次已发货的“订阅”订单，排除加油包），无则 null
     public function currentPeriod(): ?string
     {
         return $this->orders()
-            ->where('status', 'paid')
+            ->where('orders.status', 'paid')
             ->whereNotNull('delivered_at')
+            ->whereHas('plan', fn ($q) => $q->where('is_data_pack', false))
             ->latest('delivered_at')
             ->value('period');
     }

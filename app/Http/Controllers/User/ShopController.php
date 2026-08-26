@@ -209,7 +209,10 @@ class ShopController extends Controller
             return redirect()->away($epay->payUrl($order, $data['method']));
         }
 
-        // 未配置网关 → 模拟直付（开发/演示）
+        // 未配置网关：仅开发/测试环境允许模拟直付；生产环境必须报错，严禁零成本到账
+        if (! app()->environment(['local', 'testing'])) {
+            return back()->with('status', '在线支付暂不可用，请稍后再试或联系客服。');
+        }
         $billing->settleOrder($order, $data['method']);
         $channel = self::ONLINE_METHODS[$data['method']];
 

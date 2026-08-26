@@ -39,7 +39,10 @@ class WalletController extends Controller
             return redirect()->away($epay->buildUrl($recharge->order_no, '钱包充值', $amount));
         }
 
-        // 未配置网关 → 模拟直接到账(开发用)
+        // 未配置网关：仅开发/测试环境允许模拟到账；生产环境必须报错，严禁零成本充值
+        if (! app()->environment(['local', 'testing'])) {
+            return back()->with('status', '充值暂不可用，请稍后再试或联系客服。');
+        }
         $billing->applyRecharge($user, $amount, null, '模拟充值');
 
         return back()->with('status', "充值成功 ¥{$data['amount']}（未配置网关，模拟）");

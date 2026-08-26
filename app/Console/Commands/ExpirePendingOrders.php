@@ -26,15 +26,24 @@ class ExpirePendingOrders extends Command
             ->orderBy('id')
             ->chunkById(200, function ($orders) use ($epay, $billing, &$count) {
                 foreach ($orders as $order) {
-                    // 关单前最后确认：网关已支付则补发货，绝不误杀
-                    if ($epay->configured() && $epay->isPaidOnGateway($order->order_no)) {
-                        try {
-                            $billing->settleOrder($order, 'epay');
-                        } catch (\Throwable $e) {
-                            Log::warning('expire settle failed', ['order' => $order->id, 'err' => $e->getMessage()]);
-                        }
+                    // 关单前最后确认（三态）：绝不误杀已付/查询失败的单
+                    if ($epay->configured()) {
+                        $paid = $epay->isPaidOnGateway($order->order_no);
+                        if ($paid === true) {   // 网关确认已付 → 补发货
+                            try {
+                                $billing->settleOrder($order, 'epay');
+                            } catch (\Throwable $e) {
+                                Log::warning('expire settle failed', ['order' => $order->id, 'err' => $e->getMessage()]);
+                            }
 
-                        continue;
+                            continue;
+                        }
+                        if ($paid === null) {   // 查询失败/不确定 → 保守不关单，留待下轮
+                            Log::info('expire skip: 查单不确定，保留 pending', ['order' => $order->id]);
+
+                            continue;
+                        }
+                        // $paid === false：网关确认未付 → 继续关单
                     }
 
                     // 行锁关单，防与支付竞态
