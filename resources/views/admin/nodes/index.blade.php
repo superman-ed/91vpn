@@ -27,7 +27,7 @@
                 <td>@if($n->online)<span class="adm-pill ok">在线</span>@else<span class="adm-pill danger">离线</span>@endif</td>
                 <td>
                     <a href="/admin/nodes/{{ $n->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
-                    <form method="POST" action="/admin/nodes/{{ $n->id }}" class="d-inline" data-confirm="删除节点「{{ $n->name }}」后，连接该节点的用户将立即无法使用，此操作不可撤销。" data-confirm-word="{{ $n->name }}">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
+                    <form method="POST" action="/admin/nodes/{{ $n->id }}" class="d-inline" data-dgr="删除节点「{{ $n->name }}」后，连接该节点的用户将立即无法使用，此操作不可撤销。" data-dgr-word="{{ $n->name }}">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
             @empty<tr><td colspan="9"><div class="adm-empty"><i class="fas fa-server fa-2x mb-2 d-block"></i>暂无节点，点右上角「添加节点」</div></td></tr>@endforelse

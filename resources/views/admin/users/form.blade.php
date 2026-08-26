@@ -69,15 +69,15 @@
     <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#fc544b,#e0362d)"><i class="fas fa-exclamation-triangle"></i></span><h4>账号操作</h4></div>
     <div class="card-body adm-form">
         <div class="d-flex flex-wrap align-items-end" style="gap:24px">
-            <form method="POST" action="/admin/users/{{ $user->id }}/reset-traffic" data-confirm="确认将该用户已用流量清零？">@csrf
+            <form method="POST" action="/admin/users/{{ $user->id }}/reset-traffic" data-dgr="确认将该用户已用流量清零？">@csrf
                 <button class="btn btn-outline-primary" style="border-radius:9px"><i class="fas fa-sync-alt"></i> 重置已用流量</button>
             </form>
             @unless($user->is_admin)
-            <form method="POST" action="/admin/users/{{ $user->id }}/toggle-ban" data-confirm="{{ $user->banned ? '确认解封该用户？' : '确认封禁该用户？封禁后 TA 将无法登录和使用服务。' }}">@csrf
+            <form method="POST" action="/admin/users/{{ $user->id }}/toggle-ban" data-dgr="{{ $user->banned ? '确认解封该用户？' : '确认封禁该用户？封禁后 TA 将无法登录和使用服务。' }}">@csrf
                 <button class="btn btn-outline-{{ $user->banned ? 'success' : 'danger' }}" style="border-radius:9px"><i class="fas fa-ban"></i> {{ $user->banned ? '解封账号' : '封禁账号' }}</button>
             </form>
             @endunless
-            <form method="POST" action="/admin/users/{{ $user->id }}/reset-password" class="d-flex align-items-end" style="gap:8px" data-confirm="确认重置该用户登录密码？">@csrf
+            <form method="POST" action="/admin/users/{{ $user->id }}/reset-password" class="d-flex align-items-end" style="gap:8px" data-dgr="确认重置该用户登录密码？">@csrf
                 <div class="form-group mb-0"><label>新登录密码</label><input name="password" type="text" class="form-control @error('password') is-invalid @enderror" placeholder="至少 8 位" style="min-width:180px" required></div>
                 <button class="btn btn-outline-danger" style="border-radius:9px"><i class="fas fa-key"></i> 重置密码</button>
             </form>

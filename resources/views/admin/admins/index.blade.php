@@ -21,7 +21,7 @@
                     @if($u->id === auth()->id())
                         <span class="text-muted">—</span>
                     @else
-                        <form method="POST" action="/admin/admins/{{ $u->id }}" class="d-inline" data-confirm="撤销后 {{ $u->email }} 将失去所有后台权限，变回普通用户。" data-confirm-word="REVOKE">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm">撤销管理员</button></form>
+                        <form method="POST" action="/admin/admins/{{ $u->id }}" class="d-inline" data-dgr="撤销后 {{ $u->email }} 将失去所有后台权限，变回普通用户。" data-dgr-word="REVOKE">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm">撤销管理员</button></form>
                     @endif
                 </td>
             </tr>

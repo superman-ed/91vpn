@@ -19,7 +19,7 @@
                 <td class="text-muted">{{ $a->created_at?->format('Y-m-d H:i') }}</td>
                 <td>
                     <a href="/admin/announcements/{{ $a->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
-                    <form method="POST" action="/admin/announcements/{{ $a->id }}" class="d-inline" data-confirm="确认删除该公告？">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
+                    <form method="POST" action="/admin/announcements/{{ $a->id }}" class="d-inline" data-dgr="确认删除该公告？">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
             @empty<tr><td colspan="5"><div class="adm-empty"><i class="fas fa-bullhorn fa-2x mb-2 d-block"></i>暂无公告，点右上角「发布公告」</div></td></tr>@endforelse

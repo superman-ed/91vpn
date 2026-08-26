@@ -63,8 +63,8 @@
                 <td class="text-muted">{{ $o->created_at?->format('Y-m-d H:i') }}</td>
                 <td>
                     @if($o->status === 'pending')
-                        <form method="POST" action="/admin/orders/{{ $o->id }}/mark-paid" class="d-inline" data-confirm="确认将该订单标记为已支付并发货？">@csrf<button class="btn btn-success btn-sm">标记支付</button></form>
-                        <form method="POST" action="/admin/orders/{{ $o->id }}/cancel" class="d-inline" data-confirm="确认取消该订单？">@csrf<button class="btn btn-outline-danger btn-sm">取消</button></form>
+                        <form method="POST" action="/admin/orders/{{ $o->id }}/mark-paid" class="d-inline" data-dgr="确认将该订单标记为已支付并发货？">@csrf<button class="btn btn-success btn-sm">标记支付</button></form>
+                        <form method="POST" action="/admin/orders/{{ $o->id }}/cancel" class="d-inline" data-dgr="确认取消该订单？">@csrf<button class="btn btn-outline-danger btn-sm">取消</button></form>
                     @else — @endif
                 </td>
             </tr>

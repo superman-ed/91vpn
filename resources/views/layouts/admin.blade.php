@@ -116,7 +116,7 @@
 <script src="/stisla/assets/js/scripts.js"></script>
 <script src="/stisla/assets/js/custom.js"></script>
 
-{{-- 统一危险操作确认组件：form 上加 data-confirm="提示"，高危再加 data-confirm-word="需输入的词" --}}
+{{-- 统一危险操作确认组件：form 上加 data-dgr="提示"，高危再加 data-dgr-word="需输入的词" --}}
 <style>
     .dc-overlay { position:fixed; inset:0; background:rgba(16,20,35,.55); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); z-index:1200; align-items:center; justify-content:center; animation:dcFade .2s ease; }
     .dc-card { background:#fff; border-radius:20px; width:440px; max-width:92vw; padding:32px 28px 24px; text-align:center; box-shadow:0 30px 80px rgba(16,20,45,.4); animation:dcPop .3s cubic-bezier(.34,1.56,.64,1); }
@@ -172,9 +172,9 @@
     function open(form) {
         var overlay = el('dcOverlay'); if (!overlay) return;
         pending = form;
-        el('dcMsg').textContent = form.getAttribute('data-confirm') || '确认执行该操作？';
-        el('dcTitle').textContent = form.getAttribute('data-confirm-title') || '危险操作确认';
-        var word = form.getAttribute('data-confirm-word'), ok = el('dcOk'), input = el('dcInput'), wrap = el('dcInputWrap');
+        el('dcMsg').textContent = form.getAttribute('data-dgr') || '确认执行该操作？';
+        el('dcTitle').textContent = form.getAttribute('data-dgr-title') || '危险操作确认';
+        var word = form.getAttribute('data-dgr-word'), ok = el('dcOk'), input = el('dcInput'), wrap = el('dcInputWrap');
         if (word) {
             wrap.style.display = 'block'; el('dcWord').textContent = word;
             ok.disabled = true; setTimeout(function () { input.focus(); }, 50);
@@ -186,7 +186,7 @@
     }
     document.addEventListener('submit', function (e) {
         var f = e.target;
-        if (f.matches && f.matches('form[data-confirm]') && !f.__dcPassed) {
+        if (f.matches && f.matches('form[data-dgr]') && !f.__dcPassed) {
             e.preventDefault(); e.stopPropagation(); open(f);
         }
     }, true);

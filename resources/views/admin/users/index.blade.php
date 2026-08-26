@@ -41,7 +41,7 @@
                     <a href="/admin/users/{{ $u->id }}/grant" class="btn btn-success btn-sm">开通</a>
                     <a href="/admin/users/{{ $u->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
                     @unless($u->is_admin)
-                    <form method="POST" action="/admin/users/{{ $u->id }}/toggle-ban" class="d-inline" data-confirm="{{ $u->banned ? '确认解封该用户？' : '确认封禁该用户？封禁后 TA 将无法登录和使用服务。' }}">@csrf<button class="btn btn-{{ $u->banned ? 'success' : 'outline-danger' }} btn-sm">{{ $u->banned ? '解封' : '封禁' }}</button></form>
+                    <form method="POST" action="/admin/users/{{ $u->id }}/toggle-ban" class="d-inline" data-dgr="{{ $u->banned ? '确认解封该用户？' : '确认封禁该用户？封禁后 TA 将无法登录和使用服务。' }}">@csrf<button class="btn btn-{{ $u->banned ? 'success' : 'outline-danger' }} btn-sm">{{ $u->banned ? '解封' : '封禁' }}</button></form>
                     @endunless
                 </td>
             </tr>
