@@ -89,6 +89,7 @@
                     <li class="{{ request()->is('admin/system/acquisition*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/acquisition"><i class="fas fa-route"></i><span>来路统计</span></a></li>
                     <li class="{{ request()->is('admin/system/audit*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/audit"><i class="fas fa-clipboard-list"></i><span>操作日志</span></a></li>
                     <li class="{{ request()->is('admin/system/emails*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/emails"><i class="fas fa-envelope-open-text"></i><span>邮件记录</span></a></li>
+                    <li class="{{ request()->is('admin/system/health*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/health"><i class="fas fa-heartbeat"></i><span>系统健康</span></a></li>
                     <li class="menu-header"></li>
                     <li><a class="nav-link" href="/user"><i class="fas fa-arrow-left"></i><span>返回用户端</span></a></li>
                 </ul>
