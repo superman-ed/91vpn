@@ -28,10 +28,11 @@ class RebateController extends Controller
         $rebates = (clone $base)->with('user', 'fromUser', 'order')->latest()->paginate(30)->withQueryString();
 
         // 受益人 TOP5
-        $topEarners = (clone $base)
+        $topRows = (clone $base)
             ->selectRaw('user_id, sum(amount) as total, count(*) as cnt')
-            ->groupBy('user_id')->orderByDesc('total')->take(5)->get()
-            ->map(fn ($r) => ['user' => User::find($r->user_id), 'total' => (float) $r->total, 'cnt' => $r->cnt]);
+            ->groupBy('user_id')->orderByDesc('total')->take(5)->get();
+        $earnerUsers = User::whereIn('id', $topRows->pluck('user_id'))->get()->keyBy('id');   // 一次预取,避免 N+1
+        $topEarners = $topRows->map(fn ($r) => ['user' => $earnerUsers->get($r->user_id), 'total' => (float) $r->total, 'cnt' => $r->cnt]);
 
         return view('admin.rebates.index', [
             'rebates' => $rebates,

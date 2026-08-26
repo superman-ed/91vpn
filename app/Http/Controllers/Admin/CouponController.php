@@ -11,7 +11,13 @@ class CouponController extends Controller
 {
     public function index()
     {
-        return view('admin.coupons.index', ['coupons' => Coupon::latest()->get()]);
+        return view('admin.coupons.index', [
+            'coupons' => Coupon::latest()->paginate(30),
+            'totalCount' => Coupon::count(),
+            'totalUsed' => (int) Coupon::sum('used'),
+            'activeCount' => Coupon::where('enabled', true)
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->count(),
+        ]);
     }
 
     public function create()

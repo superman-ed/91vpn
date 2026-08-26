@@ -31,8 +31,8 @@ class AuditLogController extends Controller
         $to = $request->query('to');
 
         $base = AuditLog::query()
-            ->when($q, fn ($query) => $query->where('description', 'like', "%{$q}%")
-                ->orWhereHas('admin', fn ($a) => $a->where('email', 'like', "%{$q}%")))
+            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('description', 'like', "%{$q}%")
+                ->orWhereHas('admin', fn ($a) => $a->where('email', 'like', "%{$q}%"))))
             ->when($group, fn ($query) => $query->where('action', 'like', "{$group}.%"))
             ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));

@@ -47,6 +47,7 @@ class PlanController extends Controller
             }
             $plan->update(['sort' => $b]);
             $neighbor->update(['sort' => $a]);
+            audit('plan.update', ($dir === 'up' ? '上移' : '下移')."套餐「{$plan->name}」排序", $plan);
         }
 
         return back();

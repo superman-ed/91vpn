@@ -1,12 +1,8 @@
 @extends('layouts.admin')
 @section('title', '优惠券管理')
 @section('content')
-@php
-    $totalUsed = $coupons->sum('used');
-    $active = $coupons->where('enabled', true)->filter(fn ($c) => ! $c->expires_at || $c->expires_at->isFuture())->count();
-@endphp
 <div class="adm-head">
-    <h4><i class="fas fa-ticket-alt text-primary"></i> 优惠券管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $coupons->count() }} 张 · 有效 {{ $active }} · 已核销 {{ $totalUsed }}</span></h4>
+    <h4><i class="fas fa-ticket-alt text-primary"></i> 优惠券管理 <span class="text-muted" style="font-size:13px;font-weight:400">共 {{ $totalCount }} 张 · 有效 {{ $activeCount }} · 已核销 {{ $totalUsed }}</span></h4>
     <div class="adm-tools">
         <button type="button" class="btn btn-light" style="border-radius:9px" onclick="document.getElementById('batchBox').style.display='block';this.style.display='none'"><i class="fas fa-layer-group"></i> 批量生成</button>
         <a href="/admin/coupons/create" class="btn adm-btn"><i class="fas fa-plus"></i> 生成优惠券</a>
@@ -72,5 +68,6 @@
             </tbody>
         </table>
     </div>
+    @if($coupons->hasPages())<div class="adm-foot">{{ $coupons->links('pagination::bootstrap-4') }}</div>@endif
 </div>
 @endsection

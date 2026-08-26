@@ -107,7 +107,7 @@ class UserController extends Controller
             'class' => $data['class'],
             'transfer_enable' => $quota,
             'base_transfer_enable' => $quota,   // 同步基准，避免月度重置归位回旧配额
-            'class_expire' => $data['class_expire'] ?? $user->class_expire,
+            'class_expire' => array_key_exists('class_expire', $data) ? $data['class_expire'] : $user->class_expire,   // 允许清空(置 null)
             'node_speed_limit' => $data['node_speed_limit'] ?? 0,
             'node_ip_limit' => $data['node_ip_limit'] ?? 0,
         ]);

@@ -27,6 +27,11 @@ class CaptchaService
         if ($input === null || $answer === null) {
             return false;
         }
+        $input = trim($input);
+        if (! ctype_digit($input)) {   // 非纯数字("7x"等)直接判错，不静默转 0/前缀数字
+            return false;
+        }
+
         return (int) $input === $answer;
     }
 }

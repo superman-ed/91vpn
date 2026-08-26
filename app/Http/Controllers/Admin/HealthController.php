@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AliveIp;
 use App\Models\Node;
-use App\Providers\AppServiceProvider;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -93,17 +91,20 @@ class HealthController extends Controller
         }
     }
 
+    /** 节点心跳在线判定窗口（秒） */
+    private const NODE_ONLINE_WINDOW = 180;
+
     private function nodes(): array
     {
-        $window = AliveIp::ONLINE_WINDOW;
         $now = now()->timestamp;
 
         return Node::orderBy('sort')->get()->map(function ($n) use ($now) {
             $ago = $n->last_heartbeat > 0 ? $now - $n->last_heartbeat : null;
+
             return [
                 'name' => $n->name,
                 'last' => $n->last_heartbeat > 0 ? \Illuminate\Support\Carbon::createFromTimestamp($n->last_heartbeat) : null,
-                'online' => $ago !== null && $ago < 180,   // 3 分钟内有心跳算在线
+                'online' => $ago !== null && $ago < self::NODE_ONLINE_WINDOW,
             ];
         })->all();
     }
