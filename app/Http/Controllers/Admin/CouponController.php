@@ -9,10 +9,26 @@ use Illuminate\Validation\Rule;
 
 class CouponController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $q = $request->query('q');
+        $type = $request->query('type');
+        $status = $request->query('status');   // active / disabled / expired
+
+        $list = Coupon::query()
+            ->when($q, fn ($w) => $w->where(fn ($s) => $s->where('code', 'like', "%{$q}%")->orWhere('note', 'like', "%{$q}%")))
+            ->when(in_array($type, ['percent', 'amount'], true), fn ($w) => $w->where('type', $type))
+            ->when($status === 'active', fn ($w) => $w->where('enabled', true)
+                ->where(fn ($s) => $s->whereNull('expires_at')->orWhere('expires_at', '>', now())))
+            ->when($status === 'disabled', fn ($w) => $w->where('enabled', false))
+            ->when($status === 'expired', fn ($w) => $w->whereNotNull('expires_at')->where('expires_at', '<=', now()))
+            ->latest()->paginate(30)->withQueryString();
+
         return view('admin.coupons.index', [
-            'coupons' => Coupon::latest()->paginate(30),
+            'coupons' => $list,
+            'q' => $q,
+            'type' => $type,
+            'status' => $status,
             'totalCount' => Coupon::count(),
             'totalUsed' => (int) Coupon::sum('used'),
             'activeCount' => Coupon::where('enabled', true)

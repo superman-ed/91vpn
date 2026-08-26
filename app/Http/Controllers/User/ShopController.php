@@ -103,7 +103,7 @@ class ShopController extends Controller
     }
 
     /** GET /user/order/{order} —— 收银台结算页 */
-    public function checkout(Order $order, BillingService $billing)
+    public function checkout(Order $order, BillingService $billing, \App\Services\EpayService $epay)
     {
         abort_unless($order->user_id === auth()->id(), 403);
 
@@ -126,6 +126,8 @@ class ShopController extends Controller
             'user' => $user,
             'couponNotes' => \App\Models\Coupon::checkoutVisible(),
             'queuedActivateAt' => $queuedActivateAt,
+            // 在线支付是否可用:配了网关(生产跳转) 或 本地/测试(模拟直付)。都不满足则只留余额支付,不摆无效按钮
+            'onlinePay' => $epay->configured() || app()->environment(['local', 'testing']),
         ]);
     }
 

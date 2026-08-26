@@ -65,4 +65,13 @@ class TicketController extends Controller
 
         return back()->with('status', '已回复');
     }
+
+    /** 用户自助结单：问题解决后可自己关闭 */
+    public function close(Ticket $ticket)
+    {
+        abort_unless($ticket->user_id === auth()->id(), 403);
+        $ticket->update(['status' => 'closed']);
+
+        return back()->with('status', '工单已关闭');
+    }
 }

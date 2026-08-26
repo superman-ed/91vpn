@@ -52,7 +52,10 @@
     <div class="reply-box">
         <form method="POST" action="/user/ticket/{{ $ticket->id }}/reply">@csrf
             <div class="form-group mb-2"><textarea name="content" rows="3" class="form-control" placeholder="输入回复内容…" required></textarea></div>
-            <button class="btn reply-btn"><i class="fas fa-paper-plane"></i> 发送回复</button>
+            <div class="d-flex align-items-center" style="gap:10px">
+                <button class="btn reply-btn"><i class="fas fa-paper-plane"></i> 发送回复</button>
+                <button type="submit" formaction="/user/ticket/{{ $ticket->id }}/close" formnovalidate class="btn btn-light" style="border-radius:9px;margin-left:auto"><i class="fas fa-check"></i> 问题已解决，关闭工单</button>
+            </div>
         </form>
     </div>
     @else

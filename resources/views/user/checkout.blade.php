@@ -115,6 +115,7 @@
                             <span class="pm-name">余额支付</span>
                             <span class="pm-extra">¥{{ number_format($user->money, 2) }}</span>
                         </label>
+                        @if($onlinePay)
                         <label class="pm" data-method="alipay">
                             <input type="radio" name="method" value="alipay">
                             <span class="pm-ic pm-alipay"><i class="fab fa-alipay"></i></span>
@@ -130,7 +131,9 @@
                             <span class="pm-ic pm-usdt"><i class="fas fa-coins"></i></span>
                             <span class="pm-name">USDT</span>
                         </label>
+                        @endif
                     </div>
+                    @unless($onlinePay)<div class="text-muted small mb-3" style="margin-top:-6px">当前仅支持余额支付,请先到 <a href="/user/wallet">钱包</a> 充值。</div>@endunless
 
                     <div class="alert alert-warning py-2 mb-3" data-lowbalance style="display:none">余额不足，请先 <a href="/user/wallet">充值</a> 或换其它支付方式。</div>
                     @error('method')<div class="text-danger small mb-2">{{ $message }}</div>@enderror

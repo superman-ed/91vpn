@@ -38,13 +38,22 @@
         @endforeach
 
         @if($ticket->status === 'open')
-        <form method="POST" action="/admin/tickets/{{ $ticket->id }}/reply" class="atk-reply" style="border-top:1px solid #f1f3fb;margin-top:6px;padding-top:18px">@csrf
-            <div class="form-group mb-2"><textarea name="content" rows="3" class="form-control" placeholder="回复用户…" required></textarea></div>
-            <button class="btn adm-btn"><i class="fas fa-paper-plane"></i> 回复</button>
-            <button formaction="/admin/tickets/{{ $ticket->id }}/close" class="btn btn-outline-danger" style="border-radius:9px" onclick="return confirm('确认关闭该工单？')"><i class="fas fa-lock"></i> 关闭工单</button>
-        </form>
+        <div style="border-top:1px solid #f1f3fb;margin-top:6px;padding-top:18px">
+            <form method="POST" action="/admin/tickets/{{ $ticket->id }}/reply" class="atk-reply">@csrf
+                <div class="form-group mb-2"><textarea name="content" rows="3" class="form-control" placeholder="回复用户…" required></textarea></div>
+                <button class="btn adm-btn"><i class="fas fa-paper-plane"></i> 回复</button>
+            </form>
+            <form method="POST" action="/admin/tickets/{{ $ticket->id }}/close" class="d-inline" data-dgr="确认关闭该工单？">@csrf
+                <button class="btn btn-outline-danger" style="border-radius:9px"><i class="fas fa-lock"></i> 关闭工单</button>
+            </form>
+        </div>
         @else
-        <div class="text-center text-muted" style="border-top:1px solid #f1f3fb;margin-top:6px;padding-top:16px"><i class="fas fa-lock"></i> 工单已关闭</div>
+        <div class="text-center" style="border-top:1px solid #f1f3fb;margin-top:6px;padding-top:16px">
+            <span class="text-muted"><i class="fas fa-lock"></i> 工单已关闭</span>
+            <form method="POST" action="/admin/tickets/{{ $ticket->id }}/reopen" class="d-inline" style="margin-left:10px">@csrf
+                <button class="btn btn-light btn-sm" style="border-radius:9px"><i class="fas fa-lock-open"></i> 重开工单</button>
+            </form>
+        </div>
         @endif
     </div>
 </div></div>

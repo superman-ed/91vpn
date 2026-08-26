@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/ticket', [UserTicketController::class, 'store']);
     Route::get('/user/ticket/{ticket}', [UserTicketController::class, 'show']);
     Route::post('/user/ticket/{ticket}/reply', [UserTicketController::class, 'reply']);
+    Route::post('/user/ticket/{ticket}/close', [UserTicketController::class, 'close']);
     Route::get('/user/shop', [ShopController::class, 'index'])->name('user.shop');
     Route::post('/user/order/create', [ShopController::class, 'createOrder']);
     Route::get('/user/order/{order}', [ShopController::class, 'checkout'])->name('user.checkout');
@@ -150,6 +151,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('admin.tickets.show');
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply']);
     Route::post('tickets/{ticket}/close', [AdminTicketController::class, 'close']);
+    Route::post('tickets/{ticket}/reopen', [AdminTicketController::class, 'reopen']);
     Route::get('coupons', [AdminCouponController::class, 'index'])->name('admin.coupons.index');
     Route::get('coupons/create', [AdminCouponController::class, 'create']);
     Route::post('coupons/batch', [AdminCouponController::class, 'batchStore'])->name('admin.coupons.batch');

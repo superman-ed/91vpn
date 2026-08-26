@@ -11,13 +11,17 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         $status = $request->query('status');
+        $q = $request->query('q');
         $tickets = Ticket::with('user')
-            ->when(in_array($status, ['open', 'closed'], true), fn ($q) => $q->where('status', $status))
+            ->when(in_array($status, ['open', 'closed'], true), fn ($w) => $w->where('status', $status))
+            ->when($q, fn ($w) => $w->where(fn ($s) => $s->where('subject', 'like', "%{$q}%")
+                ->orWhereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%"))))
             ->latest('updated_at')->paginate(30)->withQueryString();
 
         return view('admin.tickets.index', [
             'tickets' => $tickets,
             'status' => $status,
+            'q' => $q,
             'counts' => [
                 'all' => Ticket::count(),
                 'open' => Ticket::where('status', 'open')->count(),
@@ -47,5 +51,13 @@ class TicketController extends Controller
         audit('ticket.close', "关闭工单 #{$ticket->id}", $ticket);
 
         return back()->with('status', '工单已关闭');
+    }
+
+    public function reopen(Ticket $ticket)
+    {
+        $ticket->update(['status' => 'open']);
+        audit('ticket.reopen', "重开工单 #{$ticket->id}", $ticket);
+
+        return back()->with('status', '工单已重开');
     }
 }

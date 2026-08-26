@@ -12,12 +12,14 @@ use Illuminate\Support\Facades\DB;
 class WalletController extends Controller
 {
     /** GET /user/wallet */
-    public function index()
+    public function index(\App\Services\EpayService $epay)
     {
         $user = auth()->user();
 
         return view('user.wallet', [
             'user' => $user,
+            'gatewayReady' => $epay->configured(),   // 决定充值文案:真跳转 vs 本地模拟
+            'mockRecharge' => ! $epay->configured() && app()->environment(['local', 'testing']),
             'orders' => $user->orders()->with('plan')->latest()->paginate(10, ['*'], 'op'),
             'rechargeLogs' => $user->balanceLogs()->where('type', 'recharge')->latest()->paginate(10, ['*'], 'rp'),
             'totalRecharge' => (float) $user->balanceLogs()->where('type', 'recharge')->sum('amount'),

@@ -98,7 +98,13 @@
                     </div>
                     <button class="btn rc-btn btn-block text-white"><i class="fas fa-bolt"></i> 立即充值</button>
                 </form>
+                @if($gatewayReady)
+                <small class="text-muted d-block mt-2">提交后跳转至收银台完成支付，到账后余额自动更新。</small>
+                @elseif($mockRecharge)
                 <small class="text-muted d-block mt-2">开发环境模拟充值，提交即到账。</small>
+                @else
+                <small class="text-muted d-block mt-2">在线充值暂未开通，请联系客服。</small>
+                @endif
             </div>
         </div>
     </div>

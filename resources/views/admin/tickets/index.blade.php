@@ -6,10 +6,17 @@
     <h4><i class="fas fa-headset text-primary"></i> 工单管理</h4>
     <div class="adm-tools">
         @foreach($tabs as $k => $label)
-        <a href="/admin/tickets{{ $k ? '?status='.$k : '' }}" class="btn btn-sm {{ (string) $status === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }} <span style="opacity:.7">{{ $k ? ($counts[$k] ?? 0) : $counts['all'] }}</span></a>
+        <a href="/admin/tickets?{{ http_build_query(array_filter(['status' => $k, 'q' => $q])) }}" class="btn btn-sm {{ (string) $status === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }} <span style="opacity:.7">{{ $k ? ($counts[$k] ?? 0) : $counts['all'] }}</span></a>
         @endforeach
     </div>
 </div>
+
+<form method="GET" class="adm-search adm-tools" style="margin-bottom:16px">
+    <input type="hidden" name="status" value="{{ $status }}">
+    <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索用户邮箱 / 工单标题" style="min-width:220px">
+    <button class="btn adm-btn"><i class="fas fa-search"></i> 搜索</button>
+    @if($q)<a href="/admin/tickets{{ $status ? '?status='.$status : '' }}" class="btn btn-light" style="border-radius:9px">清除</a>@endif
+</form>
 
 <div class="card adm-panel">
     <div class="table-responsive">

@@ -9,6 +9,23 @@
     </div>
 </div>
 
+<form method="GET" class="adm-search adm-tools" style="margin-bottom:16px">
+    <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索券码 / 备注" style="min-width:180px">
+    <select name="type" class="form-control" style="width:auto">
+        <option value="">全部类型</option>
+        <option value="percent" @selected($type === 'percent')>百分比折扣</option>
+        <option value="amount" @selected($type === 'amount')>固定减</option>
+    </select>
+    <select name="status" class="form-control" style="width:auto">
+        <option value="">全部状态</option>
+        <option value="active" @selected($status === 'active')>有效</option>
+        <option value="disabled" @selected($status === 'disabled')>已停用</option>
+        <option value="expired" @selected($status === 'expired')>已过期</option>
+    </select>
+    <button class="btn adm-btn"><i class="fas fa-search"></i> 筛选</button>
+    @if($q || $type || $status)<a href="/admin/coupons" class="btn btn-light" style="border-radius:9px">清除</a>@endif
+</form>
+
 @if(session('status'))<div class="alert alert-success" style="border-radius:10px">{{ session('status') }}</div>@endif
 
 {{-- 批量生成 --}}
