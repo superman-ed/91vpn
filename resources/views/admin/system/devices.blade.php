@@ -101,7 +101,7 @@
             </tbody>
         </table>
     </div>
-    @if($devices->hasPages())<div class="adm-foot">{{ $devices->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $devices])
 </div>
 @endif
 @endsection

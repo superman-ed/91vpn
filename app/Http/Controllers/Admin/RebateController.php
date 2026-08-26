@@ -22,8 +22,7 @@ class RebateController extends Controller
                 $ids = User::where('email', 'like', "%{$q}%")->pluck('id');
                 $query->where(fn ($w) => $w->whereIn('user_id', $ids)->orWhereIn('from_user_id', $ids));
             })
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
+            ->dateBetween($from, $to);
 
         $rebates = (clone $base)->with('user', 'fromUser', 'order')->latest()->paginate(30)->withQueryString();
 

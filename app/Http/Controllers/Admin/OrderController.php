@@ -16,16 +16,7 @@ class OrderController extends Controller
         $from = $request->query('from');
         $to = $request->query('to');
 
-        $dateFilter = function ($query) use ($from, $to) {
-            if ($from) {
-                $query->whereDate('created_at', '>=', $from);
-            }
-            if ($to) {
-                $query->whereDate('created_at', '<=', $to);
-            }
-        };
-
-        $orders = $this->filtered($status, $q, $dateFilter)->with(['user', 'plan'])
+        $orders = $this->filtered($status, $q, $from, $to)->with(['user', 'plan'])
             ->latest()->paginate(30)->withQueryString();
 
         return view('admin.orders.index', [
@@ -49,7 +40,7 @@ class OrderController extends Controller
     }
 
     /** 共用筛选（index / export） */
-    private function filtered($status, $q, $dateFilter)
+    private function filtered($status, $q, $from = null, $to = null)
     {
         return Order::query()
             ->when(in_array($status, ['paid', 'pending', 'queued', 'cancelled'], true), fn ($query) => $query->where('status', $status))
@@ -61,7 +52,7 @@ class OrderController extends Controller
                     }
                 });
             })
-            ->where($dateFilter);
+            ->dateBetween($from, $to);
     }
 
     /** GET /admin/orders/export —— 按当前筛选导出订单 CSV */
@@ -69,20 +60,12 @@ class OrderController extends Controller
     {
         $from = $request->query('from');
         $to = $request->query('to');
-        $dateFilter = function ($query) use ($from, $to) {
-            if ($from) {
-                $query->whereDate('created_at', '>=', $from);
-            }
-            if ($to) {
-                $query->whereDate('created_at', '<=', $to);
-            }
-        };
 
         $statusName = ['paid' => '已支付', 'pending' => '待支付', 'queued' => '排队中', 'cancelled' => '已取消'];
         $header = ['订单号', '用户', '套餐', '金额', '券抵扣', '状态', '支付方式', '网关交易号', '创建时间', '支付时间'];
 
-        $rows = (function () use ($request, $dateFilter, $statusName) {
-            foreach ($this->filtered($request->query('status'), $request->query('q'), $dateFilter)
+        $rows = (function () use ($request, $from, $to, $statusName) {
+            foreach ($this->filtered($request->query('status'), $request->query('q'), $from, $to)
                 ->with(['user', 'plan', 'coupon'])->latest()->cursor() as $o) {
                 $discount = $o->coupon_id && $o->plan ? max(0, (float) $o->plan->price - (float) $o->amount) : 0;
                 yield [

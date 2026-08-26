@@ -23,8 +23,7 @@ class FinanceController extends Controller
         $query = BalanceLog::query()
             ->when($q, fn ($b) => $b->whereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%")))
             ->when(in_array($type, self::TYPES, true), fn ($b) => $b->where('type', $type))
-            ->when($from, fn ($b) => $b->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($b) => $b->whereDate('created_at', '<=', $to));
+            ->dateBetween($from, $to);
 
         $header = ['时间', '用户', '类型', '变动', '变动后余额', '关联订单', '交易号', '备注'];
         $rows = (function () use ($query) {
@@ -57,8 +56,7 @@ class FinanceController extends Controller
         // 合计随「用户/日期」筛选变化,不随类型标签变化
         $base = BalanceLog::query()
             ->when($q, fn ($query) => $query->whereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%")))
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
+            ->dateBetween($from, $to);
 
         $logs = (clone $base)
             ->when(in_array($type, self::TYPES, true), fn ($query) => $query->where('type', $type))

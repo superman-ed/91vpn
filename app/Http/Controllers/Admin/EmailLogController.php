@@ -30,14 +30,12 @@ class EmailLogController extends Controller
         $base = EmailLog::query()
             ->when($q, fn ($query) => $query->where('to_email', 'like', "%{$q}%"))
             ->when(in_array($status, ['sent', 'failed', 'logged'], true), fn ($query) => $query->where('status', $status))
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
+            ->dateBetween($from, $to);
 
         // 计数不随状态标签变化(随邮箱/日期变)
         $countBase = EmailLog::query()
             ->when($q, fn ($query) => $query->where('to_email', 'like', "%{$q}%"))
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
+            ->dateBetween($from, $to);
 
         return view('admin.system.emails', [
             'logs' => $base->latest()->paginate(30)->withQueryString(),

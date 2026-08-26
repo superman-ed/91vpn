@@ -85,6 +85,6 @@
             </tbody>
         </table>
     </div>
-    @if($coupons->hasPages())<div class="adm-foot">{{ $coupons->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $coupons])
 </div>
 @endsection

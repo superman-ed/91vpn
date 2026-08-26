@@ -34,8 +34,7 @@ class AuditLogController extends Controller
             ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('description', 'like', "%{$q}%")
                 ->orWhereHas('admin', fn ($a) => $a->where('email', 'like', "%{$q}%"))))
             ->when($group, fn ($query) => $query->where('action', 'like', "{$group}.%"))
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
+            ->dateBetween($from, $to);
 
         return view('admin.system.audit', [
             'logs' => (clone $base)->with('admin')->latest()->paginate(30)->withQueryString(),

@@ -67,6 +67,6 @@
             </tbody>
         </table>
     </div>
-    @if($logs->hasPages())<div class="adm-foot">{{ $logs->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $logs])
 </div>
 @endsection

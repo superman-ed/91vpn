@@ -71,6 +71,32 @@ window.authToast = function(msg, type){
     clearTimeout(window.__authToastT);
     window.__authToastT = setTimeout(function(){ el.classList.remove('show'); }, 3200);
 };
+
+// 统一的"发送验证码"处理:按钮标 data-send-code data-endpoint,含 60 秒倒计时冷却
+// (收敛注册/找回两页原本各写一份的近似脚本)
+document.querySelectorAll('button[data-send-code]').forEach(function(btn){
+    var label = btn.textContent;
+    btn.addEventListener('click', async function(){
+        var input = document.querySelector('input[name=email]');
+        var email = input ? input.value.trim() : '';
+        if(!email){ authToast('请先填写邮箱','warn'); return; }
+        btn.disabled = true; btn.textContent = '发送中…';
+        try {
+            var r = await fetch(btn.dataset.endpoint, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
+                body: JSON.stringify({email: email}),
+            });
+            var j = await r.json();
+            authToast(j.message || '验证码已发送', r.ok ? 'ok' : 'warn');
+            if(r.ok){
+                var s = 60;
+                var t = setInterval(function(){ btn.textContent = s + ' 秒'; if(--s < 0){ clearInterval(t); btn.disabled = false; btn.textContent = label; } }, 1000);
+                btn.textContent = s + ' 秒';
+            } else { btn.disabled = false; btn.textContent = label; }
+        } catch(e){ authToast('发送失败，请稍后重试','warn'); btn.disabled = false; btn.textContent = label; }
+    });
+});
 </script>
 </body>
 </html>

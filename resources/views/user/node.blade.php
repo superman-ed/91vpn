@@ -71,18 +71,12 @@
 </div>
 <script>
 (function () {
-    function copy(text, btn, label) {
-        var done = function () {
+    function copy(text, btn) {
+        window.copyText(text).then(function () {
             var old = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
             setTimeout(function () { btn.innerHTML = old; }, 1600);
-        };
-        if (navigator.clipboard) { navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); }); }
-        else { fallback(text); done(); }
-    }
-    function fallback(text) {
-        var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
-        try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(t);
+        });
     }
     var s = document.getElementById('copySubBtn');
     if (s) s.addEventListener('click', function () { copy(document.getElementById('subUrl').value, s); });

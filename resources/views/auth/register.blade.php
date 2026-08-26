@@ -15,7 +15,7 @@
         <div class="input-group">
             <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-shield-alt"></i></span></div>
             <input type="text" name="email_code" class="form-control" placeholder="邮箱收到的验证码" required>
-            <div class="input-group-append"><button type="button" class="btn btn-outline-primary" id="sendCode" style="border-radius:0 10px 10px 0">发送</button></div>
+            <div class="input-group-append"><button type="button" class="btn btn-outline-primary" data-send-code data-endpoint="/auth/send" style="border-radius:0 10px 10px 0">发送</button></div>
         </div>
     </div>
     <div class="form-row">
@@ -60,30 +60,4 @@
     <button class="btn btn-auth btn-block mb-2 mt-1"><i class="fas fa-user-plus"></i> 注 册</button>
     <div class="auth-links">已有账号？<a href="/login">点击登录</a></div>
 </form>
-<script>
-(function(){
-    const btn=document.getElementById('sendCode');
-    const label='发送';
-    let timer=null;
-    function cooldown(s){
-        btn.disabled=true;
-        timer=setInterval(function(){
-            btn.textContent=s+' 秒';
-            if(--s<0){clearInterval(timer);btn.disabled=false;btn.textContent=label;}
-        },1000);
-        btn.textContent=s+' 秒';
-    }
-    btn.addEventListener('click', async function(){
-        const email=document.querySelector('input[name=email]').value.trim();
-        if(!email){authToast('请先填写邮箱','warn');return;}
-        btn.disabled=true;btn.textContent='发送中…';
-        try{
-            const r=await fetch('/auth/send',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},body:JSON.stringify({email})});
-            const j=await r.json();
-            authToast(j.message||'验证码已发送', r.ok?'ok':'warn');
-            if(r.ok){cooldown(60);}else{btn.disabled=false;btn.textContent=label;}
-        }catch(e){authToast('发送失败，请稍后重试','warn');btn.disabled=false;btn.textContent=label;}
-    });
-})();
-</script>
 @endsection

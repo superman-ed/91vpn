@@ -131,7 +131,7 @@
             </tbody>
         </table>
     </div>
-    @if($users->hasPages())<div class="adm-foot">{{ $users->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $users])
 </div>
 <style>@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }</style>
 @endsection

@@ -116,10 +116,10 @@
     if (!btn) return;
     btn.addEventListener('click', function () {
         var input = document.getElementById('inviteUrl');
-        input.select();
-        var done = function () { btn.innerHTML = '<i class="fas fa-check"></i> 已复制'; setTimeout(function () { btn.innerHTML = '<i class="fas fa-copy"></i> 复制链接'; }, 1800); };
-        if (navigator.clipboard) { navigator.clipboard.writeText(input.value).then(done, function () { document.execCommand('copy'); done(); }); }
-        else { document.execCommand('copy'); done(); }
+        window.copyText(input.value).then(function () {
+            btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+            setTimeout(function () { btn.innerHTML = '<i class="fas fa-copy"></i> 复制链接'; }, 1800);
+        });
     });
 })();
 </script>

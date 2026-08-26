@@ -36,6 +36,6 @@
             </tbody>
         </table>
     </div>
-    @if($tickets->hasPages())<div class="adm-foot">{{ $tickets->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $tickets])
 </div>
 @endsection

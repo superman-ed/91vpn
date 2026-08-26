@@ -23,6 +23,6 @@
             </tbody>
         </table>
     </div>
-    @if($users->hasPages())<div class="adm-foot">{{ $users->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $users])
 </div>
 @endsection

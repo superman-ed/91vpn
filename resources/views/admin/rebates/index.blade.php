@@ -61,6 +61,6 @@
             </tbody>
         </table>
     </div>
-    @if($rebates->hasPages())<div class="adm-foot">{{ $rebates->links('pagination::bootstrap-4') }}</div>@endif
+    @include('admin.partials.pager', ['p' => $rebates])
 </div>
 @endsection

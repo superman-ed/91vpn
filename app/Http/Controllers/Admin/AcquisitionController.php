@@ -15,15 +15,12 @@ class AcquisitionController extends Controller
         $from = $request->query('from');
         $to = $request->query('to');
 
-        $base = User::query()
-            ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to));
+        $base = User::query()->dateBetween($from, $to);
 
         // 每用户已支付订单营收：SQL 聚合(join 区间用户),不再把全表拉进内存
         $revByUser = Order::where('orders.status', 'paid')
             ->join('users', 'users.id', '=', 'orders.user_id')
-            ->when($from, fn ($q) => $q->whereDate('users.created_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('users.created_at', '<=', $to))
+            ->dateBetween($from, $to, 'users.created_at')
             ->groupBy('orders.user_id')
             ->selectRaw('orders.user_id as uid, sum(orders.amount) as rev')->pluck('rev', 'uid');
 

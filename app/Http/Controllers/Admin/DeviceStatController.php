@@ -22,8 +22,7 @@ class DeviceStatController extends Controller
                 ->where('model', 'like', "%{$q}%")->orWhere('brand', 'like', "%{$q}%")
                 ->orWhereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%"))))
             ->when($platform, fn ($query) => $query->where('platform', $platform))
-            ->when($from, fn ($query) => $query->whereDate('last_seen', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('last_seen', '<=', $to));
+            ->dateBetween($from, $to, 'last_seen');
 
         $dist = fn ($col, $q) => (clone $q)->whereNotNull($col)->where($col, '!=', '')
             ->select($col, DB::raw('count(*) as c'))->groupBy($col)->orderByDesc('c')->pluck('c', $col);

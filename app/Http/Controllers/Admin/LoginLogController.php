@@ -27,15 +27,13 @@ class LoginLogController extends Controller
                 ->orWhere('email', 'like', "%{$q}%")
                 ->orWhereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%"))))
             ->when(in_array($status, ['success', 'failed'], true), fn ($query) => $query->where('status', $status))
-            ->when($from, fn ($query) => $query->whereDate('logged_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('logged_at', '<=', $to));
+            ->dateBetween($from, $to, 'logged_at');
 
         $countBase = LoginLog::query()
             ->when($q, fn ($query) => $query->where(fn ($w) => $w
                 ->where('ip', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")
                 ->orWhereHas('user', fn ($u) => $u->where('email', 'like', "%{$q}%"))))
-            ->when($from, fn ($query) => $query->whereDate('logged_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('logged_at', '<=', $to));
+            ->dateBetween($from, $to, 'logged_at');
 
         // 暴破告警：近 24h 内失败次数达阈值的 IP
         $alerts = LoginLog::where('status', 'failed')

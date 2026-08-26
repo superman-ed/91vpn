@@ -115,23 +115,30 @@
 <script src="/stisla/assets/js/custom.js"></script>
 <div id="copy-toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#34395e;color:#fff;padding:12px 22px;border-radius:8px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;z-index:9999">已复制订阅链接</div>
 <script>
+// 统一复制到剪贴板(含非安全上下文 execCommand 回退),返回 Promise;
+// 各页自行处理复制后的反馈。收敛此前 3 处各写一份的剪贴板+回退逻辑。
+window.copyText = function (text) {
+    function legacy() {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text).catch(legacy);
+    }
+    legacy();
+    return Promise.resolve();
+};
+// 复制订阅链接:复制 + 底部 toast 提示
 window.copySub = function (text) {
-    const done = () => {
+    window.copyText(text).then(function () {
         const t = document.getElementById('copy-toast');
         t.style.opacity = '1';
         clearTimeout(window.__copyTimer);
-        window.__copyTimer = setTimeout(() => { t.style.opacity = '0'; }, 1800);
-    };
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
-    } else { fallback(text, done); }
-    function fallback(t, cb) {
-        const ta = document.createElement('textarea');
-        ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (e) {}
-        document.body.removeChild(ta); cb();
-    }
+        window.__copyTimer = setTimeout(function () { t.style.opacity = '0'; }, 1800);
+    });
 };
 </script>
 @php $popup = auth()->user()->popupNotification(); @endphp
