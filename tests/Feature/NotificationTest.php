@@ -66,3 +66,14 @@ it('blocks reading another user notification', function () {
 
     $this->actingAs(User::factory()->create())->post("/user/messages/{$n->id}/read")->assertForbidden();
 });
+
+it('shows the bell dropdown with recent notifications on user pages', function () {
+    $u = User::factory()->create();
+    UserNotification::create(['user_id' => $u->id, 'title' => '铃铛测试消息', 'content' => 'hi', 'type' => 'notice']);
+
+    $this->actingAs($u)->get('/user')
+        ->assertOk()
+        ->assertSee('notiPanel', false)        // 下拉面板已渲染
+        ->assertSee('铃铛测试消息')             // 最近消息进下拉
+        ->assertSee('查看全部消息');
+});

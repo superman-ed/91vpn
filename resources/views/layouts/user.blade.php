@@ -24,12 +24,35 @@
                 </ul>
             </form>
             <ul class="navbar-nav navbar-right" style="display:flex;align-items:center;gap:10px">
-                @php $unread = auth()->user()->unreadNotificationCount(); @endphp
-                <li class="nav-item">
-                    <a href="/user/messages" class="nav-link nav-link-lg" style="position:relative;color:#fff" title="我的消息">
+                @php $unread = auth()->user()->unreadNotificationCount(); $recentNotis = auth()->user()->notifications()->limit(5)->get(); @endphp
+                <li class="nav-item" style="position:relative">
+                    <a href="/user/messages" id="notiBell" class="nav-link nav-link-lg" style="position:relative;color:#fff" title="我的消息">
                         <i class="fas fa-bell"></i>
                         @if($unread > 0)<span style="position:absolute;top:2px;right:0;background:#fc544b;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:9px;padding:0 4px">{{ $unread > 99 ? '99+' : $unread }}</span>@endif
                     </a>
+                    <div id="notiPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:90vw;background:#fff;border-radius:14px;box-shadow:0 16px 44px rgba(30,40,80,.22);overflow:hidden;z-index:1090">
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #f1f3f8">
+                            <span style="font-weight:700;color:#34395e;font-size:14px">消息 @if($unread > 0)<span style="color:#fc544b;font-size:12px">· {{ $unread }} 未读</span>@endif</span>
+                            @if($unread > 0)<form method="POST" action="/user/messages/read-all" style="margin:0">@csrf<button style="border:none;background:none;color:#6777ef;font-size:12px;font-weight:600;cursor:pointer;padding:0">全部已读</button></form>@endif
+                        </div>
+                        <div style="max-height:360px;overflow-y:auto">
+                            @php $tColor = ['system' => '#6777ef', 'expiry' => '#e6912a', 'marketing' => '#7c4ddb', 'notice' => '#3aa0c7']; @endphp
+                            @forelse($recentNotis as $n)
+                            <a href="/user/messages" style="display:block;padding:12px 16px;border-bottom:1px solid #f6f7fb;text-decoration:none;background:{{ $n->read_at ? '#fff' : '#f7f9ff' }}">
+                                <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+                                    @if(! $n->read_at)<span style="width:7px;height:7px;border-radius:50%;background:#fc544b;flex:0 0 7px"></span>@endif
+                                    <span style="width:6px;height:6px;border-radius:50%;background:{{ $tColor[$n->type] ?? '#98a6ad' }};flex:0 0 6px"></span>
+                                    <b style="font-size:13px;color:#34395e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">{{ $n->title }}</b>
+                                    <span style="font-size:11px;color:#b5bdc9;flex:0 0 auto">{{ $n->created_at?->diffForHumans(null, true) }}</span>
+                                </div>
+                                <div style="font-size:12px;color:#8a95a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:14px">{{ \Illuminate\Support\Str::limit($n->content, 42) }}</div>
+                            </a>
+                            @empty
+                            <div style="padding:34px 16px;text-align:center;color:#b5bdc9;font-size:13px"><i class="fas fa-bell-slash fa-2x mb-2 d-block" style="opacity:.4"></i>暂无消息</div>
+                            @endforelse
+                        </div>
+                        <a href="/user/messages" style="display:block;padding:11px;text-align:center;font-size:13px;color:#6777ef;font-weight:600;text-decoration:none;background:#fafbff">查看全部消息 →</a>
+                    </div>
                 </li>
                 <li class="nav-item"><span class="d-none d-lg-inline" style="color:#fff">Hi, {{ auth()->user()->name }}</span></li>
                 <li class="nav-item">
@@ -112,5 +135,22 @@ window.copySub = function (text) {
 };
 </script>
 @include('partials.support')
+<script>
+// 铃铛下拉:点铃铛切换,点外部关闭(事件委托,Turbo 友好,元素现查)
+(function () {
+    if (window.__notiBound) return;
+    window.__notiBound = true;
+    document.addEventListener('click', function (e) {
+        var panel = document.getElementById('notiPanel');
+        if (!panel) return;
+        if (e.target.closest('#notiBell')) {
+            e.preventDefault();
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        } else if (!e.target.closest('#notiPanel')) {
+            panel.style.display = 'none';
+        }
+    });
+})();
+</script>
 </body>
 </html>
