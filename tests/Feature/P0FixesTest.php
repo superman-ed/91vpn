@@ -87,3 +87,22 @@ it('does not cancel a pending order when gateway query fails (P0-2)', function (
     $this->artisan('orders:expire-pending')->assertSuccessful();
     expect($order->fresh()->status)->toBe('pending');   // 查单失败 → 保守不关单,绝不误杀已付单
 });
+
+// —— P1-6: 同用户两笔订单结算,时长叠加(第二笔排队),不互相覆盖 ——
+it('stacks durations for two orders of the same user, not overwrite (P1-6)', function () {
+    $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]); // 已过期
+    $plan = Plan::create(['name' => '月付', 'price' => 30, 'period' => 'month', 'duration_days' => 30, 'transfer_gb' => 100, 'is_data_pack' => false]);
+    $a = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+    $b = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 30, 'status' => 'pending', 'period' => 'month']);
+
+    $billing = app(\App\Services\BillingService::class);
+    $billing->settleOrder($a, 'epay');
+    $billing->settleOrder($b, 'epay');
+
+    // A 立即发货(30天), B 因当前有效而排队 → 用户拿到 30 天 + 一笔排队,而非被覆盖只剩 30 天
+    expect($a->fresh()->status)->toBe('paid');
+    expect($b->fresh()->status)->toBe('queued');
+    expect($user->fresh()->class_expire->isFuture())->toBeTrue();
+    // 排队订单激活后累计约 60 天
+    expect($b->fresh()->activate_at)->not->toBeNull();
+});

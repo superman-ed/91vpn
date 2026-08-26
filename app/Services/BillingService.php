@@ -76,6 +76,9 @@ class BillingService
     public function completeOrder(Order $order, string $payMethod): void
     {
         DB::transaction(function () use ($order, $payMethod) {
+            // 锁 user 行：串行化同一用户的并发发货，避免两笔订单各自读到旧到期日、互相覆盖时长
+            $user = User::whereKey($order->user_id)->lockForUpdate()->first();
+
             $order->update(['pay_method' => $payMethod, 'paid_at' => now()]);
 
             // 支付即结算的部分
@@ -86,7 +89,6 @@ class BillingService
                 $order->coupon->increment('used');
             }
 
-            $user = $order->user;
             $plan = $order->plan;
 
             if ($plan->is_data_pack) {
@@ -112,7 +114,8 @@ class BillingService
     public function activate(Order $order): void
     {
         DB::transaction(function () use ($order) {
-            $this->deliver($order->user, $order->plan);
+            $user = User::whereKey($order->user_id)->lockForUpdate()->first();   // 锁 user，避免与并发发货竞态
+            $this->deliver($user, $order->plan);
             $order->update(['status' => 'paid', 'delivered_at' => now()]);
         });
     }
