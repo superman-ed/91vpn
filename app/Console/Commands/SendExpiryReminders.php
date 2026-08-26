@@ -27,7 +27,7 @@ class SendExpiryReminders extends Command
                     }
                     $days = (int) ceil(now()->floatDiffInDays($u->class_expire));
                     UserNotification::create([
-                        'user_id' => $u->id, 'type' => 'expiry',
+                        'user_id' => $u->id, 'type' => 'expiry', 'pinned' => true,
                         'title' => '套餐即将到期提醒',
                         'content' => "您的套餐将于 {$u->class_expire->format('Y-m-d')} 到期（约 {$days} 天后）。为避免服务中断，请及时续费。",
                     ]);

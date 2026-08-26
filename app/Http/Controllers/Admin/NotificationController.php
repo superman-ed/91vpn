@@ -45,13 +45,14 @@ class NotificationController extends Controller
             'segment' => ['required_if:mode,batch', 'nullable', 'in:'.implode(',', array_keys(self::SEGMENTS))],
         ]);
         $type = $data['type'] ?? 'system';
+        $pinned = $request->boolean('pinned');
 
         if ($data['mode'] === 'single') {
             $user = User::where('email', $data['email'])->first();
             if (! $user) {
                 return back()->withErrors(['email' => '该邮箱用户不存在'])->withInput();
             }
-            UserNotification::create(['user_id' => $user->id, 'title' => $data['title'], 'content' => $data['content'], 'type' => $type]);
+            UserNotification::create(['user_id' => $user->id, 'title' => $data['title'], 'content' => $data['content'], 'type' => $type, 'pinned' => $pinned]);
             audit('notification.send', "站内信发给 {$user->email}：{$data['title']}");
 
             return back()->with('status', "已发送给 {$user->email}");
@@ -60,10 +61,10 @@ class NotificationController extends Controller
         // 群发：分块插入
         $now = now();
         $count = 0;
-        $this->segment($data['segment'])->select('id')->chunkById(500, function ($users) use ($data, $type, $now, &$count) {
+        $this->segment($data['segment'])->select('id')->chunkById(500, function ($users) use ($data, $type, $pinned, $now, &$count) {
             $rows = $users->map(fn ($u) => [
                 'user_id' => $u->id, 'title' => $data['title'], 'content' => $data['content'],
-                'type' => $type, 'created_at' => $now, 'updated_at' => $now,
+                'type' => $type, 'pinned' => $pinned, 'created_at' => $now, 'updated_at' => $now,
             ])->all();
             UserNotification::insert($rows);
             $count += count($rows);

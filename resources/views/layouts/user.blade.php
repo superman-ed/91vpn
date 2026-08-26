@@ -134,6 +134,29 @@ window.copySub = function (text) {
     }
 };
 </script>
+@php $popup = auth()->user()->popupNotification(); @endphp
+@if($popup)
+@php $ptMeta = ['system' => ['系统通知', '#6777ef'], 'expiry' => ['到期提醒', '#e6912a'], 'marketing' => ['活动', '#7c4ddb'], 'notice' => ['通知', '#3aa0c7']]; [$ptName, $ptColor] = $ptMeta[$popup->type] ?? ['通知', '#6777ef']; @endphp
+<div id="npOverlay" style="position:fixed;inset:0;background:rgba(16,20,35,.5);backdrop-filter:blur(4px);z-index:1300;display:flex;align-items:center;justify-content:center;animation:npFade .2s ease">
+    <div style="background:#fff;border-radius:18px;width:420px;max-width:92vw;box-shadow:0 26px 70px rgba(16,20,45,.4);overflow:hidden;animation:npPop .3s cubic-bezier(.34,1.56,.64,1)">
+        <div style="padding:20px 22px 0;text-align:center">
+            <span style="width:56px;height:56px;border-radius:50%;background:{{ $ptColor }};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px"><i class="fas fa-{{ $popup->type === 'expiry' ? 'clock' : 'bullhorn' }}"></i></span>
+            <div style="font-size:11px;font-weight:700;color:{{ $ptColor }};margin-bottom:4px">{{ $ptName }}</div>
+            <h5 style="font-weight:800;color:#34395e;margin:0 0 12px">{{ $popup->title }}</h5>
+        </div>
+        <div style="padding:0 24px;font-size:13.5px;color:#54667a;line-height:1.75;white-space:pre-line;text-align:center;max-height:40vh;overflow-y:auto">{{ $popup->content }}</div>
+        <div style="padding:20px 24px 22px">
+            <form method="POST" action="/user/messages/{{ $popup->id }}/read">@csrf
+                @if($popup->type === 'expiry')
+                <a href="/user/shop" class="btn btn-block" style="border-radius:11px;background:linear-gradient(135deg,#6777ef,#5a67e8);color:#fff;font-weight:600;margin-bottom:8px">去续费</a>
+                @endif
+                <button class="btn btn-block" style="border-radius:11px;background:#f1f3f8;color:#64718a;font-weight:600;border:none">我知道了</button>
+            </form>
+        </div>
+    </div>
+</div>
+<style>@keyframes npFade{from{opacity:0}to{opacity:1}}@keyframes npPop{from{opacity:0;transform:translateY(16px) scale(.93)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){#npOverlay,#npOverlay>div{animation:none}}</style>
+@endif
 @include('partials.support')
 <script>
 // 铃铛下拉:点铃铛切换,点外部关闭(事件委托,Turbo 友好,元素现查)

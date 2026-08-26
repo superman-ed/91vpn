@@ -65,6 +65,12 @@ class User extends Authenticatable
         return $this->notifications()->whereNull('read_at')->count();
     }
 
+    /** 待登录弹窗的通知(未读 + 标记弹窗),取最新一条 */
+    public function popupNotification(): ?UserNotification
+    {
+        return $this->notifications()->whereNull('read_at')->where('pinned', true)->first();
+    }
+
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'ref_by');

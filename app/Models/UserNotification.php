@@ -9,9 +9,9 @@ class UserNotification extends Model
 {
     protected $table = 'user_notifications';
 
-    protected $fillable = ['user_id', 'title', 'content', 'type', 'read_at'];
+    protected $fillable = ['user_id', 'title', 'content', 'type', 'pinned', 'read_at'];
 
-    protected $casts = ['read_at' => 'datetime'];
+    protected $casts = ['read_at' => 'datetime', 'pinned' => 'boolean'];
 
     public function user(): BelongsTo
     {

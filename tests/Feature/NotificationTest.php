@@ -77,3 +77,22 @@ it('shows the bell dropdown with recent notifications on user pages', function (
         ->assertSee('铃铛测试消息')             // 最近消息进下拉
         ->assertSee('查看全部消息');
 });
+
+it('auto-popups a pinned unread notification and dismisses on read', function () {
+    $u = User::factory()->create();
+    $n = UserNotification::create(['user_id' => $u->id, 'title' => '重要:到期提醒', 'content' => '快续费', 'type' => 'expiry', 'pinned' => true]);
+    UserNotification::create(['user_id' => $u->id, 'title' => '普通消息', 'content' => 'x', 'type' => 'system', 'pinned' => false]);
+
+    // 进任意用户页 → 弹窗出现(pinned 未读)
+    $this->actingAs($u)->get('/user')->assertOk()->assertSee('npOverlay', false)->assertSee('重要:到期提醒');
+
+    // 点"我知道了"标记已读 → 不再弹
+    $this->actingAs($u)->post("/user/messages/{$n->id}/read")->assertRedirect();
+    $this->actingAs($u)->get('/user')->assertOk()->assertDontSee('npOverlay', false);
+});
+
+it('does not popup a non-pinned notification', function () {
+    $u = User::factory()->create();
+    UserNotification::create(['user_id' => $u->id, 'title' => '普通', 'content' => 'x', 'type' => 'system', 'pinned' => false]);
+    $this->actingAs($u)->get('/user')->assertOk()->assertDontSee('npOverlay', false);
+});
