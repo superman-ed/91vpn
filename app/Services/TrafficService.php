@@ -21,18 +21,50 @@ class TrafficService
         $date = now()->toDateString();
         $now = now()->toDateTimeString();
 
+        // 先做输入清洗:丢弃非正 user_id、负数流量(防"负数续量"白嫖 / buggy agent 冲账),
+        // 记下候选 user_id 供归属校验
+        $clean = [];
+        $rejected = 0;
+        foreach ($logs as $log) {
+            $userId = (int) ($log['user_id'] ?? 0);
+            $u = (int) ($log['u'] ?? 0);
+            $d = (int) ($log['d'] ?? 0);
+            if ($userId <= 0 || $u < 0 || $d < 0) {
+                $rejected++;                 // 负数/非法一律拒收,不入账
+                continue;
+            }
+            if ($u === 0 && $d === 0) {
+                continue;
+            }
+            $clean[] = [$userId, $u, $d];
+        }
+        if ($rejected > 0) {
+            \Illuminate\Support\Facades\Log::warning("[流量上报] 节点 {$node->id} 丢弃 {$rejected} 条非法/负数记录");
+        }
+        if (! $clean) {
+            return 0;
+        }
+
+        // 归属校验:只接受"确实存在、未封禁、且等级够服务本节点"的用户,
+        // 防持节点密钥者给不相干用户乱报流量把其顶爆。用 class(非 transfer_enable/到期)
+        // 判定,避免误伤到期/耗尽用户的最后一笔正常流量。
+        $candidateIds = array_values(array_unique(array_map(fn ($r) => $r[0], $clean)));
+        $allowed = DB::table('users')
+            ->whereIn('id', $candidateIds)
+            ->where('banned', false)
+            ->where('class', '>=', (int) $node->node_class)
+            ->pluck('id')
+            ->flip();
+
         // 内存聚合：user_id => [billedU, billedD]（同批同用户合并）
         $perUser = [];
         $rawU = 0;
         $rawD = 0;
         $billedTotal = 0;
 
-        foreach ($logs as $log) {
-            $userId = (int) ($log['user_id'] ?? 0);
-            $u = (int) ($log['u'] ?? 0);
-            $d = (int) ($log['d'] ?? 0);
-            if ($userId <= 0 || ($u === 0 && $d === 0)) {
-                continue;
+        foreach ($clean as [$userId, $u, $d]) {
+            if (! isset($allowed[$userId])) {
+                continue;               // 非本节点可服务用户,跳过
             }
             $billedU = (int) round($u * $rate);
             $billedD = (int) round($d * $rate);

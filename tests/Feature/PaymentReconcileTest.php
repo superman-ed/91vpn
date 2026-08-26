@@ -56,6 +56,36 @@ it('does not reconcile orders still inside the notify grace window', function ()
     Http::assertNothingSent();
 });
 
+it('credits a pending recharge the gateway reports as paid', function () {
+    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 1, 'msg' => '查询成功', 'data' => ['status' => 'success']])]);
+    Setting::put('epay_url', 'https://pay.example.com');
+    Setting::put('epay_pid', '1001');
+    Setting::put('epay_key', 'secret-key');
+    $user = User::factory()->create(['money' => 0]);
+    $recharge = \App\Models\Recharge::create(['user_id' => $user->id, 'amount' => 50, 'status' => 'pending']);
+    \App\Models\Recharge::whereKey($recharge->id)->update(['created_at' => now()->subMinutes(10)]);   // 过对账窗口
+
+    $this->artisan('payment:reconcile')->assertSuccessful();
+
+    expect($recharge->fresh()->status)->toBe('paid');
+    expect((float) $user->fresh()->money)->toBe(50.0);
+});
+
+it('does not credit a recharge the gateway does not confirm', function () {
+    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 0, 'msg' => '订单不存在', 'data' => null])]);
+    Setting::put('epay_url', 'https://pay.example.com');
+    Setting::put('epay_pid', '1001');
+    Setting::put('epay_key', 'secret-key');
+    $user = User::factory()->create(['money' => 0]);
+    $recharge = \App\Models\Recharge::create(['user_id' => $user->id, 'amount' => 50, 'status' => 'pending']);
+    \App\Models\Recharge::whereKey($recharge->id)->update(['created_at' => now()->subMinutes(10)]);
+
+    $this->artisan('payment:reconcile')->assertSuccessful();
+
+    expect($recharge->fresh()->status)->toBe('pending');
+    expect((float) $user->fresh()->money)->toBe(0.0);
+});
+
 it('is a no-op when the gateway is not configured', function () {
     $user = User::factory()->create();
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30, 'on_sale' => true]);

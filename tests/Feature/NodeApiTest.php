@@ -52,6 +52,36 @@ it('records traffic with node rate multiplier', function () {
     expect($user->d)->toBe(4000);   // 2000 * 2
 });
 
+it('rejects negative traffic (no free continuation)', function () {
+    $node = makeNode(['traffic_rate' => 1]);
+    $user = User::factory()->create(['u' => 5000, 'd' => 5000]);
+
+    $this->postJson("/mod_mu/users/traffic?node_id={$node->id}&key=NODESECRET", [
+        'data' => [['user_id' => $user->id, 'u' => -9999, 'd' => 0]],
+    ])->assertOk();
+
+    $user->refresh();
+    expect($user->u)->toBe(5000);   // 负数被拒,已用流量不被冲回
+    expect($user->d)->toBe(5000);
+});
+
+it('ignores traffic for a user the node is not entitled to serve', function () {
+    $node = makeNode(['node_class' => 3]);           // 高等级节点
+    $low = User::factory()->create(['class' => 0, 'u' => 0, 'd' => 0]);   // 低等级用户
+    $banned = User::factory()->create(['class' => 5, 'banned' => true, 'u' => 0, 'd' => 0]);
+
+    $this->postJson("/mod_mu/users/traffic?node_id={$node->id}&key=NODESECRET", [
+        'data' => [
+            ['user_id' => $low->id, 'u' => 1000, 'd' => 1000],
+            ['user_id' => $banned->id, 'u' => 1000, 'd' => 1000],
+            ['user_id' => 999999, 'u' => 1000, 'd' => 1000],   // 不存在
+        ],
+    ])->assertOk();
+
+    expect($low->fresh()->u)->toBe(0);      // 等级不够,不入账
+    expect($banned->fresh()->u)->toBe(0);   // 已封禁,不入账
+});
+
 it('updates node heartbeat on ping', function () {
     $node = makeNode(['online' => false, 'last_heartbeat' => 0]);
     $this->getJson("/mod_mu/func/ping?node_id={$node->id}&key=NODESECRET")->assertOk();
