@@ -14,7 +14,7 @@ it('shows the self-built support bubble with configured links by default', funct
         ->assertSee('https://t.me/mysupport', false)
         ->assertSee('https://t.me/mygroup', false)
         ->assertSee('每日 10:00-24:00')
-        ->assertSee('/user/tickets', false);   // 工单入口恒在
+        ->assertSee('/user/ticket', false);   // 工单入口恒在(单数,与路由一致)
 });
 
 it('injects the third-party widget and hides the self-built panel when configured', function () {

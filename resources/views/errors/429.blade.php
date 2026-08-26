@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '429')
+@section('emoji', '🚦')
+@section('title', '操作太频繁')
+@section('desc', '请求过于频繁,请稍等片刻再试。若为发送验证码,请等待倒计时结束。')

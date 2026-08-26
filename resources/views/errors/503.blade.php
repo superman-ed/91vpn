@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '503')
+@section('emoji', '🔧')
+@section('title', '正在维护升级')
+@section('desc', '服务正在维护,预计很快恢复。给你带来不便,敬请谅解。')

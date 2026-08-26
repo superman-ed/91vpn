@@ -31,6 +31,12 @@
         .auth-links a { color: #6777ef; font-weight: 600; }
         .auth-foot { text-align: center; color: #b0bac5; font-size: 12px; margin-top: 18px; }
         .auth-inner .alert { border-radius: 10px; font-size: 13.5px; }
+        .auth-toast { position: fixed; top: 22px; left: 50%; transform: translateX(-50%) translateY(-14px); z-index: 9999;
+            padding: 11px 20px; border-radius: 11px; font-size: 14px; font-weight: 600; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.16);
+            opacity: 0; pointer-events: none; transition: opacity .22s, transform .22s; max-width: 90vw; }
+        .auth-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .auth-toast.ok { background: linear-gradient(135deg, #47c363, #3aae55); }
+        .auth-toast.warn { background: linear-gradient(135deg, #fc784b, #f36c3d); }
     </style>
 </head>
 <body class="auth-body">
@@ -49,8 +55,22 @@
     </div>
     <div class="auth-foot">91VPN © {{ date('Y') }}</div>
 </div>
+<div class="auth-toast" id="authToast"></div>
 <script src="/stisla/assets/modules/jquery.min.js"></script>
 <script src="/stisla/assets/modules/popper.js"></script>
 <script src="/stisla/assets/modules/bootstrap/js/bootstrap.min.js"></script>
+<script>
+// 轻量顶部提示,替代 alert();type: ok | warn
+window.authToast = function(msg, type){
+    var el = document.getElementById('authToast');
+    if(!el) return;
+    el.className = 'auth-toast ' + (type === 'warn' ? 'warn' : 'ok');
+    el.textContent = msg;
+    void el.offsetWidth;               // 触发重绘,保证 transition
+    el.classList.add('show');
+    clearTimeout(window.__authToastT);
+    window.__authToastT = setTimeout(function(){ el.classList.remove('show'); }, 3200);
+};
+</script>
 </body>
 </html>

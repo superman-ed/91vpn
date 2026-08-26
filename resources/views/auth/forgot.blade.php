@@ -12,12 +12,29 @@
     <div class="text-center"><a href="/login">返回登录</a></div>
 </form>
 <script>
-document.getElementById('sendReset').addEventListener('click', async function(){
-    const email=document.querySelector('input[name=email]').value;
-    if(!email){alert('请先填写邮箱');return;}
-    this.disabled=true;this.textContent='发送中...';
-    try{const r=await fetch('/password/send',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},body:JSON.stringify({email})});const j=await r.json();alert(j.message||'已发送');}catch(e){alert('发送失败');}
-    this.disabled=false;this.textContent='发送验证码';
-});
+(function(){
+    const btn=document.getElementById('sendReset');
+    const label='发送验证码';
+    let timer=null;
+    function cooldown(s){
+        btn.disabled=true;
+        timer=setInterval(function(){
+            btn.textContent=s+' 秒';
+            if(--s<0){clearInterval(timer);btn.disabled=false;btn.textContent=label;}
+        },1000);
+        btn.textContent=s+' 秒';
+    }
+    btn.addEventListener('click', async function(){
+        const email=document.querySelector('input[name=email]').value.trim();
+        if(!email){authToast('请先填写邮箱','warn');return;}
+        btn.disabled=true;btn.textContent='发送中…';
+        try{
+            const r=await fetch('/password/send',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},body:JSON.stringify({email})});
+            const j=await r.json();
+            authToast(j.message||'若邮箱已注册，验证码已发送', r.ok?'ok':'warn');
+            if(r.ok){cooldown(60);}else{btn.disabled=false;btn.textContent=label;}
+        }catch(e){authToast('发送失败，请稍后重试','warn');btn.disabled=false;btn.textContent=label;}
+    });
+})();
 </script>
 @endsection

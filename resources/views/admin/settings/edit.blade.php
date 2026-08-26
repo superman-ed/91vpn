@@ -41,6 +41,8 @@
                     <div class="form-group col-md-3"><label>商户 PID</label><input name="epay_pid" value="{{ old('epay_pid', $epayPid) }}" class="form-control"></div>
                     <div class="form-group col-md-3"><label>商户密钥 KEY</label><input name="epay_key" value="{{ old('epay_key', $epayKey) }}" class="form-control"></div>
                 </div>
+                <button form="testGatewayForm" type="submit" class="btn btn-light" style="border-radius:9px"><i class="fas fa-plug text-primary"></i> 检测网关连通性</button>
+                <small class="form-tip d-inline ml-2">先「保存设置」再检测。仅探地址可访问,不发起真实交易。</small>
             </div>
         </div>
     </div>
@@ -72,6 +74,16 @@
                     <div class="form-group col-md-6"><label>密码（阿里云发信地址的 SMTP 密码）</label><input name="smtp_password" type="password" value="{{ old('smtp_password', $smtpPassword) }}" class="form-control" placeholder="发信地址的 SMTP 密码（非阿里云账号密码）"></div>
                     <div class="form-group col-md-6"><label>发件人地址（选填，默认同用户名）</label><input name="smtp_from" value="{{ old('smtp_from', $smtpFrom) }}" class="form-control"></div>
                     <div class="form-group col-md-6"><label>发件人名称</label><input name="smtp_from_name" value="{{ old('smtp_from_name', $smtpFromName) }}" class="form-control"></div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-md-8 mb-0">
+                        <label>发送测试邮件到</label>
+                        <div class="input-group">
+                            <input form="testEmailForm" name="test_email" type="email" value="{{ auth()->user()->email }}" class="form-control" placeholder="收件邮箱">
+                            <div class="input-group-append"><button form="testEmailForm" type="submit" class="btn btn-light" style="border-radius:0 9px 9px 0"><i class="fas fa-paper-plane text-primary"></i> 发送测试</button></div>
+                        </div>
+                        <small class="form-tip">先「保存设置」写入 SMTP 配置,再发送测试邮件验证连通性。</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -105,6 +117,10 @@
 
     <button class="btn adm-btn btn-lg"><i class="fas fa-save"></i> 保存设置</button>
 </form>
+
+{{-- 自检工具:独立表单,由上方带 form= 属性的按钮触发,不与主设置表单混用 --}}
+<form id="testEmailForm" method="POST" action="/admin/settings/test-email" class="d-none">@csrf</form>
+<form id="testGatewayForm" method="POST" action="/admin/settings/test-gateway" class="d-none">@csrf</form>
 <script>
 (function () {
     var KEY = 'admin_settings_tab';

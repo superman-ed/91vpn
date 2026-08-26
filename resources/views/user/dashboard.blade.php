@@ -107,6 +107,7 @@
                 <div class="stat-value text-info">{{ $user->onlineDevices() }} / {{ $user->node_ip_limit ?: '∞' }}</div>
                 <div class="stat-sub-box">
                     <span class="stat-sub">上次使用时间: {{ $user->lastUsedText() }}</span>
+                    <a href="/user/devices" class="stat-sub" style="color:#6777ef;font-weight:600;text-decoration:none">在线设备 <i class="fas fa-angle-right"></i></a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '419')
+@section('emoji', '⏱️')
+@section('title', '页面已过期')
+@section('desc', '当前会话已过期(通常是页面停留太久)。请返回重新打开页面后再试。')

@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '404')
+@section('emoji', '🧭')
+@section('title', '页面走丢了')
+@section('desc', '你访问的页面不存在,或已被移动。检查一下网址,或从首页重新出发。')

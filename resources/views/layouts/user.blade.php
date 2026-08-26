@@ -78,6 +78,7 @@
                     <li class="menu-header">使用</li>
                     <li class="{{ request()->is('user/servers') ? 'active' : '' }}"><a class="nav-link" href="/user/servers"><i class="fas fa-server"></i><span>节点列表</span></a></li>
                     <li class="{{ request()->is('user/node') ? 'active' : '' }}"><a class="nav-link" href="/user/node"><i class="fas fa-link"></i><span>节点设置</span></a></li>
+                    <li class="{{ request()->is('user/devices') ? 'active' : '' }}"><a class="nav-link" href="/user/devices"><i class="fas fa-laptop"></i><span>在线设备</span></a></li>
                     <li class="{{ request()->is('user/traffic') ? 'active' : '' }}"><a class="nav-link" href="/user/traffic"><i class="fas fa-chart-line"></i><span>流量明细</span></a></li>
                     <li class="{{ request()->is('user/subscribe-log') ? 'active' : '' }}"><a class="nav-link" href="/user/subscribe-log"><i class="fas fa-history"></i><span>订阅记录</span></a></li>
                     <li class="{{ request()->is('user/downloads') ? 'active' : '' }}"><a class="nav-link" href="/user/downloads"><i class="fas fa-download"></i><span>下载和教程</span></a></li>

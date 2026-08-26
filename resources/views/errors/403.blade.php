@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '403')
+@section('emoji', '🔒')
+@section('title', '没有访问权限')
+@section('desc', '你没有权限查看此页面。如果你认为这是误判,请联系客服。')

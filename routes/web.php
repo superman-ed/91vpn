@@ -24,6 +24,7 @@ use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\InviteController;
 use App\Http\Controllers\User\TicketController as UserTicketController;
 use App\Http\Controllers\User\NodeSettingController;
+use App\Http\Controllers\User\DeviceController as UserDeviceController;
 use App\Http\Controllers\User\ShopController;
 use App\Http\Controllers\User\WalletController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -57,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/node', [NodeSettingController::class, 'index'])->name('user.node');
     Route::post('/user/node/reset-sub', [NodeSettingController::class, 'resetSub']);
     Route::post('/user/node/reset-passwd', [NodeSettingController::class, 'resetPasswd']);
+    Route::get('/user/devices', [UserDeviceController::class, 'index'])->name('user.devices');
     Route::get('/user/account', [AccountController::class, 'index'])->name('user.account');
     Route::post('/user/account/password', [AccountController::class, 'updatePassword']);
     Route::post('/user/account/profile', [AccountController::class, 'updateProfile']);
@@ -161,4 +163,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::delete('coupons/{coupon}', [AdminCouponController::class, 'destroy']);
     Route::get('settings', [AdminSettingController::class, 'edit'])->name('admin.settings.edit');
     Route::put('settings', [AdminSettingController::class, 'update']);
+    Route::post('settings/test-email', [AdminSettingController::class, 'testEmail']);
+    Route::post('settings/test-gateway', [AdminSettingController::class, 'testGateway']);
 });

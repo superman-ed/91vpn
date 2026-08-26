@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('code', '500')
+@section('emoji', '🛠️')
+@section('title', '服务器开小差了')
+@section('desc', '系统遇到了点问题,我们已记录。请稍后重试,如持续出现请联系客服。')

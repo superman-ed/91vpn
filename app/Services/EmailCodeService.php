@@ -42,8 +42,27 @@ class EmailCodeService
         return $code;
     }
 
-    /** 用后台配置的 SMTP 发送验证码邮件 */
-    private function mail(string $email, string $code): void
+    /** 后台「发送测试邮件」：用当前 SMTP 配置真发一封,失败抛异常由调用方捕获 */
+    public function sendTest(string $to): void
+    {
+        $this->configureMailer();
+        $from = setting('smtp_from') ?: setting('smtp_username');
+        $fromName = setting('smtp_from_name', '91VPN');
+        $body = "这是一封来自 91VPN 后台的测试邮件。\n\n若你收到它,说明当前 SMTP 配置可以正常发信。\n发送时间：".now()->format('Y-m-d H:i:s');
+
+        try {
+            Mail::mailer('smtp')->raw($body, function ($m) use ($to, $from, $fromName) {
+                $m->to($to)->from($from, $fromName)->subject('【91VPN】SMTP 测试邮件');
+            });
+            $this->record($to, '【91VPN】SMTP 测试邮件', 'sent');
+        } catch (\Throwable $e) {
+            $this->record($to, '【91VPN】SMTP 测试邮件', 'failed', $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /** 把后台 SMTP 设置写进 mailer 运行时配置 */
+    private function configureMailer(): void
     {
         Config::set('mail.mailers.smtp', array_merge(config('mail.mailers.smtp', []), [
             'transport' => 'smtp',
@@ -53,6 +72,12 @@ class EmailCodeService
             'username' => setting('smtp_username'),
             'password' => setting('smtp_password'),
         ]));
+    }
+
+    /** 用后台配置的 SMTP 发送验证码邮件 */
+    private function mail(string $email, string $code): void
+    {
+        $this->configureMailer();
 
         $from = setting('smtp_from') ?: setting('smtp_username');
         $fromName = setting('smtp_from_name', '91VPN');

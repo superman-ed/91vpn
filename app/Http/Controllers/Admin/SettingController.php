@@ -80,4 +80,43 @@ class SettingController extends Controller
 
         return redirect('/admin/settings')->with('status', '设置已保存');
     }
+
+    /** POST /admin/settings/test-email —— 用当前 SMTP 配置试发一封,验证连通性 */
+    public function testEmail(Request $request, \App\Services\EmailCodeService $emailCode)
+    {
+        $data = $request->validate(['test_email' => ['required', 'email']]);
+
+        if (! smtp_configured()) {
+            return back()->with('status', '⚠ 尚未配置 SMTP,请先填写并保存邮件设置。');
+        }
+        try {
+            $emailCode->sendTest($data['test_email']);
+            audit('setting.test-email', "发送 SMTP 测试邮件至 {$data['test_email']}");
+
+            return back()->with('status', "✅ 测试邮件已发送至 {$data['test_email']},请查收(含垃圾箱)。");
+        } catch (\Throwable $e) {
+            return back()->with('status', '❌ 发送失败：'.\Illuminate\Support\Str::limit($e->getMessage(), 160));
+        }
+    }
+
+    /** POST /admin/settings/test-gateway —— 易支付网关配置自检 */
+    public function testGateway(\App\Services\EpayService $epay)
+    {
+        if (! $epay->configured()) {
+            return back()->with('status', '⚠ 网关未配置完整,请填写 网关地址 / 商户PID / 商户密钥 后保存。');
+        }
+
+        $host = parse_url($epay->url(), PHP_URL_HOST);
+        $reachable = false;
+        try {
+            // 只探连通性,不发起真实交易
+            $reachable = \Illuminate\Support\Facades\Http::timeout(8)->get($epay->url())->status() > 0;
+        } catch (\Throwable $e) {
+            $reachable = false;
+        }
+
+        return back()->with('status', $reachable
+            ? "✅ 网关配置完整,{$host} 可访问(PID：{$epay->pid()})。真实交易结果仍以回调为准。"
+            : "⚠ 网关参数已配置,但 {$host} 当前无法访问,请检查网关地址或服务器出网。");
+    }
 }
