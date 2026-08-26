@@ -81,6 +81,7 @@
                     <li class="{{ request()->is('admin/tickets*') ? 'active' : '' }}"><a class="nav-link" href="/admin/tickets"><i class="far fa-comments"></i><span>工单管理</span></a></li>
                     <li class="{{ request()->is('admin/coupons*') ? 'active' : '' }}"><a class="nav-link" href="/admin/coupons"><i class="fas fa-ticket-alt"></i><span>优惠券</span></a></li>
                     <li class="{{ request()->is('admin/announcements*') ? 'active' : '' }}"><a class="nav-link" href="/admin/announcements"><i class="fas fa-bullhorn"></i><span>公告管理</span></a></li>
+                    <li class="{{ request()->is('admin/notifications*') ? 'active' : '' }}"><a class="nav-link" href="/admin/notifications"><i class="fas fa-paper-plane"></i><span>站内信</span></a></li>
                     <li class="{{ request()->is('admin/admins*') ? 'active' : '' }}"><a class="nav-link" href="/admin/admins"><i class="fas fa-user-shield"></i><span>管理员</span></a></li>
                     <li class="{{ request()->is('admin/settings*') ? 'active' : '' }}"><a class="nav-link" href="/admin/settings"><i class="fas fa-cog"></i><span>站点设置</span></a></li>
                     <li class="menu-header">系统</li>

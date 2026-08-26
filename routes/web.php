@@ -78,6 +78,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/order/{order}/cancel', [ShopController::class, 'cancelOrder']);
     Route::post('/user/subscription/end', [ShopController::class, 'endSubscription']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
+    Route::get('/user/messages', [App\Http\Controllers\User\NotificationController::class, 'index'])->name('user.messages');
+    Route::post('/user/messages/read-all', [App\Http\Controllers\User\NotificationController::class, 'readAll']);
+    Route::post('/user/messages/{notification}/read', [App\Http\Controllers\User\NotificationController::class, 'read']);
     Route::get('/user/wallet', [WalletController::class, 'index'])->name('user.wallet');
     Route::post('/user/wallet/recharge', [WalletController::class, 'recharge']);
     Route::post('/user/order/{order}/pay-balance', [WalletController::class, 'payBalance']);
@@ -135,6 +138,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('system/audit', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('admin.system.audit');
     Route::get('system/emails', [App\Http\Controllers\Admin\EmailLogController::class, 'index'])->name('admin.system.emails');
     Route::get('system/health', [App\Http\Controllers\Admin\HealthController::class, 'index'])->name('admin.system.health');
+    Route::get('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('admin.notifications.index');
+    Route::post('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'store'])->name('admin.notifications.store');
     Route::get('orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');

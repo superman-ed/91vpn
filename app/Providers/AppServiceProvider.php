@@ -12,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
     /** 需记录心跳的定时任务 */
     public const WATCHED_TASKS = [
         'alive-ips:prune', 'traffic:reset-daily', 'traffic:reset-monthly',
-        'orders:activate-due', 'payment:reconcile', 'orders:expire-pending', 'stats:snapshot',
+        'orders:activate-due', 'payment:reconcile', 'orders:expire-pending', 'stats:snapshot', 'notify:expiry',
     ];
 
     public function register(): void

@@ -24,6 +24,13 @@
                 </ul>
             </form>
             <ul class="navbar-nav navbar-right" style="display:flex;align-items:center;gap:10px">
+                @php $unread = auth()->user()->unreadNotificationCount(); @endphp
+                <li class="nav-item">
+                    <a href="/user/messages" class="nav-link nav-link-lg" style="position:relative;color:#fff" title="我的消息">
+                        <i class="fas fa-bell"></i>
+                        @if($unread > 0)<span style="position:absolute;top:2px;right:0;background:#fc544b;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:9px;padding:0 4px">{{ $unread > 99 ? '99+' : $unread }}</span>@endif
+                    </a>
+                </li>
                 <li class="nav-item"><span class="d-none d-lg-inline" style="color:#fff">Hi, {{ auth()->user()->name }}</span></li>
                 <li class="nav-item">
                     <form method="POST" action="/logout">@csrf

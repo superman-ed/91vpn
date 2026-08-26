@@ -55,6 +55,16 @@ class User extends Authenticatable
         return $this->hasMany(BalanceLog::class);
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class)->latest();
+    }
+
+    public function unreadNotificationCount(): int
+    {
+        return $this->notifications()->whereNull('read_at')->count();
+    }
+
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'ref_by');

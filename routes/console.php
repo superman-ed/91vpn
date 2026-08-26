@@ -28,3 +28,6 @@ Schedule::command('orders:expire-pending')->everyTenMinutes();
 
 // 每 10 分钟采样在线/日活写入 daily_stats（在线峰值累积当日最大），供历史趋势图
 Schedule::command('stats:snapshot')->everyTenMinutes();
+
+// 每日 9 点给 3 天内到期会员发到期提醒站内信（近 4 天去重，不重复轰炸）
+Schedule::command('notify:expiry')->dailyAt('09:00');

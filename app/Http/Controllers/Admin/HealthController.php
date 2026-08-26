@@ -21,6 +21,7 @@ class HealthController extends Controller
         'stats:snapshot' => ['在线/日活快照', 600, '每10分钟'],
         'traffic:reset-daily' => ['每日流量清零', 86400, '每天00:00'],
         'traffic:reset-monthly' => ['月度流量重置', 86400, '每天00:05'],
+        'notify:expiry' => ['到期提醒站内信', 86400, '每天09:00'],
     ];
 
     /** GET /admin/system/health */
