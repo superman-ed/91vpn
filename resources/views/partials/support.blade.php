@@ -49,7 +49,7 @@
                     <i class="fas fa-chevron-right cs-arr"></i>
                 </a>
                 @endif
-                <a class="cs-item" href="/user/tickets">
+                <a class="cs-item" href="/user/ticket">
                     <span class="cs-ic" style="background:#f0edff;color:#6777ef"><i class="fas fa-ticket-alt"></i></span>
                     <span class="cs-txt"><b>提交工单</b><small>复杂问题走工单，留档可追溯</small></span>
                     <i class="fas fa-chevron-right cs-arr"></i>
