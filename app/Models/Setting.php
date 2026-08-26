@@ -17,14 +17,16 @@ class Setting extends Model
 
     public static function get(string $key, ?string $default = null): ?string
     {
-        $val = Cache::rememberForever("setting:{$key}", fn () => static::query()->find($key)?->value);
+        // 整表一次缓存成数组:未设置的键只是不在数组里 → 返回 default,
+        // 不会像单键 rememberForever(null) 那样每次调用都穿透查库
+        $all = Cache::rememberForever('settings:all', fn () => static::query()->pluck('value', 'key')->all());
 
-        return $val ?? $default;
+        return $all[$key] ?? $default;
     }
 
     public static function put(string $key, ?string $value): void
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
-        Cache::forget("setting:{$key}");
+        Cache::forget('settings:all');   // 设置极少变更,整体失效即可
     }
 }

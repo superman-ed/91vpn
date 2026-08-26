@@ -112,8 +112,8 @@ class UserController extends Controller
             'node_ip_limit' => $data['node_ip_limit'] ?? 0,
         ]);
 
-        // 余额变动走调账入口,自动补记资金流水
-        if ($data['money'] !== null) {
+        // 余额变动走调账入口,自动补记资金流水(表单未提交 money 字段时不动余额)
+        if (array_key_exists('money', $data) && $data['money'] !== null) {
             $billing->adminAdjust($user, (float) $data['money'], auth()->user()->email);
         }
 

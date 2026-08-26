@@ -110,7 +110,6 @@
 <script src="/stisla/assets/modules/tooltip.js"></script>
 <script src="/stisla/assets/modules/bootstrap/js/bootstrap.min.js"></script>
 <script src="/stisla/assets/modules/nicescroll/jquery.nicescroll.min.js"></script>
-<script src="/stisla/assets/modules/moment.min.js"></script>
 <script src="/stisla/assets/js/stisla.js"></script>
 <script src="/stisla/assets/js/scripts.js"></script>
 <script src="/stisla/assets/js/custom.js"></script>

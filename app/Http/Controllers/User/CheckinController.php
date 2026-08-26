@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class CheckinController extends Controller
 {
@@ -10,20 +12,21 @@ class CheckinController extends Controller
     public function store()
     {
         $user = auth()->user();
+        $rewardBytes = random_int(100, 500) * 1024 * 1024;   // 随机奖励 100–500 MB
+        $todayStart = now()->startOfDay()->timestamp;
 
-        // 同一天只能签到一次
-        $lastDate = $user->last_check_in > 0
-            ? \Illuminate\Support\Carbon::createFromTimestamp($user->last_check_in)->toDateString()
-            : null;
+        // 原子条件更新:仅当"上次签到在今日零点之前"才发放,受影响行数=0 即今天已签。
+        // 避免读-判-写的并发窗口被脚本重复领取。
+        $affected = User::whereKey($user->id)
+            ->where(fn ($q) => $q->whereNull('last_check_in')->orWhere('last_check_in', '<', $todayStart))
+            ->update([
+                'transfer_enable' => DB::raw("transfer_enable + {$rewardBytes}"),
+                'last_check_in' => now()->timestamp,
+            ]);
 
-        if ($lastDate === now()->toDateString()) {
+        if ($affected === 0) {
             return back()->with('status', '今天已经签到过了');
         }
-
-        // 随机奖励 100–500 MB
-        $rewardBytes = random_int(100, 500) * 1024 * 1024;
-        $user->increment('transfer_enable', $rewardBytes);
-        $user->update(['last_check_in' => now()->timestamp]);
 
         return back()->with('status', '签到成功，获得 '.round($rewardBytes / 1024 / 1024).' MB 流量');
     }

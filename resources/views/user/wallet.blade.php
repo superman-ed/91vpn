@@ -86,7 +86,7 @@
         <div class="card recharge-card">
             <div class="card-header" style="border:none;padding-bottom:0"><h4 style="font-size:15px;font-weight:700;color:#34395e">充值</h4></div>
             <div class="card-body">
-                <form method="POST" action="/user/wallet/recharge" id="rechargeForm">@csrf
+                <form method="POST" action="/user/wallet/recharge" id="rechargeForm" data-turbo="false">@csrf
                     <div class="rc-chips">
                         @foreach([10, 30, 50, 100] as $amt)
                         <div class="rc-chip" data-amt="{{ $amt }}">{{ $amt }}</div>

@@ -10,18 +10,22 @@
 @if($crispWebsiteId !== '')
     {{-- Crisp 在线客服 + 身份绑定（与真站网页端一致） --}}
     <script>
-        window.$crisp = [];
-        window.CRISP_WEBSITE_ID = {{ Illuminate\Support\Js::from($crispWebsiteId) }};
-        (function () {
-            var d = document, s = d.createElement('script');
-            s.src = 'https://client.crisp.chat/l.js'; s.async = 1;
-            d.getElementsByTagName('head')[0].appendChild(s);
-        })();
-        window.$crisp.push(['safe', true]);
-        @if($csUser && setting('crisp_bind_identity', '0') === '1')
-        window.$crisp.push(['set', 'user:email', [{{ Illuminate\Support\Js::from($csUser->email) }}]]);
-        window.$crisp.push(['set', 'user:nickname', [{{ Illuminate\Support\Js::from($csUser->name ?: $csUser->email) }}]]);
-        @endif
+        // Turbo 每次导航都会重跑本段;已注入过就跳过,避免重复加载 Crisp 脚本
+        if (!window.__crispLoaded) {
+            window.__crispLoaded = true;
+            window.$crisp = [];
+            window.CRISP_WEBSITE_ID = {{ Illuminate\Support\Js::from($crispWebsiteId) }};
+            (function () {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://client.crisp.chat/l.js'; s.async = 1;
+                d.getElementsByTagName('head')[0].appendChild(s);
+            })();
+            window.$crisp.push(['safe', true]);
+            @if($csUser && setting('crisp_bind_identity', '0') === '1')
+            window.$crisp.push(['set', 'user:email', [{{ Illuminate\Support\Js::from($csUser->email) }}]]);
+            window.$crisp.push(['set', 'user:nickname', [{{ Illuminate\Support\Js::from($csUser->name ?: $csUser->email) }}]]);
+            @endif
+        }
     </script>
 @elseif($supportWidget !== '')
     {{-- 其它第三方真人客服（Tawk.to / 美洽 等）：原样注入 --}}
@@ -135,9 +139,13 @@
             var open = typeof force === 'boolean' ? force : !w.classList.contains('open');
             w.classList.toggle('open', open);
         };
-        document.addEventListener('click', function (e) {
-            var w = document.getElementById('cs-widget');
-            if (w && w.classList.contains('open') && !w.contains(e.target)) { w.classList.remove('open'); }
-        });
+        // 一次性绑定:Turbo 每次导航都会重跑本段,无守卫会累积 document 监听器
+        if (!window.__csBound) {
+            window.__csBound = true;
+            document.addEventListener('click', function (e) {
+                var w = document.getElementById('cs-widget');
+                if (w && w.classList.contains('open') && !w.contains(e.target)) { w.classList.remove('open'); }
+            });
+        }
     </script>
 @endif
