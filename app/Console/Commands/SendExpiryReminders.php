@@ -15,9 +15,10 @@ class SendExpiryReminders extends Command
     public function handle(): int
     {
         $sent = 0;
+        $batch = 'expiry-'.now()->format('Ymd');   // 当天一批，便于撤回
         User::where('banned', false)->where('class', '>', 0)
             ->whereBetween('class_expire', [now(), now()->addDays(3)])
-            ->chunkById(200, function ($users) use (&$sent) {
+            ->chunkById(200, function ($users) use (&$sent, $batch) {
                 foreach ($users as $u) {
                     // 去重：近 4 天内已给该用户发过到期提醒就跳过（避免每天重复轰炸；下个到期周期会再发）
                     $exists = UserNotification::where('user_id', $u->id)->where('type', 'expiry')
@@ -27,7 +28,7 @@ class SendExpiryReminders extends Command
                     }
                     $days = (int) ceil(now()->floatDiffInDays($u->class_expire));
                     UserNotification::create([
-                        'user_id' => $u->id, 'type' => 'expiry', 'pinned' => true,
+                        'user_id' => $u->id, 'batch_id' => $batch, 'type' => 'expiry', 'pinned' => true,
                         'title' => '套餐即将到期提醒',
                         'content' => "您的套餐将于 {$u->class_expire->format('Y-m-d')} 到期（约 {$days} 天后）。为避免服务中断，请及时续费。",
                     ]);

@@ -96,3 +96,24 @@ it('does not popup a non-pinned notification', function () {
     UserNotification::create(['user_id' => $u->id, 'title' => '普通', 'content' => 'x', 'type' => 'system', 'pinned' => false]);
     $this->actingAs($u)->get('/user')->assertOk()->assertDontSee('npOverlay', false);
 });
+
+it('edits a sent batch, syncing all recipients', function () {
+    $a = User::factory()->create();
+    $b = User::factory()->create();
+    UserNotification::create(['user_id' => $a->id, 'batch_id' => 'B1', 'title' => '旧标题', 'content' => '旧内容', 'type' => 'notice']);
+    UserNotification::create(['user_id' => $b->id, 'batch_id' => 'B1', 'title' => '旧标题', 'content' => '旧内容', 'type' => 'notice']);
+
+    $this->actingAs(notiAdmin())->put('/admin/notifications/B1', ['title' => '新标题', 'content' => '新内容'])->assertRedirect();
+
+    expect(UserNotification::where('batch_id', 'B1')->where('title', '新标题')->count())->toBe(2);
+    expect(UserNotification::where('title', '旧标题')->count())->toBe(0);
+});
+
+it('withdraws a batch from all recipients', function () {
+    $a = User::factory()->create();
+    UserNotification::create(['user_id' => $a->id, 'batch_id' => 'B2', 'title' => '发错了', 'content' => 'x', 'type' => 'system']);
+    UserNotification::create(['user_id' => User::factory()->create()->id, 'batch_id' => 'B2', 'title' => '发错了', 'content' => 'x', 'type' => 'system']);
+
+    $this->actingAs(notiAdmin())->delete('/admin/notifications/B2')->assertRedirect();
+    expect(UserNotification::where('batch_id', 'B2')->count())->toBe(0);
+});

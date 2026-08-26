@@ -140,6 +140,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('system/health', [App\Http\Controllers\Admin\HealthController::class, 'index'])->name('admin.system.health');
     Route::get('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('admin.notifications.index');
     Route::post('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'store'])->name('admin.notifications.store');
+    Route::put('notifications/{batch}', [App\Http\Controllers\Admin\NotificationController::class, 'update'])->name('admin.notifications.update');
+    Route::delete('notifications/{batch}', [App\Http\Controllers\Admin\NotificationController::class, 'destroy'])->name('admin.notifications.destroy');
     Route::get('orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
