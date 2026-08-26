@@ -45,9 +45,10 @@ class PasswordController extends Controller
             throw ValidationException::withMessages(['code' => '验证码错误或已过期']);
         }
 
+        // 能通过验证码=掌握该邮箱;此处不区分"账号不存在",统一回验证码错误,避免枚举
         $user = User::where('email', $data['email'])->first();
         if (! $user) {
-            throw ValidationException::withMessages(['email' => '账号不存在']);
+            throw ValidationException::withMessages(['code' => '验证码错误或已过期']);
         }
 
         $user->update(['password' => Hash::make($data['password'])]);

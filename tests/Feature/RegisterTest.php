@@ -60,6 +60,33 @@ it('rejects registration with wrong email code', function () {
     expect(User::where('email', 'y@test.local')->exists())->toBeFalse();
 });
 
+it('does not leak email existence before code is verified (anti-enumeration)', function () {
+    User::factory()->create(['email' => 'taken@test.local']);
+    // 无有效验证码时探测已注册邮箱:只应回验证码错误,不得暴露 email 已注册
+    $this->withSession(['captcha_answer' => 7])->post('/register', [
+        'email' => 'taken@test.local',
+        'email_code' => '000000',
+        'name' => 'probe',
+        'password' => 'secret1234',
+        'password_confirmation' => 'secret1234',
+        'captcha' => '7',
+    ])->assertSessionHasErrors('email_code')->assertSessionDoesntHaveErrors('email');
+});
+
+it('rejects duplicate email only after code passes (owner sees clear hint)', function () {
+    User::factory()->create(['email' => 'taken2@test.local']);
+    Cache::put('email_code:taken2@test.local', '123456', now()->addMinutes(5));
+    // 掌握该邮箱(收到验证码)后,才提示已注册
+    $this->withSession(['captcha_answer' => 7])->post('/register', [
+        'email' => 'taken2@test.local',
+        'email_code' => '123456',
+        'name' => 'dup',
+        'password' => 'secret1234',
+        'password_confirmation' => 'secret1234',
+        'captcha' => '7',
+    ])->assertSessionHasErrors('email');
+});
+
 it('binds inviter when a valid invite code is used', function () {
     $inviter = User::factory()->create();
     InviteCode::create(['code' => 'INVITE01', 'user_id' => $inviter->id]);

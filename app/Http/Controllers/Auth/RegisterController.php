@@ -32,8 +32,10 @@ class RegisterController extends Controller
     /** POST /register */
     public function store(Request $request)
     {
+        // 注意:此处不加 unique 规则。唯一性检查放到"邮箱验证码校验通过之后",
+        // 否则匿名请求可从"已被注册"错误直接枚举出某邮箱是否已注册。
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255'],
             'email_code' => ['required', 'string'],
             'name' => ['required', 'string', 'max:32'],
             'invite_code' => ['nullable', 'string', 'max:32'],
@@ -49,6 +51,11 @@ class RegisterController extends Controller
         // 邮箱验证码
         if (! $this->emailCode->verify($data['email'], $data['email_code'])) {
             throw ValidationException::withMessages(['email_code' => '邮箱验证码错误或已过期']);
+        }
+
+        // 唯一性检查只在验证码通过后进行:能收到验证码=掌握该邮箱,此时提示"已注册"不构成枚举泄露
+        if (User::where('email', $data['email'])->exists()) {
+            throw ValidationException::withMessages(['email' => '该邮箱已注册，请直接登录或找回密码']);
         }
 
         // 邀请码（选填）：支持一次性邀请码 或 用户永久推广码

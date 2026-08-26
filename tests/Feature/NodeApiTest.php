@@ -16,6 +16,13 @@ it('rejects WebAPI without correct secret', function () {
     $this->getJson("/mod_mu/users?node_id={$node->id}&key=WRONG")->assertStatus(401);
 });
 
+it('authenticates via X-Node-Secret header (no key in query)', function () {
+    $node = makeNode();
+    $this->getJson("/mod_mu/users?node_id={$node->id}", ['X-Node-Secret' => 'NODESECRET'])->assertOk();
+    $this->getJson("/mod_mu/users?node_id={$node->id}", ['X-Node-Secret' => 'WRONG'])->assertStatus(401);
+    $this->getJson("/mod_mu/users?node_id={$node->id}")->assertStatus(401); // 无密钥
+});
+
 it('returns servable users for a node', function () {
     $node = makeNode(['node_class' => 1]);
     $ok = User::factory()->create(['class' => 2, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3, 'u' => 0, 'd' => 0]);

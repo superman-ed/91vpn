@@ -2,10 +2,13 @@
 """
 91VPN 节点上报 agent —— 把节点上代理内核统计的每用户流量，按面板 mod_mu 契约上报。
 
+鉴权:节点密钥走请求头 `X-Node-Secret`(不放 query,避免落进访问日志/反代日志);
+     node_id 仍走 query(非机密)。
+
 数据流:
-  1) GET  {panel}/mod_mu/users?node_id=&key=   → 拉可服务用户名单(id/uuid)
+  1) GET  {panel}/mod_mu/users?node_id=   头:X-Node-Secret → 拉可服务用户名单(id/uuid)
   2) 从代理内核读每用户增量流量(uplink/downlink 字节)
-  3) POST {panel}/mod_mu/users/traffic?node_id=&key=  body={"data":[{user_id,u,d}]}
+  3) POST {panel}/mod_mu/users/traffic?node_id=  头:X-Node-Secret  body={"data":[{user_id,u,d}]}
 
 内核约定:生成 inbound 配置时，把每个 vmess client 的 email 设为「用户 id」
 (纯数字字符串)。这样内核统计项 `user>>>{id}>>>traffic>>>uplink|downlink`
@@ -32,21 +35,28 @@ def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
-def http_json(url, body=None, timeout=15):
+def http_json(url, body=None, timeout=15, extra_headers=None):
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if body is not None else {}
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(url, data=data, headers=headers, method="POST" if body is not None else "GET")
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode())
 
 
 def api_url(cfg, path):
-    qs = urllib.parse.urlencode({"node_id": cfg.node_id, "key": cfg.secret})
+    # 只把 node_id 放进 query;密钥改走 X-Node-Secret 头,避免落进访问日志
+    qs = urllib.parse.urlencode({"node_id": cfg.node_id})
     return f"{cfg.panel.rstrip('/')}/mod_mu/{path}?{qs}"
 
 
+def auth_headers(cfg):
+    return {"X-Node-Secret": cfg.secret}
+
+
 def fetch_users(cfg):
-    r = http_json(api_url(cfg, "users"))
+    r = http_json(api_url(cfg, "users"), extra_headers=auth_headers(cfg))
     users = r.get("users", []) if isinstance(r, dict) else []
     return {int(u["id"]): u for u in users}
 
@@ -126,7 +136,7 @@ def report(cfg, acc):
     if cfg.dry_run:
         log(f"[dry-run] 将上报 {len(data)} 条: {data[:3]}{' ...' if len(data) > 3 else ''}")
         return True
-    r = http_json(api_url(cfg, "users/traffic"), {"data": data})
+    r = http_json(api_url(cfg, "users/traffic"), {"data": data}, extra_headers=auth_headers(cfg))
     ok = isinstance(r, dict) and r.get("ret") == 1
     log(f"{'已上报' if ok else '上报未确认'} {len(data)} 条，面板回执: {r}")
     return ok

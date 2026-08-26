@@ -10,11 +10,17 @@ class NodeSecret
 {
     public function handle(Request $request, Closure $next)
     {
-        $nodeId = $request->query('node_id');
-        $key = $request->query('key');
+        // node_id 可留在 query(非机密);密钥优先从请求头取,避免落进 access log / 反代日志 / referer
+        $nodeId = $request->query('node_id') ?: $request->header('X-Node-Id');
+        $key = $request->header('X-Node-Secret');
+        if ($key === null && $request->query('key') !== null) {
+            // 过渡兼容:仍接受 ?key=,但记录告警,提示尽快切到请求头
+            $key = $request->query('key');
+            \Illuminate\Support\Facades\Log::warning('节点鉴权仍走 query key,请升级 agent 改用 X-Node-Secret 头', ['node_id' => $nodeId]);
+        }
 
         $node = $nodeId ? Node::find($nodeId) : null;
-        if ($node === null || ! hash_equals($node->secret, (string) $key)) {
+        if ($node === null || $key === null || ! hash_equals($node->secret, (string) $key)) {
             return response()->json(['ret' => 0, 'msg' => 'unauthorized'], 401);
         }
 
