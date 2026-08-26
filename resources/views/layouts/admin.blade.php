@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/stisla/assets/css/style.css">
     <link rel="stylesheet" href="/stisla/assets/css/components.css">
     <meta name="turbo-prefetch" content="true">
+    <meta name="turbo-cache-control" content="no-cache">
     <script src="/js/turbo.min.js" defer></script>
     <style>
         /* 后台通用精美样式：所有列表页复用 */
