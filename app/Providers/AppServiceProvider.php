@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // 相对时间全站用中文(diffForHumans 输出"5分钟前"而非"5 minutes ago")
+        \Carbon\Carbon::setLocale('zh_CN');
+
         // 记录定时任务最后运行时间(供系统健康监控),零侵入
         Event::listen(CommandFinished::class, function (CommandFinished $e) {
             if (in_array($e->command, self::WATCHED_TASKS, true)) {

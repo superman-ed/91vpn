@@ -63,7 +63,7 @@ class HealthController extends Controller
             $t = microtime(true);
             DB::select('select 1');
 
-            return round((microtime(true) - $t) * 1000).' ms';
+            return round((microtime(true) - $t) * 1000).' 毫秒';
         });
 
         // Redis
@@ -71,7 +71,7 @@ class HealthController extends Controller
             $t = microtime(true);
             Redis::connection()->ping();
 
-            return round((microtime(true) - $t) * 1000).' ms';
+            return round((microtime(true) - $t) * 1000).' 毫秒';
         });
 
         // 队列积压
