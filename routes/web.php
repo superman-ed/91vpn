@@ -101,7 +101,10 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
     Route::get('/users', [ModMuUserController::class, 'index']);
     Route::post('/users/traffic', [ModMuUserController::class, 'addTraffic']);
     Route::post('/users/aliveip', [ModMuUserController::class, 'aliveIp']);
+    Route::post('/users/detectlog', [ModMuUserController::class, 'detectLog']);   // 审计违规上报(空实现)
     Route::get('/func/ping', [ModMuUserController::class, 'ping']);
+    Route::get('/func/detect_rules', [ModMuUserController::class, 'detectRules']); // 审计规则(空=不审计)
+    Route::get('/nodes/{node}/info', [ModMuUserController::class, 'nodeInfo']);    // 节点配置拉取(XrayR SSPanel 模式,格式待步骤②校准)
 });
 
 // 管理后台

@@ -10,8 +10,8 @@ class NodeSecret
 {
     public function handle(Request $request, Closure $next)
     {
-        // node_id 可留在 query(非机密);密钥优先从请求头取,避免落进 access log / 反代日志 / referer
-        $nodeId = $request->query('node_id') ?: $request->header('X-Node-Id');
+        // node_id 来源:query(常规) → 请求头 → 路由段(XrayR 的 /nodes/{id}/info 把 id 放在路径里)
+        $nodeId = $request->query('node_id') ?: $request->header('X-Node-Id') ?: $request->route('node');
         $key = $request->header('X-Node-Secret');
         if ($key === null && $request->query('key') !== null) {
             // 过渡兼容:仍接受 ?key=,但记录告警,提示尽快切到请求头

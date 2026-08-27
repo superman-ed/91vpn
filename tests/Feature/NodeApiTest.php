@@ -35,6 +35,24 @@ it('returns servable users for a node', function () {
 
     expect($data)->toHaveCount(1);
     expect($data[0]['uuid'])->toBe($ok->uuid);
+
+    // 双键兼容:XrayR 读 data、我们 agent 读 users,两者应是同一份
+    expect($res->json('data'))->toEqual($res->json('users'));
+});
+
+it('exposes SSPanel audit + node-info endpoints for XrayR', function () {
+    $node = makeNode();
+    $q = "node_id={$node->id}&key=NODESECRET";
+
+    // 审计规则空实现:XrayR 开机拉,返回空=不审计
+    $this->getJson("/mod_mu/func/detect_rules?{$q}")->assertOk()->assertJson(['ret' => 1, 'data' => []]);
+    // 审计上报:收下即回 ret:1
+    $this->postJson("/mod_mu/users/detectlog?{$q}", ['data' => []])->assertOk()->assertJson(['ret' => 1]);
+    // 节点配置拉取:node_id 走路径段,鉴权仍过,返回本节点字段
+    $this->getJson("/mod_mu/nodes/{$node->id}/info?key=NODESECRET")
+        ->assertOk()->assertJson(['ret' => 1, 'data' => ['node_id' => $node->id, 'type' => 'vmess']]);
+    // 路径段鉴权:错误密钥应 401
+    $this->getJson("/mod_mu/nodes/{$node->id}/info?key=WRONG")->assertStatus(401);
 });
 
 it('records traffic with node rate multiplier', function () {
