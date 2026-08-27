@@ -55,6 +55,17 @@ it('exposes SSPanel audit + node-info endpoints for XrayR', function () {
     $this->getJson("/mod_mu/nodes/{$node->id}/info?key=WRONG")->assertStatus(401);
 });
 
+it('accepts soga node status heartbeat via POST nodes/{id}/info', function () {
+    // 实测:soga 的心跳/负载上报走 POST /mod_mu/nodes/{id}/info(非 /func/ping)
+    $node = makeNode(['online' => false, 'last_heartbeat' => 0]);
+    $this->postJson("/mod_mu/nodes/{$node->id}/info?key=NODESECRET", ['uptime' => 123, 'load' => '0.1'])
+        ->assertOk()->assertJson(['ret' => 1]);
+
+    $node->refresh();
+    expect($node->online)->toBeTrue();
+    expect($node->last_heartbeat)->toBeGreaterThan(0);
+});
+
 it('records traffic with node rate multiplier', function () {
     $node = makeNode(['traffic_rate' => 2]);   // 2倍率
     $user = User::factory()->create(['u' => 0, 'd' => 0]);

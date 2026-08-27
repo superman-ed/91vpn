@@ -50,8 +50,20 @@ class UserController extends Controller
         return response()->json(['ret' => 1, 'count' => $count, 'blocked' => $blocked]);
     }
 
-    /** GET /mod_mu/func/ping —— 节点心跳 */
+    /** GET /mod_mu/func/ping —— 节点心跳(自研 agent 用) */
     public function ping(Request $request)
+    {
+        $node = $request->attributes->get('node');
+        $node->update(['online' => true, 'last_heartbeat' => now()->timestamp]);
+
+        return response()->json(['ret' => 1]);
+    }
+
+    /**
+     * POST /mod_mu/nodes/{node}/info —— 节点状态/负载上报(soga 的心跳走这里,实测确认)。
+     * soga 每隔几秒 POST 一次,body 里带 uptime/load 等;我们据此更新在线状态与心跳时间。
+     */
+    public function nodeHeartbeat(Request $request)
     {
         $node = $request->attributes->get('node');
         $node->update(['online' => true, 'last_heartbeat' => now()->timestamp]);
