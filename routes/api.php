@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\AnnouncementApiController;
 use App\Http\Controllers\Api\AppApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\InviteApiController;
+use App\Http\Controllers\Api\MessageApiController;
+use App\Http\Controllers\Api\NodeApiController;
 use App\Http\Controllers\Api\ServerApiController;
 use App\Http\Controllers\Api\ShopApiController;
 use App\Http\Controllers\Api\TicketApiController;
@@ -49,4 +52,19 @@ Route::middleware('client.token')->group(function () {
     Route::get('/tickets/{ticket}', [TicketApiController::class, 'show']);        // 详情
     Route::post('/tickets/{ticket}/reply', [TicketApiController::class, 'reply']); // 回复
     Route::post('/tickets/{ticket}/close', [TicketApiController::class, 'close']); // 结单
+
+    // 连接凭证 / 用量
+    Route::get('/node', [NodeApiController::class, 'show']);                          // 订阅链接/UUID/密码
+    Route::post('/node/reset-sub', [NodeApiController::class, 'resetSub']);           // 重置订阅链接
+    Route::post('/node/reset-credential', [NodeApiController::class, 'resetCredential']); // 重置UUID+密码
+    Route::get('/traffic', [NodeApiController::class, 'traffic']);                    // 每日流量
+    Route::get('/subscribe-log', [NodeApiController::class, 'subscribeLog']);         // 订阅拉取记录
+
+    // 站内信
+    Route::get('/messages', [MessageApiController::class, 'index']);                  // 列表+未读数
+    Route::post('/messages/read-all', [MessageApiController::class, 'readAll']);      // 全部已读
+    Route::post('/messages/{notification}/read', [MessageApiController::class, 'read']); // 单条已读
+
+    // 邀请返利
+    Route::get('/invite', [InviteApiController::class, 'index']);                     // 推广码+下线明细
 });
