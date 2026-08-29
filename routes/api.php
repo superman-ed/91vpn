@@ -32,10 +32,13 @@ Route::middleware('client.token')->group(function () {
     Route::get('/announcements', [AnnouncementApiController::class, 'index']);   // 公告
     Route::post('/checkin', [AccountApiController::class, 'checkin']);           // 每日签到
     Route::post('/account/password', [AccountApiController::class, 'updatePassword']); // 修改密码
+    Route::post('/account/profile', [AccountApiController::class, 'updateProfile']);   // 修改昵称
     Route::post('/device/report', [DeviceController::class, 'report']);          // 设备上报
 
     // 商店 / 下单 / 支付
     Route::get('/plans', [ShopApiController::class, 'index']);                    // 套餐目录
+    Route::get('/orders', [ShopApiController::class, 'orders']);                  // 订单历史
+    Route::post('/subscription/end', [ShopApiController::class, 'endSubscription']); // 立即结束当前套餐
     Route::post('/order/create', [ShopApiController::class, 'create']);           // 下单
     Route::get('/order/{order}', [ShopApiController::class, 'show']);             // 收银台信息
     Route::post('/order/{order}/coupon', [ShopApiController::class, 'coupon']);   // 应用/移除优惠码

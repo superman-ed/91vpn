@@ -109,6 +109,13 @@ it('rejects password change with a wrong current password', function () {
         ['Authorization' => 'Bearer TESTTOKEN123'])->assertStatus(422);
 });
 
+it('updates the nickname', function () {
+    apiUser();
+    $this->postJson('/api/account/profile', ['name' => '新昵称'], ['Authorization' => 'Bearer TESTTOKEN123'])
+        ->assertOk()->assertJsonPath('ret', 1)->assertJsonPath('data.name', '新昵称');
+    expect(App\Models\User::first()->name)->toBe('新昵称');
+});
+
 // ---- 版本(公开) ----
 
 it('returns app version info without a token', function () {

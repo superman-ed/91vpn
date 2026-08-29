@@ -69,6 +69,37 @@ class ShopApiController extends Controller
         return response()->json(['ret' => 1, 'data' => ['groups' => $groups, 'data_packs' => $dataPacks]]);
     }
 
+    /** GET /api/orders —— 我的订单历史(近30笔,最新在前) */
+    public function orders(Request $request)
+    {
+        $orders = $request->user()->orders()->with('plan', 'coupon')
+            ->latest()->limit(30)->get()
+            ->map(fn (Order $o) => array_merge($this->orderPayload($o), [
+                'created_at' => $o->created_at?->toDateTimeString(),
+                'paid_at' => $o->paid_at?->toDateTimeString(),
+                'activate_at' => $o->activate_at?->toDateTimeString(),
+            ]))->values();
+
+        return response()->json(['ret' => 1, 'data' => $orders]);
+    }
+
+    /** POST /api/subscription/end —— 立即结束当前套餐(仅单月套餐),让排队套餐生效 */
+    public function endSubscription(Request $request, BillingService $billing)
+    {
+        $user = $request->user();
+        if (! $user->canEndCurrentPackage()) {
+            return response()->json(['ret' => 0, 'msg' => '当前套餐不可立即结束（仅单月套餐可用）'], 422);
+        }
+
+        $billing->endCurrentPackage($user);
+        $activated = $user->fresh()->hasActivePackage();
+
+        return response()->json([
+            'ret' => 1,
+            'msg' => $activated ? '当前套餐已结束，排队套餐已生效' : '当前套餐已结束',
+        ]);
+    }
+
     /** POST /api/order/create —— 下单生成待支付订单 */
     public function create(Request $request)
     {

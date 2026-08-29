@@ -129,6 +129,33 @@ it('mock-delivers an online payment in the testing env (no gateway)', function (
     expect(Order::find($order['id'])->status)->toBe('paid');
 });
 
+// ---- 订单历史 ----
+
+it('lists my orders', function () {
+    apiUser();
+    $plan = salePlan();
+    $this->postJson('/api/order/create', ['plan_id' => $plan->id], AUTH);
+    $res = $this->getJson('/api/orders', AUTH)->assertOk()->assertJsonPath('ret', 1);
+    expect($res->json('data'))->toHaveCount(1);
+    expect($res->json('data.0.status'))->toBe('pending');
+    expect($res->json('data.0.plan.name'))->toBe('VIP①');
+});
+
+// ---- 立即结束当前套餐 ----
+
+it('ends the current monthly package', function () {
+    $u = apiUser(['class' => 1, 'class_expire' => now()->addDays(20)]);
+    $plan = salePlan();   // month, 非流量包
+    Order::create(['user_id' => $u->id, 'plan_id' => $plan->id, 'amount' => 30,
+        'status' => 'paid', 'period' => 'month', 'delivered_at' => now()->subDay()]);
+    $this->postJson('/api/subscription/end', [], AUTH)->assertOk()->assertJsonPath('ret', 1);
+});
+
+it('rejects ending when there is no active monthly package', function () {
+    apiUser(['class' => 0, 'class_expire' => now()->subDay()]);
+    $this->postJson('/api/subscription/end', [], AUTH)->assertStatus(422)->assertJsonPath('ret', 0);
+});
+
 // ---- 取消 ----
 
 it('cancels a pending order', function () {

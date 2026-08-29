@@ -31,6 +31,15 @@ class AccountApiController extends Controller
         return response()->json(['ret' => 1, 'data' => ['reward_mb' => (int) round($reward / 1024 / 1024)]]);
     }
 
+    /** POST /api/account/profile —— 修改昵称 */
+    public function updateProfile(Request $request)
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:32']]);
+        $request->user()->update(['name' => $data['name']]);
+
+        return response()->json(['ret' => 1, 'data' => UserApiController::payload($request->user()->fresh()), 'msg' => '昵称已更新']);
+    }
+
     /** POST /api/account/password —— 修改登录密码 */
     public function updatePassword(Request $request)
     {
