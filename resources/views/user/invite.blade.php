@@ -38,6 +38,11 @@
 .inv-amt { color: #63c76a; font-weight: 700; }
 .inv-empty { text-align: center; color: #98a6ad; padding: 34px 0; }
 .inv-avatar { width: 28px; height: 28px; border-radius: 50%; background: #eef0ff; color: #6777ef; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 8px; }
+/* 手机窄屏:链接与复制按钮竖排,各占满宽,避免按钮被裁 */
+@media (max-width: 575.98px) {
+    .inv-link-row { flex-direction: column; }
+    .inv-copy { width: 100%; padding: 11px; }
+}
 </style>
 @endsection
 @section('content')

@@ -35,23 +35,25 @@
 </div>
 
 <div class="card dv-panel">
+    @if($devices->isEmpty())
+    <div class="dv-empty"><i class="fas fa-laptop-house fa-2x mb-2 d-block"></i>暂无在线设备<br><span style="font-size:12.5px">连接节点开始使用后，这里会显示正在使用你账号的设备。</span></div>
+    @else
     <div class="table-responsive">
         <table class="table dv-table">
             <thead><tr><th>IP 地址</th><th>归属地</th><th>接入节点</th><th>最近活跃</th></tr></thead>
             <tbody>
-            @forelse($devices as $d)
+            @foreach($devices as $d)
             <tr>
                 <td><span class="dv-dot"></span><span class="dv-ip">{{ $d['ip'] }}</span></td>
                 <td>{{ $d['location'] }}</td>
                 <td>{{ $d['node'] }}</td>
                 <td class="text-muted">{{ $d['last_seen']?->diffForHumans() }}</td>
             </tr>
-            @empty
-            <tr><td colspan="4"><div class="dv-empty"><i class="fas fa-laptop-house fa-2x mb-2 d-block"></i>暂无在线设备<br><span style="font-size:12.5px">连接节点开始使用后，这里会显示正在使用你账号的设备。</span></div></td></tr>
-            @endforelse
+            @endforeach
             </tbody>
         </table>
     </div>
+    @endif
 </div>
 
 <div class="dv-note">

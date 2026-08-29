@@ -14,11 +14,13 @@
 }
 .node-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(103,119,239,.16); }
 .node-card.offline { opacity: .6; }
-.node-top { display: flex; align-items: center; gap: 12px; }
+.node-top { display: flex; align-items: center; gap: 10px; }
 .node-flag { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .node-flag img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .node-flag.globe { background: #6777ef; color: #fff; font-size: 16px; }
-.node-name { font-size: 15px; font-weight: 700; color: #34395e; line-height: 1.2; word-break: break-all; }
+/* 名字独占一整行(不再和国旗/状态挤一行),最多两行省略,彻底避免竖排 */
+.node-name { font-size: 15px; font-weight: 700; color: #34395e; line-height: 1.3; margin-top: 12px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
 .node-status { margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .node-status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
 .node-status.on { color: #2fa84f; } .node-status.on .dot { background: #63c76a; box-shadow: 0 0 0 3px rgba(99,199,106,.2); }
@@ -77,9 +79,9 @@
                 @else
                 <span class="node-flag globe"><i class="fas fa-globe"></i></span>
                 @endif
-                <span class="node-name">{{ $n->name }}</span>
                 <span class="node-status {{ $n->online ? 'on' : 'off' }}"><span class="dot"></span>{{ $n->online ? '在线' : '离线' }}</span>
             </div>
+            <div class="node-name">{{ $n->name }}</div>
             <div class="node-tags">
                 <span class="node-tag">{{ strtoupper($n->type) }}</span>
                 <span class="node-tag">{{ strtoupper($n->net) }}</span>
