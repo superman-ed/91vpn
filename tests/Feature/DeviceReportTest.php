@@ -39,10 +39,10 @@ it('upserts a device on report with bearer api_token', function () {
     expect($d->fresh()->app_version)->toBe('1.3.0');
 });
 
-it('accepts token via body as fallback', function () {
-    $user = User::factory()->create(['api_token' => 'TOK2']);
-    $this->postJson('/api/device/report', reportPayload(['token' => 'TOK2', 'device_id' => 'd2']))->assertOk();
-    expect(Device::where('user_id', $user->id)->where('device_id', 'd2')->exists())->toBeTrue();
+it('rejects token passed in body (统一为 Bearer 头认证,不再支持 body token)', function () {
+    User::factory()->create(['api_token' => 'TOK2']);
+    // 迁到 client.token 中间件后只认标准 Authorization: Bearer 头,body 里的 token 无效
+    $this->postJson('/api/device/report', reportPayload(['token' => 'TOK2', 'device_id' => 'd2']))->assertStatus(401);
 });
 
 it('shows self-client device stats on the device page', function () {

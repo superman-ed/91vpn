@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Device;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
@@ -16,11 +15,7 @@ class DeviceController extends Controller
     /** POST /api/device/report */
     public function report(Request $request)
     {
-        $token = $this->bearer($request);
-        $user = $token ? User::where('api_token', $token)->first() : null;
-        if (! $user) {
-            return response()->json(['ret' => 0, 'msg' => 'unauthorized'], 401);
-        }
+        $user = $request->user();   // 由 client.token 中间件注入
 
         $data = $request->validate([
             'device_id' => ['required', 'string', 'max:128'],
@@ -54,15 +49,5 @@ class DeviceController extends Controller
         );
 
         return response()->json(['ret' => 1, 'device' => $device->id]);
-    }
-
-    private function bearer(Request $request): ?string
-    {
-        $header = (string) $request->header('Authorization', '');
-        if (stripos($header, 'Bearer ') === 0) {
-            return trim(substr($header, 7));
-        }
-
-        return $request->input('token') ?: null;   // 兼容 body 传 token
     }
 }
