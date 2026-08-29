@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ServerApiController;
 use App\Http\Controllers\Api\ShopApiController;
+use App\Http\Controllers\Api\TicketApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Api\WalletApiController;
 use Illuminate\Support\Facades\Route;
@@ -41,4 +42,11 @@ Route::middleware('client.token')->group(function () {
     // 钱包
     Route::get('/wallet', [WalletApiController::class, 'index']);                 // 余额+流水
     Route::post('/wallet/recharge', [WalletApiController::class, 'recharge']);    // 充值
+
+    // 工单
+    Route::get('/tickets', [TicketApiController::class, 'index']);                // 列表
+    Route::post('/tickets', [TicketApiController::class, 'store']);               // 新建
+    Route::get('/tickets/{ticket}', [TicketApiController::class, 'show']);        // 详情
+    Route::post('/tickets/{ticket}/reply', [TicketApiController::class, 'reply']); // 回复
+    Route::post('/tickets/{ticket}/close', [TicketApiController::class, 'close']); // 结单
 });
