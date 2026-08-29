@@ -125,3 +125,76 @@ it('returns app version info without a token', function () {
     $this->getJson('/api/app/version')->assertOk()->assertJsonPath('ret', 1)
         ->assertJsonStructure(['data' => ['latest', 'force', 'downloads' => ['android', 'ios', 'windows', 'macos']]]);
 });
+
+// ---- 注册(邮箱验证码,无 session 算术码) ----
+
+it('registers with a valid email code and returns token + user', function () {
+    Illuminate\Support\Facades\Cache::put('email_code:new@test.local', '123456', now()->addMinutes(5));
+    $res = $this->postJson('/api/auth/register', [
+        'email' => 'new@test.local', 'email_code' => '123456', 'name' => '小明', 'password' => 'secret1234',
+    ])->assertOk()->assertJsonPath('ret', 1);
+    expect($res->json('data.token'))->not->toBeEmpty();
+    $u = App\Models\User::where('email', 'new@test.local')->first();
+    expect($u)->not->toBeNull();
+    expect($u->class)->toBe(0);
+    expect($u->api_token)->toBe($res->json('data.token'));   // 注册即自动登录
+    expect($u->uuid)->not->toBeEmpty();
+    expect($u->invite_token)->not->toBeEmpty();
+});
+
+it('rejects registration with a wrong email code', function () {
+    Illuminate\Support\Facades\Cache::put('email_code:y@test.local', '123456', now()->addMinutes(5));
+    $this->postJson('/api/auth/register', [
+        'email' => 'y@test.local', 'email_code' => '000000', 'name' => 'y', 'password' => 'secret1234',
+    ])->assertStatus(422);
+    expect(App\Models\User::where('email', 'y@test.local')->exists())->toBeFalse();
+});
+
+it('rejects duplicate email only after the code passes', function () {
+    App\Models\User::factory()->create(['email' => 'taken@test.local']);
+    Illuminate\Support\Facades\Cache::put('email_code:taken@test.local', '123456', now()->addMinutes(5));
+    $this->postJson('/api/auth/register', [
+        'email' => 'taken@test.local', 'email_code' => '123456', 'name' => 'dup', 'password' => 'secret1234',
+    ])->assertStatus(409)->assertJsonPath('ret', 0);
+});
+
+it('binds the inviter when a valid invite code is used at register', function () {
+    $inviter = App\Models\User::factory()->create(['ref_code' => 'REFCODE99']);
+    Illuminate\Support\Facades\Cache::put('email_code:z@test.local', '123456', now()->addMinutes(5));
+    $this->postJson('/api/auth/register', [
+        'email' => 'z@test.local', 'email_code' => '123456', 'name' => 'z',
+        'invite_code' => 'REFCODE99', 'password' => 'secret1234',
+    ])->assertOk();
+    expect(App\Models\User::where('email', 'z@test.local')->first()->ref_by)->toBe($inviter->id);
+});
+
+// ---- 发码 / 找回 ----
+
+it('sends a registration code and stores it in cache', function () {
+    $this->postJson('/api/auth/send-code', ['email' => 'reg@test.local'])->assertOk()->assertJsonPath('ret', 1);
+    expect(Illuminate\Support\Facades\Cache::get('email_code:reg@test.local'))->not->toBeNull();
+});
+
+it('sends a reset code only for a registered email but never reveals existence', function () {
+    apiUser();   // c@test.local 存在
+    $this->postJson('/api/auth/forgot', ['email' => 'c@test.local'])->assertOk()->assertJsonPath('ret', 1);
+    expect(Illuminate\Support\Facades\Cache::get('email_code:c@test.local'))->not->toBeNull();
+    // 未注册邮箱:同样回成功(不泄露),但不真发
+    $this->postJson('/api/auth/forgot', ['email' => 'ghost@test.local'])->assertOk()->assertJsonPath('ret', 1);
+    expect(Illuminate\Support\Facades\Cache::get('email_code:ghost@test.local'))->toBeNull();
+});
+
+it('resets password with a valid code and logs in with the new one', function () {
+    apiUser();
+    Illuminate\Support\Facades\Cache::put('email_code:c@test.local', '654321', now()->addMinutes(5));
+    $this->postJson('/api/auth/reset', ['email' => 'c@test.local', 'code' => '654321', 'password' => 'brandnew99'])
+        ->assertOk()->assertJsonPath('ret', 1);
+    $this->postJson('/api/auth/login', ['email' => 'c@test.local', 'password' => 'brandnew99'])->assertOk();
+});
+
+it('rejects password reset with a wrong code', function () {
+    apiUser();
+    Illuminate\Support\Facades\Cache::put('email_code:c@test.local', '654321', now()->addMinutes(5));
+    $this->postJson('/api/auth/reset', ['email' => 'c@test.local', 'code' => '000000', 'password' => 'brandnew99'])
+        ->assertStatus(422);
+});
