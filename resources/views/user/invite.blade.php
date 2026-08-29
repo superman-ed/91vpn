@@ -76,43 +76,21 @@
     <div class="inv-step"><div class="num">3</div><h5>充值躺赚 {{ $fmt($rate) }}%</h5><p>下线每次充值的 {{ $fmt($rate) }}% 自动进你钱包。</p></div>
 </div>
 
-<div class="row">
-    <div class="col-12 col-lg-6 mb-4">
-        <div class="card inv-panel">
-            <div class="card-header"><h4><i class="fas fa-users text-primary"></i> 我的下线</h4></div>
-            <div class="table-responsive">
-                <table class="table inv-table">
-                    <thead><tr><th>用户</th><th>注册时间</th></tr></thead>
-                    <tbody>
-                    @forelse($downlines as $d)
-                    <tr>
-                        <td><span class="inv-avatar">{{ mb_strtoupper(mb_substr($d->email, 0, 1)) }}</span>{{ $d->email }}</td>
-                        <td class="text-muted">{{ $d->created_at?->format('Y-m-d') }}</td>
-                    </tr>
-                    @empty<tr><td colspan="2"><div class="inv-empty"><i class="fas fa-user-plus fa-2x mb-2 d-block"></i>还没有邀请任何人</div></td></tr>@endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-6 mb-4">
-        <div class="card inv-panel">
-            <div class="card-header"><h4><i class="fas fa-coins text-primary"></i> 返利记录</h4></div>
-            <div class="table-responsive">
-                <table class="table inv-table">
-                    <thead><tr><th>来自</th><th>金额</th><th>时间</th></tr></thead>
-                    <tbody>
-                    @forelse($paybacks as $p)
-                    <tr>
-                        <td>{{ $p->fromUser?->email ?? '—' }}</td>
-                        <td class="inv-amt">+¥{{ number_format($p->amount, 2) }}</td>
-                        <td class="text-muted">{{ $p->created_at?->format('Y-m-d H:i') }}</td>
-                    </tr>
-                    @empty<tr><td colspan="3"><div class="inv-empty"><i class="fas fa-coins fa-2x mb-2 d-block"></i>暂无返利</div></td></tr>@endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="card inv-panel mb-4">
+    <div class="card-header"><h4><i class="fas fa-users text-primary"></i> 我的下线与返利</h4></div>
+    <div class="table-responsive">
+        <table class="table inv-table">
+            <thead><tr><th>用户</th><th>注册时间</th><th>累计返利</th></tr></thead>
+            <tbody>
+            @forelse($downlines as $d)
+            <tr>
+                <td><span class="inv-avatar">{{ mb_strtoupper(mb_substr($d->email, 0, 1)) }}</span>{{ $d->email }}</td>
+                <td class="text-muted">{{ $d->created_at?->format('Y-m-d') }}</td>
+                <td class="inv-amt">+¥{{ number_format($downlineRebates[$d->id] ?? 0, 2) }}</td>
+            </tr>
+            @empty<tr><td colspan="3"><div class="inv-empty"><i class="fas fa-user-plus fa-2x mb-2 d-block"></i>还没有邀请任何人</div></td></tr>@endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 <script>

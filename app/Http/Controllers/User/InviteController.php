@@ -23,7 +23,10 @@ class InviteController extends Controller
             'inviteUrl' => url('/register?invite='.$user->ref_code),
             'downlines' => $user->referrals()->latest()->get(),
             'totalPayback' => Payback::where('user_id', $user->id)->sum('amount'),
-            'paybacks' => $user->paybacks()->with('fromUser')->latest()->take(20)->get(),
+            // 每个下线累计带来的返利(按 from_user_id 聚合),供"下线+返利"合并表显示
+            'downlineRebates' => Payback::where('user_id', $user->id)
+                ->selectRaw('from_user_id, sum(amount) as total')
+                ->groupBy('from_user_id')->pluck('total', 'from_user_id'),
         ]);
     }
 }
