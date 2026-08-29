@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Services\BillingService;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 
 class ShopController extends Controller
 {
+    public function __construct(private OrderService $orders) {}
+
     /** GET /user/shop */
     public function index()
     {
@@ -71,33 +74,7 @@ class ShopController extends Controller
         $data = $request->validate(['plan_id' => ['required', 'exists:plans,id']]);
 
         $plan = Plan::findOrFail($data['plan_id']);
-
-        if (! $plan->on_sale || $plan->stock === 0) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架']);
-        }
-
-        // 流量包需在有生效套餐时购买，否则加了流量也用不了（节点按到期日下发）
-        if ($plan->is_data_pack && ! auth()->user()->hasActivePackage()) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['plan_id' => '流量包需在有生效套餐时购买，请先购买套餐']);
-        }
-
-        // 去重：同套餐已有待支付订单则复用，避免堆积
-        $existing = Order::where('user_id', auth()->id())
-            ->where('plan_id', $plan->id)
-            ->where('status', 'pending')
-            ->latest()
-            ->first();
-        if ($existing) {
-            return redirect("/user/order/{$existing->id}");
-        }
-
-        $order = Order::create([
-            'user_id' => auth()->id(),
-            'plan_id' => $plan->id,
-            'amount' => (float) $plan->price,   // 收银台可再抵扣优惠券
-            'status' => 'pending',
-            'period' => $plan->period,
-        ]);
+        $order = $this->orders->createPending(auth()->user(), $plan);
 
         return redirect("/user/order/{$order->id}");
     }
@@ -158,26 +135,14 @@ class ShopController extends Controller
         abort_if($order->status !== 'pending', 403);
 
         $data = $request->validate(['coupon' => ['nullable', 'string', 'max:32']]);
-        $base = (float) $order->plan->price;
 
-        // 留空 = 移除优惠码，恢复原价
-        if (empty($data['coupon'])) {
-            $order->update(['coupon_id' => null, 'amount' => $base]);
+        $this->orders->applyCoupon($order, $data['coupon'] ?? null);
 
-            return redirect("/user/order/{$order->id}")->with('status', '已移除优惠码');
-        }
+        $status = empty($data['coupon'])
+            ? '已移除优惠码'
+            : "优惠码已应用，应付 ¥{$order->fresh()->amount}";
 
-        $coupon = \App\Models\Coupon::where('code', $data['coupon'])->first();
-        if (! $coupon || ! $coupon->isUsable()) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '优惠券无效或已过期']);
-        }
-        if (! $coupon->appliesToPeriod($order->period)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => '此优惠码不适用于该套餐时长']);
-        }
-
-        $order->update(['coupon_id' => $coupon->id, 'amount' => $coupon->apply($base)]);
-
-        return redirect("/user/order/{$order->id}")->with('status', "优惠码已应用，应付 ¥{$order->fresh()->amount}");
+        return redirect("/user/order/{$order->id}")->with('status', $status);
     }
 
     /** 在线支付渠道（无真实网关，均走模拟成功，记录渠道名） */
