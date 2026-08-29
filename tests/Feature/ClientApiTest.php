@@ -70,3 +70,58 @@ it('accepts device report via bearer token', function () {
 it('rejects device report without a token', function () {
     $this->postJson('/api/device/report', ['device_id' => 'x'])->assertStatus(401);
 });
+
+// ---- 节点列表 ----
+
+it('returns servable nodes filtered by class and online', function () {
+    apiUser(['class' => 2]);
+    App\Models\Node::create(['name' => 'HK', 'server' => 's', 'port' => 1, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 1, 'online' => true, 'secret' => 'a']);
+    App\Models\Node::create(['name' => 'VIP', 'server' => 's', 'port' => 2, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 5, 'online' => true, 'secret' => 'b']);  // 等级不够
+    App\Models\Node::create(['name' => 'OFF', 'server' => 's', 'port' => 3, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'online' => false, 'secret' => 'c']); // 离线
+    $res = $this->getJson('/api/servers', ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+    expect($res->json('data'))->toHaveCount(1);
+    expect($res->json('data.0.name'))->toBe('HK');
+});
+
+// ---- 公告 ----
+
+it('returns only published announcements', function () {
+    apiUser();
+    App\Models\Announcement::create(['title' => '维护通知', 'content' => '今晚维护', 'published' => true, 'sort' => 1]);
+    App\Models\Announcement::create(['title' => '草稿', 'content' => 'x', 'published' => false]);
+    $res = $this->getJson('/api/announcements', ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+    expect($res->json('data'))->toHaveCount(1);
+    expect($res->json('data.0.title'))->toBe('维护通知');
+});
+
+// ---- 签到 ----
+
+it('checks in and rejects a second same-day checkin', function () {
+    apiUser(['transfer_enable' => 1024 ** 3, 'last_check_in' => 0]);
+    $this->postJson('/api/checkin', [], ['Authorization' => 'Bearer TESTTOKEN123'])
+        ->assertOk()->assertJsonPath('ret', 1);
+    $this->postJson('/api/checkin', [], ['Authorization' => 'Bearer TESTTOKEN123'])
+        ->assertOk()->assertJsonPath('ret', 0);   // 当天再签被拒
+});
+
+// ---- 改密 ----
+
+it('changes password with correct current password', function () {
+    apiUser();
+    $this->postJson('/api/account/password', ['current_password' => 'secret1234', 'password' => 'newpass1234'],
+        ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk()->assertJsonPath('ret', 1);
+    $this->postJson('/api/auth/login', ['email' => 'c@test.local', 'password' => 'newpass1234'])->assertOk();
+});
+
+it('rejects password change with a wrong current password', function () {
+    apiUser();
+    $this->postJson('/api/account/password', ['current_password' => 'wrong', 'password' => 'newpass1234'],
+        ['Authorization' => 'Bearer TESTTOKEN123'])->assertStatus(422);
+});
+
+// ---- 版本(公开) ----
+
+it('returns app version info without a token', function () {
+    $this->getJson('/api/app/version')->assertOk()->assertJsonPath('ret', 1)
+        ->assertJsonStructure(['data' => ['latest', 'force', 'downloads' => ['android', 'ios', 'windows', 'macos']]]);
+});
