@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ServerApiController;
 use App\Http\Controllers\Api\ShopApiController;
 use App\Http\Controllers\Api\UserApiController;
+use App\Http\Controllers\Api\WalletApiController;
 use Illuminate\Support\Facades\Route;
 
 // 客户端对接 API —— 无状态,Bearer api_token 认证(前缀 /api 由框架自动加)
@@ -36,4 +37,8 @@ Route::middleware('client.token')->group(function () {
     Route::post('/order/{order}/coupon', [ShopApiController::class, 'coupon']);   // 应用/移除优惠码
     Route::post('/order/{order}/pay', [ShopApiController::class, 'pay']);         // 支付(余额/在线/0元)
     Route::post('/order/{order}/cancel', [ShopApiController::class, 'cancel']);   // 取消
+
+    // 钱包
+    Route::get('/wallet', [WalletApiController::class, 'index']);                 // 余额+流水
+    Route::post('/wallet/recharge', [WalletApiController::class, 'recharge']);    // 充值
 });
