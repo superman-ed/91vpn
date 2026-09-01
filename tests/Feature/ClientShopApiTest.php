@@ -29,6 +29,9 @@ it('lists on-sale plans grouped, with data packs separate', function () {
     $res = $this->getJson('/api/plans', AUTH)->assertOk()->assertJsonPath('ret', 1);
     expect($res->json('data.groups'))->toHaveCount(1);
     expect($res->json('data.groups.0.name'))->toBe('VIP①');
+    expect($res->json('data.groups.0.transfer_gb'))->toBe(100);
+    expect($res->json('data.groups.0.speed_limit'))->toBe(100);
+    expect($res->json('data.groups.0.ip_limit'))->toBe(4);
     expect($res->json('data.groups.0.durations.0.period'))->toBe('month');
     expect($res->json('data.data_packs'))->toHaveCount(1);
 });

@@ -61,7 +61,15 @@ class ShopApiController extends Controller
                     })
                     ->filter()->values();
 
-                return ['name' => $rows->first()->name, 'transfer_gb' => $gb, 'durations' => $durations];
+                $first = $rows->first();
+
+                return [
+                    'name' => $first->name,
+                    'transfer_gb' => $gb,
+                    'speed_limit' => (int) $first->speed_limit, // 端口限速 Mbps(0=不限)
+                    'ip_limit' => (int) $first->ip_limit, // 最大同时在线设备数(0=不限)
+                    'durations' => $durations,
+                ];
             })
             ->filter(fn ($g) => $g['durations']->isNotEmpty())
             ->values();
