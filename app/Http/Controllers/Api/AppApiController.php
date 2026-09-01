@@ -24,4 +24,18 @@ class AppApiController extends Controller
             ],
         ]]);
     }
+
+    /**
+     * GET /api/app/config —— 客户端运行时配置(公开)。目前提供在线客服 Crisp 配置。
+     * crisp_website_id 与网页版共用(网页 JS 中本就明文);未配置则为空,客户端据此隐藏在线客服入口。
+     */
+    public function config()
+    {
+        return response()->json(['ret' => 1, 'data' => [
+            'crisp' => [
+                'website_id' => setting('crisp_website_id', ''),
+                'bind_identity' => setting('crisp_bind_identity', '0') === '1',
+            ],
+        ]]);
+    }
 }

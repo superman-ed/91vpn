@@ -24,6 +24,7 @@ Route::post('/auth/send-code', [AuthApiController::class, 'sendCode'])->middlewa
 Route::post('/auth/forgot', [AuthApiController::class, 'forgot'])->middleware('throttle:5,1');       // 找回发码,限流
 Route::post('/auth/reset', [AuthApiController::class, 'reset'])->middleware('throttle:10,1');        // 找回校验重置,限流防撞码
 Route::get('/app/version', [AppApiController::class, 'version']);                                    // 版本检查(登录前也可调)
+Route::get('/app/config', [AppApiController::class, 'config']);                                       // 运行时配置(在线客服 Crisp 等)
 
 // 需登录:Bearer api_token
 Route::middleware('client.token')->group(function () {
