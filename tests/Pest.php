@@ -25,7 +25,7 @@ pest()->extend(Tests\TestCase::class)
 function apiUser(array $attr = []): \App\Models\User
 {
     return \App\Models\User::factory()->create(array_merge([
-        'email' => 'c@test.local', 'password' => 'secret1234', 'api_token' => 'TESTTOKEN123',
+        'username' => 'ctest', 'email' => 'c@test.local', 'password' => 'secret1234', 'api_token' => 'TESTTOKEN123',
         'invite_token' => 'SUBTOKEN32', 'class' => 1, 'class_expire' => now()->addMonth(),
         'transfer_enable' => 10 * 1024 ** 3, 'u' => 1 * 1024 ** 3, 'd' => 2 * 1024 ** 3,
         'money' => 12.5, 'banned' => false,

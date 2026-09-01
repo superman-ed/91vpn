@@ -30,7 +30,8 @@ class RegistrationService
         $utm = $ctx['utm'] ?? [];
         $user = User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'username' => $data['username'] ?? null,
+            'email' => $data['email'] ?? null,
             'password' => Hash::make($data['password']),
             'uuid' => (string) Str::uuid(),
             'passwd' => Str::lower(Str::random(6)),

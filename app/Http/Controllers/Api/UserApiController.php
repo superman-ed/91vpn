@@ -21,6 +21,7 @@ class UserApiController extends Controller
 
         return [
             'id' => $u->id,
+            'username' => $u->username,
             'email' => $u->email,
             'name' => $u->name,
             // 等级 / 到期

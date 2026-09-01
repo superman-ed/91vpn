@@ -15,6 +15,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@test.local'],
             [
                 'name' => 'admin',
+                'username' => 'admin', // App 登录:账户名 admin / 密码 password
                 'password' => Hash::make('password'),
                 'uuid' => (string) Str::uuid(),
                 'passwd' => Str::random(6),

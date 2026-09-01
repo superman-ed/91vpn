@@ -18,11 +18,8 @@ use Illuminate\Support\Facades\Route;
 // 客户端对接 API —— 无状态,Bearer api_token 认证(前缀 /api 由框架自动加)
 
 // 公开(无需 token)
-Route::post('/auth/login', [AuthApiController::class, 'login'])->middleware('throttle:10,1');       // 登录,限流防撞库
-Route::post('/auth/register', [AuthApiController::class, 'register'])->middleware('throttle:10,1');  // 注册(邮箱验证码)
-Route::post('/auth/send-code', [AuthApiController::class, 'sendCode'])->middleware('throttle:5,1');  // 注册发码,限流防轰炸
-Route::post('/auth/forgot', [AuthApiController::class, 'forgot'])->middleware('throttle:5,1');       // 找回发码,限流
-Route::post('/auth/reset', [AuthApiController::class, 'reset'])->middleware('throttle:10,1');        // 找回校验重置,限流防撞码
+Route::post('/auth/login', [AuthApiController::class, 'login'])->middleware('throttle:10,1');       // 登录(账户名+密码),限流防撞库
+Route::post('/auth/register', [AuthApiController::class, 'register'])->middleware('throttle:10,1');  // 注册(账户名+密码,无邮箱)
 Route::get('/app/version', [AppApiController::class, 'version']);                                    // 版本检查(登录前也可调)
 Route::get('/app/config', [AppApiController::class, 'config']);                                       // 运行时配置(在线客服 Crisp 等)
 Route::get('/plans', [ShopApiController::class, 'index']);                                            // 套餐目录(公开:游客未登录也可浏览,购买时才要求登录)
