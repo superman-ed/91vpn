@@ -36,6 +36,10 @@ class AppApiController extends Controller
                 'website_id' => setting('crisp_website_id', ''),
                 'bind_identity' => setting('crisp_bind_identity', '0') === '1',
             ],
+            'legal' => [
+                'terms' => setting('terms_content', ''),
+                'privacy' => setting('privacy_content', ''),
+            ],
         ]]);
     }
 }

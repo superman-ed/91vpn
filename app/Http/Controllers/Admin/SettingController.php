@@ -30,6 +30,8 @@ class SettingController extends Controller
             'crispWebsiteId' => setting('crisp_website_id', ''),
             'crispBindIdentity' => setting('crisp_bind_identity', '0') === '1',
             'supportWidget' => setting('support_widget', ''),
+            'termsContent' => setting('terms_content', ''),
+            'privacyContent' => setting('privacy_content', ''),
         ]);
     }
 
@@ -54,6 +56,8 @@ class SettingController extends Controller
             'support_hours' => ['nullable', 'string', 'max:128'],
             'crisp_website_id' => ['nullable', 'string', 'regex:/^[0-9a-f-]{36}$/i', 'max:36'],
             'support_widget' => ['nullable', 'string', 'max:8000'],
+            'terms_content' => ['nullable', 'string', 'max:20000'],
+            'privacy_content' => ['nullable', 'string', 'max:20000'],
         ]);
 
         Setting::put('buy_notice', $data['buy_notice'] ?? '');
@@ -75,6 +79,8 @@ class SettingController extends Controller
         Setting::put('crisp_website_id', $data['crisp_website_id'] ?? '');
         Setting::put('crisp_bind_identity', $request->boolean('crisp_bind_identity') ? '1' : '0');
         Setting::put('support_widget', $data['support_widget'] ?? '');
+        Setting::put('terms_content', $data['terms_content'] ?? '');
+        Setting::put('privacy_content', $data['privacy_content'] ?? '');
 
         audit('setting.update', '更新站点设置');
 

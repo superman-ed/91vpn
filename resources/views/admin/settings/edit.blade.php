@@ -17,6 +17,7 @@
     <button type="button" data-tab="rebate"><i class="fas fa-gift"></i> 邀请返利</button>
     <button type="button" data-tab="mail"><i class="fas fa-envelope"></i> 邮件发送</button>
     <button type="button" data-tab="support"><i class="fas fa-headset"></i> 在线客服</button>
+    <button type="button" data-tab="legal"><i class="fas fa-file-contract"></i> 法务条款</button>
 </div>
 
 <form method="POST" action="/admin/settings" class="adm-form">@csrf @method('PUT')
@@ -110,6 +111,18 @@
                         <small class="text-muted d-block mt-1">开：客服能认出咨询者是哪个用户，体验好，但每个登录用户会占用一个 Crisp「客户档案」——<b>免费版仅 100 个且已识别档案不自动回收</b>，放量运营会占满。<br>关（默认）：匿名咨询，Crisp 自动回收不活跃访客档案，100 额度滚动使用，免费版可长期使用。</small>
                     </div>
                     <div class="form-group col-md-12"><label>其它第三方客服代码（选填）</label><textarea name="support_widget" rows="4" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px" placeholder="非 Crisp（如 Tawk.to / 美洽）时，整段粘贴其官方 &lt;script&gt; 代码。已填 Crisp ID 时本项忽略。">{{ old('support_widget', $supportWidget) }}</textarea><small class="text-muted">⚠️ 代码会原样注入用户端页面，请只粘贴可信来源的官方客服代码。</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="set-pane" data-pane="legal">
+        <div class="card adm-form-card">
+            <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#8a7ce0,#6a5acd)"><i class="fas fa-file-contract"></i></span><h4>法务条款</h4></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="form-group col-md-12"><label>用户协议</label><textarea name="terms_content" rows="12" class="form-control" style="font-size:13px" placeholder="填写用户协议正文（纯文本，段落之间空一行）。留空则 App 使用内置草稿。">{{ old('terms_content', $termsContent) }}</textarea><small class="text-muted">展示于 App / 网页的「用户协议」。建议纯文本,段与段之间空一行分隔。</small></div>
+                    <div class="form-group col-md-12"><label>隐私政策</label><textarea name="privacy_content" rows="12" class="form-control" style="font-size:13px" placeholder="填写隐私政策正文（纯文本，段落之间空一行）。留空则 App 使用内置草稿。">{{ old('privacy_content', $privacyContent) }}</textarea><small class="text-muted">展示于 App / 网页的「隐私政策」。</small></div>
                 </div>
             </div>
         </div>
