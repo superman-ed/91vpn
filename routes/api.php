@@ -25,6 +25,7 @@ Route::post('/auth/forgot', [AuthApiController::class, 'forgot'])->middleware('t
 Route::post('/auth/reset', [AuthApiController::class, 'reset'])->middleware('throttle:10,1');        // 找回校验重置,限流防撞码
 Route::get('/app/version', [AppApiController::class, 'version']);                                    // 版本检查(登录前也可调)
 Route::get('/app/config', [AppApiController::class, 'config']);                                       // 运行时配置(在线客服 Crisp 等)
+Route::get('/plans', [ShopApiController::class, 'index']);                                            // 套餐目录(公开:游客未登录也可浏览,购买时才要求登录)
 
 // 需登录:Bearer api_token
 Route::middleware('client.token')->group(function () {
@@ -37,7 +38,6 @@ Route::middleware('client.token')->group(function () {
     Route::post('/device/report', [DeviceController::class, 'report']);          // 设备上报
 
     // 商店 / 下单 / 支付
-    Route::get('/plans', [ShopApiController::class, 'index']);                    // 套餐目录
     Route::get('/orders', [ShopApiController::class, 'orders']);                  // 订单历史
     Route::post('/subscription/end', [ShopApiController::class, 'endSubscription']); // 立即结束当前套餐
     Route::post('/order/create', [ShopApiController::class, 'create']);           // 下单
