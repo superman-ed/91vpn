@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CaptchaService;
-use App\Services\EmailCodeService;
 use App\Services\RegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +14,6 @@ class RegisterController extends Controller
 {
     public function __construct(
         private CaptchaService $captcha,
-        private EmailCodeService $emailCode,
         private RegistrationService $registration,
     ) {}
 
@@ -31,31 +29,24 @@ class RegisterController extends Controller
     /** POST /register */
     public function store(Request $request)
     {
-        // 注意:此处不加 unique 规则。唯一性检查放到"邮箱验证码校验通过之后",
-        // 否则匿名请求可从"已被注册"错误直接枚举出某邮箱是否已注册。
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-            'email_code' => ['required', 'string'],
-            'name' => ['required', 'string', 'max:32'],
+            'username' => ['required', 'string', 'min:4', 'max:20', 'regex:/^[A-Za-z0-9_]+$/'],
+            'name' => ['nullable', 'string', 'max:32'],
             'invite_code' => ['nullable', 'string', 'max:32'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'captcha' => ['required', 'string'],
-        ]);
+        ], [], ['username' => '账户名']);
 
         // 算术验证码
         if (! $this->captcha->verify($data['captcha'], $request->session()->pull('captcha_answer'))) {
             throw ValidationException::withMessages(['captcha' => '算术验证码错误']);
         }
 
-        // 邮箱验证码
-        if (! $this->emailCode->verify($data['email'], $data['email_code'])) {
-            throw ValidationException::withMessages(['email_code' => '邮箱验证码错误或已过期']);
+        if (User::where('username', $data['username'])->exists()) {
+            throw ValidationException::withMessages(['username' => '该账户名已被注册，请更换']);
         }
 
-        // 唯一性检查只在验证码通过后进行:能收到验证码=掌握该邮箱,此时提示"已注册"不构成枚举泄露
-        if (User::where('email', $data['email'])->exists()) {
-            throw ValidationException::withMessages(['email' => '该邮箱已注册，请直接登录或找回密码']);
-        }
+        $data['name'] = $data['name'] ?? $data['username'];
 
         // 建号（邀请归因 + 受邀奖励）统一走 RegistrationService，与客户端 API 共用
         $user = $this->registration->register($data, [

@@ -41,7 +41,7 @@
             @php $isIn = $l->amount > 0; @endphp
             <tr>
                 <td class="text-muted">{{ $l->created_at?->format('Y-m-d H:i:s') }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $l->user?->email ?? '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $l->user?->ident() ?? '—' }}</td>
                 <td><span class="adm-pill {{ $typePill[$l->type] ?? 'muted' }}">{{ $typeName[$l->type] ?? $l->type }}</span></td>
                 <td style="font-weight:700;color:{{ $isIn ? '#2fa84f' : '#fc544b' }}">{{ $isIn ? '+' : '' }}{{ number_format($l->amount, 2) }}</td>
                 <td>¥{{ number_format($l->balance_after, 2) }}</td>

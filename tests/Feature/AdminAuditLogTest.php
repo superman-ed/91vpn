@@ -12,7 +12,7 @@ function auditAdmin(): User
 }
 
 it('records an audit entry when admin bans a user', function () {
-    $target = User::factory()->create(['email' => 'victim@test.local', 'banned' => false]);
+    $target = User::factory()->create(['username' => 'victim', 'banned' => false]);
 
     $this->actingAs(auditAdmin())->post("/admin/users/{$target->id}/toggle-ban");
 
@@ -21,7 +21,7 @@ it('records an audit entry when admin bans a user', function () {
     expect($log->admin->email)->toBe('op@test.local');
     expect($log->target_type)->toBe('User');
     expect($log->target_id)->toBe($target->id);
-    expect($log->description)->toContain('victim@test.local');
+    expect($log->description)->toContain('victim');
     expect($log->ip)->not->toBe('');
 });
 

@@ -26,7 +26,7 @@
             @forelse($tickets as $t)
             <tr>
                 <td class="text-muted">#{{ $t->id }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $t->user?->email ?? '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $t->user?->ident() ?? '—' }}</td>
                 <td>{{ $t->subject }}</td>
                 <td>@if($t->status === 'open')<span class="adm-pill info">进行中</span>@else<span class="adm-pill muted">已关闭</span>@endif</td>
                 <td class="text-muted">{{ $t->updated_at?->format('Y-m-d H:i') }}</td>

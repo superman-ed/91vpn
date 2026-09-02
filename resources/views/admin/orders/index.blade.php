@@ -42,7 +42,7 @@
                     <span style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:#34395e">{{ $o->order_no }}</span>
                     @if($o->trade_no)<br><span style="font-size:11px;color:#98a6ad" title="网关交易号">交易号 {{ $o->trade_no }}</span>@endif
                 </td>
-                <td style="color:#34395e;font-weight:600">{{ $o->user?->email ?? '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $o->user?->ident() ?? '—' }}</td>
                 <td>{{ $o->plan?->name ?? '—' }}</td>
                 <td>
                     <span style="font-weight:700;color:#34395e">¥{{ number_format($o->amount, 2) }}</span>

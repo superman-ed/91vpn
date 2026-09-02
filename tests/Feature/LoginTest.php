@@ -8,10 +8,10 @@ it('shows the login page', function () {
 });
 
 it('logs in with correct credentials and arithmetic captcha', function () {
-    $user = User::factory()->create(['email' => 'lo@test.local', 'password' => Hash::make('secret1234')]);
+    $user = User::factory()->create(['username' => 'louser', 'password' => Hash::make('secret1234')]);
 
     $this->withSession(['captcha_answer' => 5])->post('/login', [
-        'email' => 'lo@test.local',
+        'username' => 'louser',
         'password' => 'secret1234',
         'captcha' => '5',
     ])->assertRedirect('/user');
@@ -20,22 +20,22 @@ it('logs in with correct credentials and arithmetic captcha', function () {
 });
 
 it('rejects wrong password', function () {
-    User::factory()->create(['email' => 'lo2@test.local', 'password' => Hash::make('secret1234')]);
+    User::factory()->create(['username' => 'lo2user', 'password' => Hash::make('secret1234')]);
 
     $this->withSession(['captcha_answer' => 5])->post('/login', [
-        'email' => 'lo2@test.local',
+        'username' => 'lo2user',
         'password' => 'wrongpass',
         'captcha' => '5',
-    ])->assertSessionHasErrors('email');
+    ])->assertSessionHasErrors('username');
 
     $this->assertGuest();
 });
 
 it('rejects wrong captcha', function () {
-    User::factory()->create(['email' => 'lo3@test.local', 'password' => Hash::make('secret1234')]);
+    User::factory()->create(['username' => 'lo3user', 'password' => Hash::make('secret1234')]);
 
     $this->withSession(['captcha_answer' => 5])->post('/login', [
-        'email' => 'lo3@test.local',
+        'username' => 'lo3user',
         'password' => 'secret1234',
         'captcha' => '99',
     ])->assertSessionHasErrors('captcha');

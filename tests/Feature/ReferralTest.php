@@ -8,26 +8,24 @@ use App\Services\BillingService;
 use Illuminate\Support\Facades\Cache;
 
 it('generates a ref_code on registration', function () {
-    Cache::put('email_code:ref@test.local', '123456', now()->addMinutes(5));
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'ref@test.local', 'email_code' => '123456', 'name' => 'r',
+        'username' => 'refuser', 'name' => 'r',
         'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
     ]);
-    $user = User::where('email', 'ref@test.local')->first();
+    $user = User::where('username', 'refuser')->first();
     expect($user->ref_code)->not->toBeEmpty();
 });
 
 it('registers with a permanent ref_code and binds inviter', function () {
     $inviter = User::factory()->create(['ref_code' => 'REFPERM01']);
-    Cache::put('email_code:d@test.local', '123456', now()->addMinutes(5));
 
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'd@test.local', 'email_code' => '123456', 'name' => 'd',
+        'username' => 'duser', 'name' => 'd',
         'invite_code' => 'REFPERM01',
         'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
     ])->assertRedirect('/user');
 
-    expect(User::where('email', 'd@test.local')->first()->ref_by)->toBe($inviter->id);
+    expect(User::where('username', 'duser')->first()->ref_by)->toBe($inviter->id);
 });
 
 it('shows the invite page with ref link and downline', function () {
@@ -65,13 +63,12 @@ it('does not rebate on purchase (rebate is recharge-based)', function () {
 
 it('gives the invited user a signup bonus', function () {
     $inviter = User::factory()->create(['ref_code' => 'BONUS001']);
-    Cache::put('email_code:newbie@test.local', '123456', now()->addMinutes(5));
 
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'newbie@test.local', 'email_code' => '123456', 'name' => 'newbie',
+        'username' => 'newbie', 'name' => 'newbie',
         'invite_code' => 'BONUS001',
         'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
     ])->assertRedirect('/user');
 
-    expect((float) User::where('email', 'newbie@test.local')->first()->money)->toBe(1.0);   // 默认注册奖励 1 元
+    expect((float) User::where('username', 'newbie')->first()->money)->toBe(1.0);   // 默认注册奖励 1 元
 });

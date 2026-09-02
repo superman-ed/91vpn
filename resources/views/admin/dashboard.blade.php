@@ -118,7 +118,7 @@
             <tbody>
             @forelse($recentOrders as $o)
             <tr>
-                <td style="color:#34395e;font-weight:600">{{ $o->user?->email ?? '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $o->user?->ident() ?? '—' }}</td>
                 <td>{{ $o->plan?->name ?? '—' }}</td>
                 <td>¥{{ number_format($o->amount, 2) }}</td>
                 <td>

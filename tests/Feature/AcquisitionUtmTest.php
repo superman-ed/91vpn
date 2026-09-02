@@ -14,13 +14,12 @@ it('captures utm from landing and stores it on registration', function () {
     // 落地页带 UTM → 存 session
     $this->get('/login?utm_source=telegram&utm_medium=social&utm_campaign=spring2026')->assertOk();
 
-    Cache::put('email_code:lead@test.local', '123456', now()->addMinutes(5));
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'lead@test.local', 'email_code' => '123456', 'name' => 'Lead',
+        'username' => 'lead', 'name' => 'Lead',
         'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
     ]);
 
-    $u = User::where('email', 'lead@test.local')->first();
+    $u = User::where('username', 'lead')->first();
     expect($u->utm_source)->toBe('telegram');
     expect($u->utm_medium)->toBe('social');
     expect($u->utm_campaign)->toBe('spring2026');

@@ -25,7 +25,7 @@ class LoginController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            'username' => ['required', 'string'],
             'password' => ['required', 'string'],
             'captcha' => ['required', 'string'],
         ]);
@@ -35,32 +35,32 @@ class LoginController extends Controller
         }
 
         $remember = $request->boolean('remember');
-        $userId = \App\Models\User::where('email', $data['email'])->value('id');
+        $userId = \App\Models\User::where('username', $data['username'])->value('id');
 
-        if (! Auth::attempt(['email' => $data['email'], 'password' => $data['password']], $remember)) {
-            $this->log($request, 'failed', $data['email'], $userId, '邮箱或密码错误');
-            throw ValidationException::withMessages(['email' => '邮箱或密码错误']);
+        if (! Auth::attempt(['username' => $data['username'], 'password' => $data['password']], $remember)) {
+            $this->log($request, 'failed', $data['username'], $userId, '账户名或密码错误');
+            throw ValidationException::withMessages(['username' => '账户名或密码错误']);
         }
 
         if (Auth::user()->banned) {
             Auth::logout();
-            $this->log($request, 'failed', $data['email'], $userId, '账号已被封禁');
-            throw ValidationException::withMessages(['email' => '账号已被封禁']);
+            $this->log($request, 'failed', $data['username'], $userId, '账号已被封禁');
+            throw ValidationException::withMessages(['username' => '账号已被封禁']);
         }
 
         $request->session()->regenerate();
-        $this->log($request, 'success', $data['email'], Auth::id());
+        $this->log($request, 'success', $data['username'], Auth::id());
 
         return redirect()->intended('/user');
     }
 
-    /** 记一条登录日志（成功/失败通用） */
-    private function log(Request $request, string $status, string $email, ?int $userId, string $reason = ''): void
+    /** 记一条登录日志（成功/失败通用;标识存 LoginLog.email 列,现存账户名) */
+    private function log(Request $request, string $status, string $identifier, ?int $userId, string $reason = ''): void
     {
         \App\Models\LoginLog::create([
             'user_id' => $userId,
             'status' => $status,
-            'email' => $email,
+            'email' => $identifier,
             'ip' => $request->ip(),
             'location' => \App\Support\GeoIp::locate($request->ip()),
             'user_agent' => substr((string) $request->userAgent(), 0, 255),

@@ -25,17 +25,15 @@ it('classifies registration channels', function () {
 });
 
 it('records referer and ip on registration', function () {
-    \Illuminate\Support\Facades\Cache::put('email_code:zoe@test.local', '123456', now()->addMinutes(5));
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'zoe@test.local',
-        'email_code' => '123456',
+        'username' => 'zoeuser',
         'name' => 'Zoe',
         'password' => 'secret1234',
         'password_confirmation' => 'secret1234',
         'captcha' => '7',
     ], ['referer' => 'https://blog.example.com/vpn']);
 
-    $u = User::where('email', 'zoe@test.local')->first();
+    $u = User::where('username', 'zoeuser')->first();
     expect($u)->not->toBeNull();
     expect($u->reg_referer)->toBe('https://blog.example.com/vpn');
     expect($u->reg_ip)->not->toBeNull();

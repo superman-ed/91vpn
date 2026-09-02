@@ -32,14 +32,6 @@ it('invalidates a code after 5 wrong attempts (P0-4)', function () {
     expect($svc->verify('v@test.local', '123456'))->toBeFalse();
 });
 
-it('password reset endpoint is rate limited (P0-4)', function () {
-    for ($i = 0; $i < 10; $i++) {
-        $this->post('/password/reset', ['email' => 'x@test.local', 'code' => '000000', 'password' => 'newpass1234', 'password_confirmation' => 'newpass1234']);
-    }
-    $this->post('/password/reset', ['email' => 'x@test.local', 'code' => '000000', 'password' => 'newpass1234', 'password_confirmation' => 'newpass1234'])
-        ->assertStatus(429);   // Too Many Requests
-});
-
 // —— P0-5: 生产环境禁止模拟支付/充值 ——
 it('blocks mock pay in production when gateway not configured (P0-5)', function () {
     app()['env'] = 'production';

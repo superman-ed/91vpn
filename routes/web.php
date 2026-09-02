@@ -11,9 +11,7 @@ use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
-use App\Http\Controllers\Auth\EmailCodeController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\User\AccountController;
 use App\Http\Controllers\User\DownloadController;
 use App\Http\Controllers\User\SubscribeLogController;
@@ -43,12 +41,9 @@ Route::match(['get', 'post'], '/pay/epay/return', [App\Http\Controllers\PaymentC
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
-    Route::post('/auth/send', [EmailCodeController::class, 'send'])->middleware('throttle:5,1');   // 发码限流,防轰炸
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:10,1');          // 登录限流,防撞库
-    Route::get('/password/forgot', [PasswordController::class, 'forgot'])->name('password.forgot');
-    Route::post('/password/send', [PasswordController::class, 'send'])->middleware('throttle:5,1'); // 找回发码限流
-    Route::post('/password/reset', [PasswordController::class, 'reset'])->middleware('throttle:10,1'); // 找回校验限流,防撞码
+    // 账户体系去邮箱:无邮箱验证码/邮箱找回;忘记密码走在线客服人工重置
 });
 
 // 用户中心（占位，M2 实现）

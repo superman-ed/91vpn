@@ -8,7 +8,7 @@
     $pct = $user->transfer_enable > 0 ? min(100, round($used / $user->transfer_enable * 100)) : 0;
 @endphp
 <div class="adm-head">
-    <h4><i class="fas fa-user-edit text-primary"></i> {{ $user->email }} <span class="text-muted" style="font-size:13px;font-weight:400">#{{ $user->id }}</span></h4>
+    <h4><i class="fas fa-user-edit text-primary"></i> {{ $user->ident() }} <span class="text-muted" style="font-size:13px;font-weight:400">#{{ $user->id }}</span></h4>
     <a href="/admin/users" class="btn btn-light" style="border-radius:9px">返回</a>
 </div>
 
@@ -19,7 +19,7 @@
             <div class="col-md-3 mb-2">状态：@if($user->banned)<span class="adm-pill danger">封禁</span>@elseif($user->class > 0 && $user->class_expire && $user->class_expire->isFuture())<span class="adm-pill ok">会员</span>@elseif($user->class > 0)<span class="adm-pill warn">已过期</span>@else<span class="adm-pill muted">免费</span>@endif</div>
             <div class="col-md-3 mb-2">注册时间：<span style="color:#34395e">{{ $user->created_at?->format('Y-m-d') }}</span></div>
             <div class="col-md-3 mb-2">最后使用：<span style="color:#34395e">{{ $user->last_used_at?->format('Y-m-d H:i') ?? '—' }}</span></div>
-            <div class="col-md-3 mb-2">邀请人：<span style="color:#34395e">{{ $user->inviter?->email ?? '—' }}</span></div>
+            <div class="col-md-3 mb-2">邀请人：<span style="color:#34395e">{{ $user->inviter?->ident() ?? '—' }}</span></div>
             <div class="col-md-12">
                 <div class="d-flex justify-content-between" style="font-size:12px"><span>已用流量 {{ number_format($usedGb, 1) }} / {{ number_format($totalGb, 1) }} GB</span><span>{{ $pct }}%</span></div>
                 <div class="progress" style="height:7px;border-radius:5px"><div class="progress-bar {{ $pct >= 90 ? 'bg-danger' : ($pct >= 70 ? 'bg-warning' : 'bg-primary') }}" style="width:{{ $pct }}%"></div></div>

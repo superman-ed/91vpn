@@ -6,7 +6,7 @@
     <h4><i class="fas fa-users text-primary"></i> 用户管理</h4>
     <form method="GET" class="adm-search adm-tools">
         <input type="hidden" name="status" value="{{ $status }}">
-        <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索邮箱 / 昵称" style="min-width:200px">
+        <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索账户名 / 昵称 / 邮箱" style="min-width:200px">
         <button class="btn adm-btn"><i class="fas fa-search"></i> 搜索</button>
         @if($q)<a href="/admin/users{{ $status ? '?status='.$status : '' }}" class="btn btn-light" style="border-radius:9px">清除</a>@endif
         <a href="/admin/users/export?{{ http_build_query(request()->only('q','status')) }}" class="btn btn-light" style="border-radius:9px" title="按当前筛选导出"><i class="fas fa-file-csv text-success"></i> 导出</a>
@@ -26,7 +26,7 @@
             @forelse($users as $u)
             <tr>
                 <td class="text-muted">#{{ $u->id }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $u->email }}@if($u->name)<br><span class="text-muted" style="font-weight:400;font-size:12px">{{ $u->name }}</span>@endif</td>
+                <td style="color:#34395e;font-weight:600">{{ $u->ident() }}@if($u->name)<br><span class="text-muted" style="font-weight:400;font-size:12px">{{ $u->name }}</span>@endif</td>
                 <td><span class="adm-pill primary">{{ class_name($u->class) }}</span></td>
                 <td>{{ number_format(bytes_to_gb(max(0, $u->transfer_enable - $u->u - $u->d)), 1) }} GB</td>
                 <td class="text-muted">{{ $u->class_expire?->format('Y-m-d') ?? '—' }}</td>

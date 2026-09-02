@@ -92,7 +92,7 @@
                 @forelse($topInviters as $i => $t)
                 <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f4f6fb">
                     <span style="width:20px;height:20px;border-radius:50%;background:{{ ['#f5a623','#9aa5b1','#c98a5e'][$i] ?? '#c3cbd6' }};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ $i + 1 }}</span>
-                    <span style="flex:1;font-size:13px;color:#34395e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $t['user']?->email ?? '已删除用户' }}</span>
+                    <span style="flex:1;font-size:13px;color:#34395e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $t['user']?->ident() ?? '已删除用户' }}</span>
                     <span style="color:#2fa84f;font-weight:700;font-size:13px">{{ $t['cnt'] }} 人</span>
                 </div>
                 @empty<div class="adm-empty" style="padding:20px 0">暂无邀请注册</div>@endforelse

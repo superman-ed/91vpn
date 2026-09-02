@@ -4,26 +4,18 @@
 <style>.auth-inner .form-group { margin-bottom: .75rem; } .auth-inner label { margin-bottom: 3px; }</style>
 <form method="POST" action="/register">@csrf
     <div class="form-group">
-        <label>注册邮箱</label>
+        <label>账户名</label>
         <div class="input-group">
-            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-envelope"></i></span></div>
-            <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="you@example.com" required>
-        </div>
-    </div>
-    <div class="form-group">
-        <label>邮箱验证码</label>
-        <div class="input-group">
-            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-shield-alt"></i></span></div>
-            <input type="text" name="email_code" class="form-control" placeholder="邮箱收到的验证码" required>
-            <div class="input-group-append"><button type="button" class="btn btn-outline-primary" data-send-code data-endpoint="/auth/send" style="border-radius:0 10px 10px 0">发送</button></div>
+            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user"></i></span></div>
+            <input type="text" name="username" value="{{ old('username') }}" class="form-control" placeholder="4-20 位字母/数字/下划线" required autocomplete="username">
         </div>
     </div>
     <div class="form-row">
         <div class="form-group col-6">
-            <label>昵称</label>
+            <label>昵称（选填）</label>
             <div class="input-group">
-                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user"></i></span></div>
-                <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="昵称" required>
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-id-badge"></i></span></div>
+                <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="选填">
             </div>
         </div>
         <div class="form-group col-6">

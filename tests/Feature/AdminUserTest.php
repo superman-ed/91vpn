@@ -5,8 +5,8 @@ use App\Models\User;
 beforeEach(fn () => $this->admin = User::factory()->create(['is_admin' => true]));
 
 it('lists users with search', function () {
-    User::factory()->create(['email' => 'findme@test.local']);
-    $this->actingAs($this->admin)->get('/admin/users?q=findme')->assertOk()->assertSee('findme@test.local');
+    User::factory()->create(['username' => 'findme']);
+    $this->actingAs($this->admin)->get('/admin/users?q=findme')->assertOk()->assertSee('findme');
 });
 
 it('edits user quota class and expiry', function () {

@@ -108,6 +108,12 @@ class User extends Authenticatable
         return $this->usedTraffic() >= $this->transfer_enable;
     }
 
+    // 账号标识:账户名优先,邮箱兜底(App 用户无邮箱),都无则 #id
+    public function ident(): string
+    {
+        return $this->username ?: ($this->email ?: ('#'.$this->id));
+    }
+
     // 今天是否已签到
     public function checkedInToday(): bool
     {

@@ -2,30 +2,8 @@
 
 use App\Models\Setting;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Mail;
 
-it('stores code and returns ok when SMTP not configured (log mode)', function () {
-    Mail::fake();
-    $this->post('/auth/send', ['email' => 'dev@test.local'])
-        ->assertOk()->assertJson(['ok' => true]);
-
-    expect(Cache::get('email_code:dev@test.local'))->not->toBeNull();
-});
-
-it('sends via SMTP path without error when configured', function () {
-    Setting::put('smtp_host', 'smtp.example.com');
-    Setting::put('smtp_username', 'noreply@example.com');
-    Setting::put('smtp_password', 'secret');
-    Mail::fake();
-
-    $this->post('/auth/send', ['email' => 'user@test.local'])
-        ->assertOk()->assertJson(['ok' => true]);
-
-    expect(Cache::get('email_code:user@test.local'))->not->toBeNull();
-    expect(smtp_configured())->toBeTrue();
-});
-
+// 账户体系已去邮箱:发码/邮箱验证码路由移除。SMTP 设置本身保留(后台可配),此处只测保存。
 it('admin saves SMTP settings', function () {
     $admin = User::factory()->create(['is_admin' => true]);
     $this->actingAs($admin)->put('/admin/settings', [

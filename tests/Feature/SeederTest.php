@@ -4,9 +4,10 @@ use App\Models\Node;
 use App\Models\Plan;
 use App\Models\User;
 
-it('seeds 3 VIP plans', function () {
+it('seeds VIP plans across periods (3 tiers × 4 periods)', function () {
     $this->seed();
-    expect(Plan::count())->toBe(3);
+    expect(Plan::count())->toBe(12);
+    expect(Plan::distinct('name')->count('name'))->toBe(3);
     expect(Plan::where('name', 'VIP①')->first()->transfer_gb)->toBe(100);
     expect(Plan::where('name', 'VIP③')->first()->class)->toBe(3);
 });
@@ -30,6 +31,6 @@ it('seeds an admin user with full tokens', function () {
 it('seeders are idempotent', function () {
     $this->seed();
     $this->seed();
-    expect(Plan::count())->toBe(3);
+    expect(Plan::count())->toBe(12);
     expect(User::where('is_admin', true)->count())->toBe(1);
 });

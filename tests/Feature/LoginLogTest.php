@@ -7,40 +7,40 @@ use Illuminate\Support\Facades\Hash;
 function attempt(array $override = []): array
 {
     return array_merge([
-        'email' => 'u@test.local',
+        'username' => 'uuser',
         'password' => 'secret1234',
         'captcha' => '7',
     ], $override);
 }
 
 it('records a successful login', function () {
-    User::factory()->create(['email' => 'u@test.local', 'password' => Hash::make('secret1234'), 'banned' => false]);
+    User::factory()->create(['username' => 'uuser', 'password' => Hash::make('secret1234'), 'banned' => false]);
 
     $this->withSession(['captcha_answer' => 7])->post('/login', attempt())->assertRedirect();
 
-    $log = LoginLog::where('email', 'u@test.local')->first();
+    $log = LoginLog::where('email', 'uuser')->first();
     expect($log->status)->toBe('success');
     expect($log->user_id)->not->toBeNull();
 });
 
 it('records a failed login with wrong password', function () {
-    $u = User::factory()->create(['email' => 'u@test.local', 'password' => Hash::make('secret1234')]);
+    $u = User::factory()->create(['username' => 'uuser', 'password' => Hash::make('secret1234')]);
 
     $this->withSession(['captcha_answer' => 7])->post('/login', attempt(['password' => 'wrongpass']))
-        ->assertSessionHasErrors('email');
+        ->assertSessionHasErrors('username');
 
     $log = LoginLog::where('status', 'failed')->first();
     expect($log)->not->toBeNull();
-    expect($log->email)->toBe('u@test.local');
+    expect($log->email)->toBe('uuser');
     expect($log->user_id)->toBe($u->id);        // 账号存在但密码错
-    expect($log->reason)->toBe('邮箱或密码错误');
+    expect($log->reason)->toBe('账户名或密码错误');
 });
 
 it('records a failed login for a non-existent account (user_id null)', function () {
-    $this->withSession(['captcha_answer' => 7])->post('/login', attempt(['email' => 'ghost@test.local']))
-        ->assertSessionHasErrors('email');
+    $this->withSession(['captcha_answer' => 7])->post('/login', attempt(['username' => 'ghost']))
+        ->assertSessionHasErrors('username');
 
-    $log = LoginLog::where('email', 'ghost@test.local')->first();
+    $log = LoginLog::where('email', 'ghost')->first();
     expect($log->status)->toBe('failed');
     expect($log->user_id)->toBeNull();
 });

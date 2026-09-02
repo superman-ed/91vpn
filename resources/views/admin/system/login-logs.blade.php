@@ -54,7 +54,7 @@
             <tr>
                 <td class="text-muted">{{ $l->logged_at?->format('Y-m-d H:i:s') }}</td>
                 <td>@if($l->status === 'success')<span class="adm-pill ok">成功</span>@else<span class="adm-pill danger" title="{{ $l->reason }}">失败</span>@endif</td>
-                <td style="color:#34395e;font-weight:600">{{ $l->user?->email ?? $l->email ?: '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $l->user?->ident() ?? $l->email ?: '—' }}</td>
                 <td style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px">{{ $l->ip ?: '—' }}</td>
                 <td>{{ $l->location ?: '—' }}</td>
                 <td class="text-muted" style="font-size:12.5px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ $l->user_agent }}">

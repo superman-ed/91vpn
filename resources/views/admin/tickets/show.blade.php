@@ -19,7 +19,7 @@
 <div class="adm-head">
     <h4><i class="fas fa-headset text-primary"></i> {{ $ticket->subject }}</h4>
     <div class="adm-tools">
-        <span class="text-muted" style="font-size:13px">来自 {{ $ticket->user?->email }}</span>
+        <span class="text-muted" style="font-size:13px">来自 {{ $ticket->user?->ident() }}</span>
         @if($ticket->status === 'open')<span class="adm-pill info">进行中</span>@else<span class="adm-pill muted">已关闭</span>@endif
         <a href="/admin/tickets" class="btn btn-light btn-sm" style="border-radius:9px">返回</a>
     </div>
@@ -29,9 +29,9 @@
     <div class="atk-chat">
         @foreach($ticket->replies as $r)
         <div class="atk-msg {{ $r->is_admin ? 'me' : 'them' }}">
-            <span class="atk-av {{ $r->is_admin ? 'staff' : 'user' }}">{{ $r->is_admin ? '客' : mb_strtoupper(mb_substr($r->user?->email ?: 'U', 0, 1)) }}</span>
+            <span class="atk-av {{ $r->is_admin ? 'staff' : 'user' }}">{{ $r->is_admin ? '客' : mb_strtoupper(mb_substr($r->user?->ident() ?: 'U', 0, 1)) }}</span>
             <div class="atk-wrap">
-                <div class="atk-meta">{{ $r->is_admin ? '客服' : ($r->user?->email ?? '用户') }} · {{ $r->created_at?->format('Y-m-d H:i') }}</div>
+                <div class="atk-meta">{{ $r->is_admin ? '客服' : ($r->user?->ident() ?? '用户') }} · {{ $r->created_at?->format('Y-m-d H:i') }}</div>
                 <div class="atk-bubble">{{ $r->content }}</div>
             </div>
         </div>

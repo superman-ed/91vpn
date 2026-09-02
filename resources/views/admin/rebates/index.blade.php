@@ -26,7 +26,7 @@
         <div style="display:flex;align-items:center;gap:10px;background:#fafbff;border:1px solid #eef1f8;border-radius:11px;padding:9px 15px;min-width:210px">
             <span style="width:22px;height:22px;border-radius:50%;background:{{ ['#f5a623','#9aa5b1','#c98a5e'][$i] ?? '#c3cbd6' }};color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ $i + 1 }}</span>
             <div style="flex:1;min-width:0">
-                <div style="color:#34395e;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $e['user']?->email ?? '已删除用户' }}</div>
+                <div style="color:#34395e;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $e['user']?->ident() ?? '已删除用户' }}</div>
                 <div class="text-muted" style="font-size:11.5px">{{ $e['cnt'] }} 笔</div>
             </div>
             <div style="color:#2fa84f;font-weight:800;font-size:14px">+¥{{ number_format($e['total'], 2) }}</div>
@@ -44,7 +44,7 @@
             @forelse($rebates as $r)
             <tr>
                 <td class="text-muted">{{ $r->created_at?->format('Y-m-d H:i:s') }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $r->user?->email ?? '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $r->user?->ident() ?? '—' }}</td>
                 <td>
                     @if($r->fromUser)
                         <span style="color:#54667a">{{ $r->fromUser->email }}</span>

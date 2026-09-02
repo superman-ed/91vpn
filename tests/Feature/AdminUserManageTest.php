@@ -6,11 +6,11 @@ use Illuminate\Support\Facades\Hash;
 beforeEach(fn () => $this->admin = User::factory()->create(['is_admin' => true]));
 
 it('filters users by member status', function () {
-    User::factory()->create(['email' => 'mem@test.local', 'class' => 1, 'class_expire' => now()->addDays(10)]);
-    User::factory()->create(['email' => 'free@test.local', 'class' => 0, 'class_expire' => now()->subDay()]);
+    User::factory()->create(['username' => 'memuser', 'class' => 1, 'class_expire' => now()->addDays(10)]);
+    User::factory()->create(['username' => 'freeuser', 'class' => 0, 'class_expire' => now()->subDay()]);
 
     $res = $this->actingAs($this->admin)->get('/admin/users?status=member')->assertOk();
-    $res->assertSee('mem@test.local')->assertDontSee('free@test.local');
+    $res->assertSee('memuser')->assertDontSee('freeuser');
 });
 
 it('update syncs base_transfer_enable with quota', function () {

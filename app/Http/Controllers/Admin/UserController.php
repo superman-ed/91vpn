@@ -20,7 +20,7 @@ class UserController extends Controller
         $base = User::query();   // 含管理员(管理员也是用户)
 
         $users = (clone $base)
-            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
+            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('username', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
             ->when($status, fn ($query) => $this->applyStatus($query, $status))
             ->orderByDesc('id')->paginate(30)->withQueryString();
 
@@ -45,16 +45,16 @@ class UserController extends Controller
         $status = $request->query('status');
 
         $query = User::query()
-            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
+            ->when($q, fn ($query) => $query->where(fn ($w) => $w->where('username', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%")))
             ->when($status, fn ($query) => $this->applyStatus($query, $status));
 
-        $header = ['ID', '邮箱', '昵称', '身份', '等级', '状态', '已用(GB)', '配额(GB)', '余额', '到期时间', '注册时间'];
+        $header = ['ID', '账户名', '昵称', '身份', '等级', '状态', '已用(GB)', '配额(GB)', '余额', '到期时间', '注册时间'];
         $rows = (function () use ($query) {
             foreach ($query->orderByDesc('id')->cursor() as $u) {
                 $state = $u->banned ? '已封禁' : ($u->class > 0 ? ($u->class_expire > now() ? '会员' : '已过期') : '免费');
                 yield [
                     $u->id,
-                    $u->email,
+                    $u->ident(),
                     $u->name,
                     $u->is_admin ? '管理员' : '用户',
                     $u->class,
@@ -114,12 +114,12 @@ class UserController extends Controller
 
         // 余额变动走调账入口,自动补记资金流水(表单未提交 money 字段时不动余额)
         if (array_key_exists('money', $data) && $data['money'] !== null) {
-            $billing->adminAdjust($user, (float) $data['money'], auth()->user()->email);
+            $billing->adminAdjust($user, (float) $data['money'], auth()->user()->ident());
         }
 
-        audit('user.update', "更新用户 {$user->email}", $user);
+        audit('user.update', "更新用户 {$user->ident()}", $user);
 
-        return redirect('/admin/users')->with('status', "已更新用户 {$user->email}");
+        return redirect('/admin/users')->with('status', "已更新用户 {$user->ident()}");
     }
 
     public function toggleBan(User $user)
@@ -128,7 +128,7 @@ class UserController extends Controller
             return back()->with('status', '管理员账号不可封禁，请到「管理员」页撤销其管理员权限后再操作');
         }
         $user->update(['banned' => ! $user->banned]);
-        audit('user.ban', ($user->banned ? '封禁' : '解封')."用户 {$user->email}", $user);
+        audit('user.ban', ($user->banned ? '封禁' : '解封')."用户 {$user->ident()}", $user);
 
         return back()->with('status', $user->banned ? '已封禁' : '已解封');
     }
@@ -157,18 +157,18 @@ class UserController extends Controller
             'paid_at' => now(), 'delivered_at' => now(),
         ]);
 
-        audit('user.grant', "为 {$user->email} 开通「{$plan->name}」", $user);
+        audit('user.grant', "为 {$user->ident()} 开通「{$plan->name}」", $user);
 
-        return redirect('/admin/users')->with('status', "已为 {$user->email} 开通「{$plan->name}」");
+        return redirect('/admin/users')->with('status', "已为 {$user->ident()} 开通「{$plan->name}」");
     }
 
     /** 重置已用流量(u/d 清零) */
     public function resetTraffic(User $user)
     {
         $user->update(['u' => 0, 'd' => 0]);
-        audit('user.reset_traffic', "重置 {$user->email} 已用流量", $user);
+        audit('user.reset_traffic', "重置 {$user->ident()} 已用流量", $user);
 
-        return back()->with('status', "已重置 {$user->email} 的已用流量");
+        return back()->with('status', "已重置 {$user->ident()} 的已用流量");
     }
 
     /** 重置登录密码 */
@@ -176,8 +176,8 @@ class UserController extends Controller
     {
         $data = $request->validate(['password' => ['required', 'string', 'min:8']]);
         $user->update(['password' => Hash::make($data['password'])]);
-        audit('user.reset_password', "重置 {$user->email} 登录密码", $user);
+        audit('user.reset_password', "重置 {$user->ident()} 登录密码", $user);
 
-        return back()->with('status', "已重置 {$user->email} 的登录密码");
+        return back()->with('status', "已重置 {$user->ident()} 的登录密码");
     }
 }

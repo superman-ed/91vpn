@@ -108,7 +108,7 @@
                 $pct = $u->usagePercent();
             @endphp
             <tr>
-                <td style="color:#34395e;font-weight:600">{{ $u->email }}@if($u->is_admin)<span class="adm-pill primary" style="margin-left:6px">管理员</span>@endif</td>
+                <td style="color:#34395e;font-weight:600">{{ $u->ident() }}@if($u->is_admin)<span class="adm-pill primary" style="margin-left:6px">管理员</span>@endif</td>
                 <td>
                     <span class="adm-pill ok">{{ $ips->count() }} 台</span>
                     <div class="text-muted" style="font-size:12px;font-family:SFMono-Regular,Menlo,Consolas,monospace;margin-top:3px">{{ $ips->take(3)->implode('、') }}@if($ips->count() > 3) …@endif</div>

@@ -89,7 +89,7 @@
             @forelse($devices as $d)
             @php [$name, $ic, $col] = $pm($d->platform); $online = $d->last_seen && $d->last_seen->gte(now()->subSeconds(\App\Models\Device::ONLINE_WINDOW)); @endphp
             <tr>
-                <td style="color:#34395e;font-weight:600">{{ $d->user?->email ?? '—' }}</td>
+                <td style="color:#34395e;font-weight:600">{{ $d->user?->ident() ?? '—' }}</td>
                 <td><i class="{{ $ic }}" style="color:{{ $col }};margin-right:6px"></i>{{ $name }}</td>
                 <td>{{ trim($d->brand.' '.$d->model) ?: '—' }}</td>
                 <td>{{ $d->os_version ?: '—' }}</td>

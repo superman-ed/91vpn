@@ -25,25 +25,23 @@ it('attributes a registration to the promo code from the ?ch link', function () 
 
     // 通过推广链接落地 → 注册
     $this->get('/login?ch=AGENT1')->assertOk();
-    Cache::put('email_code:lead@test.local', '123456', now()->addMinutes(5));
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'lead@test.local', 'email_code' => '123456', 'name' => 'Lead',
+        'username' => 'lead', 'name' => 'Lead',
         'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
     ]);
 
-    expect(User::where('email', 'lead@test.local')->value('promo_code'))->toBe('AGENT1');
+    expect(User::where('username', 'lead')->value('promo_code'))->toBe('AGENT1');
 });
 
 it('ignores an unknown or disabled promo code', function () {
     PromoChannel::create(['code' => 'OFF', 'name' => 'x', 'enabled' => false]);
     $this->get('/login?ch=OFF');
-    Cache::put('email_code:u2@test.local', '123456', now()->addMinutes(5));
     $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'email' => 'u2@test.local', 'email_code' => '123456', 'name' => 'U2',
+        'username' => 'u2user', 'name' => 'U2',
         'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
     ]);
 
-    expect(User::where('email', 'u2@test.local')->value('promo_code'))->toBeNull();
+    expect(User::where('username', 'u2user')->value('promo_code'))->toBeNull();
 });
 
 it('computes agent performance (reg / paid / revenue)', function () {
