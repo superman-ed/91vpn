@@ -18,6 +18,7 @@
     <button type="button" data-tab="mail"><i class="fas fa-envelope"></i> 邮件发送</button>
     <button type="button" data-tab="support"><i class="fas fa-headset"></i> 在线客服</button>
     <button type="button" data-tab="legal"><i class="fas fa-file-contract"></i> 法务条款</button>
+    <button type="button" data-tab="client"><i class="fas fa-mobile-screen"></i> 客户端</button>
 </div>
 
 <form method="POST" action="/admin/settings" class="adm-form">@csrf @method('PUT')
@@ -123,6 +124,17 @@
                 <div class="row">
                     <div class="form-group col-md-12"><label>用户协议</label><textarea name="terms_content" rows="12" class="form-control" style="font-size:13px" placeholder="填写用户协议正文（纯文本，段落之间空一行）。留空则 App 使用内置草稿。">{{ old('terms_content', $termsContent) }}</textarea><small class="text-muted">展示于 App / 网页的「用户协议」。建议纯文本,段与段之间空一行分隔。</small></div>
                     <div class="form-group col-md-12"><label>隐私政策</label><textarea name="privacy_content" rows="12" class="form-control" style="font-size:13px" placeholder="填写隐私政策正文（纯文本，段落之间空一行）。留空则 App 使用内置草稿。">{{ old('privacy_content', $privacyContent) }}</textarea><small class="text-muted">展示于 App / 网页的「隐私政策」。</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="set-pane" data-pane="client">
+        <div class="card adm-form-card">
+            <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#3aa0c7,#2a86ab)"><i class="fas fa-mobile-screen"></i></span><h4>客户端分发</h4></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="form-group col-md-12"><label>API 域名列表(容灾)</label><textarea name="api_hosts" rows="6" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px" placeholder="一行一个,如：&#10;https://api.91vpn.com&#10;https://api2.91vpn.com">{{ old('api_hosts', $apiHosts) }}</textarea><small class="text-muted">App 启动时逐个探活,连不上主域名自动切下一个,并缓存。一行一个完整地址(含 https://)。留空则用 App 内置种子。主域名被墙时在此追加/更换备用域名即可,已装 App 下次启动自动跟进。</small></div>
                 </div>
             </div>
         </div>

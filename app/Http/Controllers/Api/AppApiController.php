@@ -31,6 +31,12 @@ class AppApiController extends Controller
      */
     public function config()
     {
+        // API 域名容灾列表(后台可编辑,一行一个;客户端拉取后缓存,连不上主域名自动切换)
+        $hosts = collect(preg_split('/\r\n|\r|\n/', (string) setting('api_hosts', '')))
+            ->map(fn ($h) => trim($h))
+            ->filter(fn ($h) => $h !== '')
+            ->values()->all();
+
         return response()->json(['ret' => 1, 'data' => [
             'crisp' => [
                 'website_id' => setting('crisp_website_id', ''),
@@ -40,6 +46,7 @@ class AppApiController extends Controller
                 'terms' => setting('terms_content', ''),
                 'privacy' => setting('privacy_content', ''),
             ],
+            'hosts' => $hosts,
         ]]);
     }
 }

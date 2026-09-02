@@ -32,6 +32,7 @@ class SettingController extends Controller
             'supportWidget' => setting('support_widget', ''),
             'termsContent' => setting('terms_content', ''),
             'privacyContent' => setting('privacy_content', ''),
+            'apiHosts' => setting('api_hosts', ''),
         ]);
     }
 
@@ -58,6 +59,7 @@ class SettingController extends Controller
             'support_widget' => ['nullable', 'string', 'max:8000'],
             'terms_content' => ['nullable', 'string', 'max:20000'],
             'privacy_content' => ['nullable', 'string', 'max:20000'],
+            'api_hosts' => ['nullable', 'string', 'max:4000'],
         ]);
 
         Setting::put('buy_notice', $data['buy_notice'] ?? '');
@@ -81,6 +83,7 @@ class SettingController extends Controller
         Setting::put('support_widget', $data['support_widget'] ?? '');
         Setting::put('terms_content', $data['terms_content'] ?? '');
         Setting::put('privacy_content', $data['privacy_content'] ?? '');
+        Setting::put('api_hosts', $data['api_hosts'] ?? '');
 
         audit('setting.update', '更新站点设置');
 
