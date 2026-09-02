@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\RegistrationService;
 
 function acqAdmin(): User
 {
@@ -25,16 +26,11 @@ it('classifies registration channels', function () {
 });
 
 it('records referer and ip on registration', function () {
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'zoeuser',
-        'name' => 'Zoe',
-        'password' => 'secret1234',
-        'password_confirmation' => 'secret1234',
-        'captcha' => '7',
-    ], ['referer' => 'https://blog.example.com/vpn']);
+    $u = app(RegistrationService::class)->register(
+        ['username' => 'zoeuser', 'name' => 'Zoe', 'password' => 'secret1234'],
+        ['referer' => 'https://blog.example.com/vpn', 'ip' => '1.2.3.4'],
+    );
 
-    $u = User::where('username', 'zoeuser')->first();
-    expect($u)->not->toBeNull();
     expect($u->reg_referer)->toBe('https://blog.example.com/vpn');
-    expect($u->reg_ip)->not->toBeNull();
+    expect($u->reg_ip)->toBe('1.2.3.4');
 });

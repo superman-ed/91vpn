@@ -3,7 +3,7 @@
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
+use App\Services\RegistrationService;
 
 function acqAdmin2(): User
 {
@@ -11,15 +11,11 @@ function acqAdmin2(): User
 }
 
 it('captures utm from landing and stores it on registration', function () {
-    // 落地页带 UTM → 存 session
-    $this->get('/login?utm_source=telegram&utm_medium=social&utm_campaign=spring2026')->assertOk();
-
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'lead', 'name' => 'Lead',
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
-    ]);
-
-    $u = User::where('username', 'lead')->first();
+    // UTM 归因(注册上下文携带;直接验证 RegistrationService 写入)
+    $u = app(RegistrationService::class)->register(
+        ['username' => 'leaduser', 'name' => 'Lead', 'password' => 'secret1234'],
+        ['utm' => ['source' => 'telegram', 'medium' => 'social', 'campaign' => 'spring2026']],
+    );
     expect($u->utm_source)->toBe('telegram');
     expect($u->utm_medium)->toBe('social');
     expect($u->utm_campaign)->toBe('spring2026');

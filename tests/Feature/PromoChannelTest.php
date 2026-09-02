@@ -4,7 +4,7 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Models\PromoChannel;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
+use App\Services\RegistrationService;
 
 function promoAdmin(): User
 {
@@ -23,25 +23,23 @@ it('creates a promo code and records audit', function () {
 it('attributes a registration to the promo code from the ?ch link', function () {
     PromoChannel::create(['code' => 'AGENT1', 'name' => '代理1', 'enabled' => true]);
 
-    // 通过推广链接落地 → 注册
-    $this->get('/login?ch=AGENT1')->assertOk();
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'lead', 'name' => 'Lead',
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
-    ]);
+    // 推广码通过注册上下文归因(客户端注册时带上;此处直接验证 RegistrationService)
+    $user = app(RegistrationService::class)->register(
+        ['username' => 'leaduser', 'name' => 'Lead', 'password' => 'secret1234'],
+        ['promo' => 'AGENT1'],
+    );
 
-    expect(User::where('username', 'lead')->value('promo_code'))->toBe('AGENT1');
+    expect($user->promo_code)->toBe('AGENT1');
 });
 
 it('ignores an unknown or disabled promo code', function () {
     PromoChannel::create(['code' => 'OFF', 'name' => 'x', 'enabled' => false]);
-    $this->get('/login?ch=OFF');
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'u2user', 'name' => 'U2',
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
-    ]);
+    $user = app(RegistrationService::class)->register(
+        ['username' => 'u2user', 'name' => 'U2', 'password' => 'secret1234'],
+        ['promo' => 'OFF'],
+    );
 
-    expect(User::where('username', 'u2user')->value('promo_code'))->toBeNull();
+    expect($user->promo_code)->toBeNull();
 });
 
 it('computes agent performance (reg / paid / revenue)', function () {

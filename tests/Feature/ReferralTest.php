@@ -5,27 +5,25 @@ use App\Models\Payback;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\BillingService;
-use Illuminate\Support\Facades\Cache;
+use App\Services\RegistrationService;
 
 it('generates a ref_code on registration', function () {
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'refuser', 'name' => 'r',
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
-    ]);
-    $user = User::where('username', 'refuser')->first();
+    $user = app(RegistrationService::class)->register(
+        ['username' => 'refuser', 'name' => 'r', 'password' => 'secret1234'],
+        [],
+    );
     expect($user->ref_code)->not->toBeEmpty();
 });
 
 it('registers with a permanent ref_code and binds inviter', function () {
     $inviter = User::factory()->create(['ref_code' => 'REFPERM01']);
 
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'duser', 'name' => 'd',
-        'invite_code' => 'REFPERM01',
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
-    ])->assertRedirect('/user');
+    $user = app(RegistrationService::class)->register(
+        ['username' => 'duser', 'name' => 'd', 'invite_code' => 'REFPERM01', 'password' => 'secret1234'],
+        [],
+    );
 
-    expect(User::where('username', 'duser')->first()->ref_by)->toBe($inviter->id);
+    expect($user->ref_by)->toBe($inviter->id);
 });
 
 it('shows the invite page with ref link and downline', function () {
@@ -64,11 +62,10 @@ it('does not rebate on purchase (rebate is recharge-based)', function () {
 it('gives the invited user a signup bonus', function () {
     $inviter = User::factory()->create(['ref_code' => 'BONUS001']);
 
-    $this->withSession(['captcha_answer' => 7])->post('/register', [
-        'username' => 'newbie', 'name' => 'newbie',
-        'invite_code' => 'BONUS001',
-        'password' => 'secret1234', 'password_confirmation' => 'secret1234', 'captcha' => '7',
-    ])->assertRedirect('/user');
+    $user = app(RegistrationService::class)->register(
+        ['username' => 'newbie', 'name' => 'newbie', 'invite_code' => 'BONUS001', 'password' => 'secret1234'],
+        [],
+    );
 
-    expect((float) User::where('username', 'newbie')->first()->money)->toBe(1.0);   // 默认注册奖励 1 元
+    expect((float) $user->money)->toBe(1.0);   // 默认注册奖励 1 元
 });
