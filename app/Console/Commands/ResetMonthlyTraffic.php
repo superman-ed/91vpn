@@ -41,7 +41,28 @@ class ResetMonthlyTraffic extends Command
                 }
             });
 
-        $this->info("已刷新 {$count} 个会员的流量配额");
+        // 免费/过期用户:每月再生免费额度——仅清零已用 u/d(签到累积的 transfer_enable 保留,
+        // 且节点侧已按 free_cap 封顶),让他们下个月又有免费额度可用。
+        $freeCount = 0;
+        User::query()
+            ->whereNotNull('next_reset_at')
+            ->where('next_reset_at', '<=', $now)
+            ->where(fn ($q) => $q->where('class', '<=', 0)
+                ->orWhereNull('class_expire')
+                ->orWhere('class_expire', '<=', $now))
+            ->chunkById(500, function ($users) use ($now, &$freeCount) {
+                foreach ($users as $user) {
+                    $next = $user->next_reset_at->copy();
+                    do {
+                        $next = $next->addMonthNoOverflow();
+                    } while ($next->lte($now));
+
+                    $user->update(['u' => 0, 'd' => 0, 'next_reset_at' => $next]);
+                    $freeCount++;
+                }
+            });
+
+        $this->info("已刷新 {$count} 个会员 + {$freeCount} 个免费用户的流量配额");
 
         return self::SUCCESS;
     }

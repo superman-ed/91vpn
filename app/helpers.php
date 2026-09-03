@@ -219,6 +219,22 @@ if (! function_exists('signup_bonus')) {
     }
 }
 
+if (! function_exists('free_traffic_cap_gb')) {
+    /** 免费(非会员)签到流量累积上限，单位 GB，后台可配，默认 2GB；0 表示关闭免费档 */
+    function free_traffic_cap_gb(): float
+    {
+        return (float) setting('free_traffic_cap_gb', '2');
+    }
+}
+
+if (! function_exists('free_traffic_cap_bytes')) {
+    /** 免费签到流量上限（字节） */
+    function free_traffic_cap_bytes(): int
+    {
+        return (int) round(free_traffic_cap_gb() * (1024 ** 3));
+    }
+}
+
 if (! function_exists('smtp_configured')) {
     /** 后台是否已配置 SMTP 发信 */
     function smtp_configured(): bool

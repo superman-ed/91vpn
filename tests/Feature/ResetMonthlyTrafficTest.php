@@ -2,7 +2,7 @@
 
 use App\Models\User;
 
-it('resets used traffic only for members whose anniversary is due', function () {
+it('resets due members and regenerates free tier monthly', function () {
     // 到期需刷新：开通周年已到（next_reset_at <= now）
     $due = User::factory()->create([
         'class' => 1, 'class_expire' => now()->addDays(10),
@@ -16,16 +16,21 @@ it('resets used traffic only for members whose anniversary is due', function () 
         'next_reset_at' => now()->addDays(12),
         'transfer_enable' => 100 * 1024 ** 3, 'u' => 40 * 1024 ** 3, 'd' => 0,
     ]);
-    // 过期会员：不动
+    // 过期会员（有 next_reset_at 且到期）：降级到免费档，走「每月再生」——清零已用、推进刷新日、额度不动
     $expired = User::factory()->create([
         'class' => 1, 'class_expire' => now()->subDay(),
         'next_reset_at' => now()->subDay(),
         'transfer_enable' => 100 * 1024 ** 3, 'u' => 30 * 1024 ** 3, 'd' => 0,
     ]);
-    // 免费用户：不动
+    // 免费用户但从未签到（next_reset_at 为 null）：不匹配再生分支，不动
     $free = User::factory()->create([
         'class' => 0, 'class_expire' => null, 'next_reset_at' => null,
         'transfer_enable' => 0, 'u' => 5 * 1024 ** 3, 'd' => 0,
+    ]);
+    // 免费用户已签到（有到期的 next_reset_at）：每月再生，清零已用、推进刷新日
+    $freeDue = User::factory()->create([
+        'class' => 0, 'class_expire' => null, 'next_reset_at' => now()->subMinute(),
+        'transfer_enable' => 2 * 1024 ** 3, 'u' => (int) (1.5 * 1024 ** 3), 'd' => 0,
     ]);
 
     $this->artisan('traffic:reset-monthly')->assertSuccessful();
@@ -38,9 +43,18 @@ it('resets used traffic only for members whose anniversary is due', function () 
 
     // 未到期会员：已用保持不变
     expect((int) $notDue->fresh()->u)->toBe(40 * 1024 ** 3);
-    // 过期/免费用户：不动
-    expect((int) $expired->fresh()->u)->toBe(30 * 1024 ** 3);
+
+    // 过期会员降级免费档：已用清零、额度保留、刷新日推进
+    expect((int) $expired->fresh()->u)->toBe(0);
+    expect($expired->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
+    expect($expired->fresh()->next_reset_at->isFuture())->toBeTrue();
+
+    // 从未签到的免费用户：不动
     expect((int) $free->fresh()->u)->toBe(5 * 1024 ** 3);
+
+    // 已签到的免费用户：每月再生，已用清零、刷新日推进
+    expect((int) $freeDue->fresh()->u)->toBe(0);
+    expect($freeDue->fresh()->next_reset_at->isFuture())->toBeTrue();
 });
 
 it('advances a badly-overdue anniversary to a future date', function () {

@@ -25,11 +25,18 @@ class SubscriptionService
     /** 校验账号有效性（各格式共用） */
     private function assertUsable(User $user): void
     {
-        if (! $user->isActive()) {
-            throw new RuntimeException('账号已过期或被封禁');
+        if ($user->banned) {
+            throw new RuntimeException('账号已被封禁');
         }
-        if ($user->isTrafficExhausted()) {
-            throw new RuntimeException('流量已用尽');
+        // 不再硬性要求会员有效期:非会员/过期用户凭剩余流量(签到领的)也能出订阅,
+        // accessibleNodes 只会给他们免费节点(node_class=0)。
+        // 会员按自身额度判耗尽;非会员额外受免费封顶约束(与节点侧一致)。
+        $used = (int) $user->u + (int) $user->d;
+        $limit = $user->hasActivePackage()
+            ? (int) $user->transfer_enable
+            : min((int) $user->transfer_enable, free_traffic_cap_bytes());
+        if ($used >= $limit) {
+            throw new RuntimeException('流量不足，请签到领取或订阅套餐');
         }
     }
 
@@ -105,11 +112,13 @@ class SubscriptionService
         return Yaml::dump($config, 6, 2);
     }
 
-    /** 按等级筛出用户能连的节点（class >= node_class） */
+    /** 按等级筛出用户能连的节点（会员=其等级内全部;非会员/过期=仅免费节点 node_class=0） */
     private function accessibleNodes(User $user)
     {
+        $maxClass = $user->hasActivePackage() ? $user->class : 0;
+
         return Node::where('online', true)
-            ->where('node_class', '<=', $user->class)
+            ->where('node_class', '<=', $maxClass)
             ->orderBy('sort')
             ->get();
     }

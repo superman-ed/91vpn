@@ -17,6 +17,7 @@ class SettingController extends Controller
             'epayKey' => setting('epay_key', ''),
             'rebateRate' => rebate_rate(),
             'signupBonus' => signup_bonus(),
+            'freeTrafficCapGb' => free_traffic_cap_gb(),
             'smtpHost' => setting('smtp_host', ''),
             'smtpPort' => setting('smtp_port', '465'),
             'smtpEncryption' => setting('smtp_encryption', 'ssl'),
@@ -45,6 +46,7 @@ class SettingController extends Controller
             'epay_key' => ['nullable', 'string', 'max:128'],
             'rebate_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'signup_bonus' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'free_traffic_cap_gb' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'smtp_host' => ['nullable', 'string', 'max:255'],
             'smtp_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'smtp_encryption' => ['nullable', 'in:ssl,tls,none'],
@@ -68,6 +70,7 @@ class SettingController extends Controller
         Setting::put('epay_key', $data['epay_key'] ?? '');
         Setting::put('rebate_rate', (string) ($data['rebate_rate'] ?? '2.5'));
         Setting::put('signup_bonus', (string) ($data['signup_bonus'] ?? '1'));
+        Setting::put('free_traffic_cap_gb', (string) ($data['free_traffic_cap_gb'] ?? '2'));
         Setting::put('smtp_host', $data['smtp_host'] ?? '');
         Setting::put('smtp_port', (string) ($data['smtp_port'] ?? '465'));
         Setting::put('smtp_encryption', ($data['smtp_encryption'] ?? 'ssl') === 'none' ? '' : ($data['smtp_encryption'] ?? 'ssl'));

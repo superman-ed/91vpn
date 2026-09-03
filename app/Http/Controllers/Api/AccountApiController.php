@@ -16,13 +16,25 @@ class AccountApiController extends Controller
         $user = $request->user();
         $reward = random_int(100, 500) * 1024 * 1024;   // 100–500 MB
         $todayStart = now()->startOfDay()->timestamp;
+        $isMember = $user->hasActivePackage();
+
+        // 会员:原子自增(不封顶,重置日随套餐额度归位)。
+        // 非会员:免费档,累积封顶 free_traffic_cap;非并发场景用绝对值写入即可(每日仅一次成功)。
+        $updates = ['last_check_in' => now()->timestamp];
+        if ($isMember) {
+            $updates['transfer_enable'] = DB::raw("transfer_enable + {$reward}");
+        } else {
+            $cap = free_traffic_cap_bytes();
+            $updates['transfer_enable'] = min((int) $user->transfer_enable + $reward, $cap);
+            // 首次签到设定"每月再生"日,供 traffic:reset-monthly 按月清零重发免费额度
+            if ($user->next_reset_at === null) {
+                $updates['next_reset_at'] = now()->addMonthNoOverflow();
+            }
+        }
 
         $affected = User::whereKey($user->id)
             ->where(fn ($q) => $q->whereNull('last_check_in')->orWhere('last_check_in', '<', $todayStart))
-            ->update([
-                'transfer_enable' => DB::raw("transfer_enable + {$reward}"),
-                'last_check_in' => now()->timestamp,
-            ]);
+            ->update($updates);
 
         if ($affected === 0) {
             return response()->json(['ret' => 0, 'msg' => '今天已经签到过了']);

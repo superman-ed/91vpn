@@ -22,23 +22,45 @@ class NodeUserService
 
     private function query(Node $node): array
     {
+        $isFreeNode = (int) $node->node_class === 0;
+
         $query = DB::table('users')
             ->where('banned', false)
-            ->where('class_expire', '>', now())
             ->where('class', '>=', $node->node_class)
             ->whereColumn(DB::raw('u + d'), '<', 'transfer_enable');
+
+        // 付费节点仍要求会员有效期。
+        // 免费节点(node_class=0)不卡会员期:会员按自身额度使用;非会员/过期用户
+        // 额外受"免费封顶"约束(u+d < free_cap),防止过期会员拿旧套餐大额度在免费节点白嫖。
+        if (! $isFreeNode) {
+            $query->where('class_expire', '>', now());
+        } else {
+            $cap = free_traffic_cap_bytes();
+            $query->where(function ($q) use ($cap) {
+                $q->where('class_expire', '>', now())
+                    ->orWhereRaw('u + d < ?', [$cap]);
+            });
+        }
 
         if ($node->node_group > 0) {
             // node_group=0 表示不限分组；此处按需扩展 user 分组匹配
         }
 
-        return $query->get(['id', 'uuid', 'passwd', 'node_speed_limit', 'node_ip_limit'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'uuid' => $u->uuid,
-                'passwd' => $u->passwd,
-                'speed_limit' => $u->node_speed_limit,
-                'ip_limit' => $u->node_ip_limit,
-            ])->all();
+        $nodeSpeed = (int) $node->speed_limit;
+
+        return $query->get(['id', 'uuid', 'passwd', 'node_speed_limit', 'node_ip_limit', 'class', 'class_expire'])
+            ->map(function ($u) use ($isFreeNode, $nodeSpeed) {
+                $activeMember = $u->class > 0 && $u->class_expire !== null && strtotime($u->class_expire) > time();
+                // 免费节点上的非会员/过期用户:用节点自带限速;会员及付费节点仍用用户套餐限速
+                $speed = ($isFreeNode && ! $activeMember) ? $nodeSpeed : (int) $u->node_speed_limit;
+
+                return [
+                    'id' => $u->id,
+                    'uuid' => $u->uuid,
+                    'passwd' => $u->passwd,
+                    'speed_limit' => $speed,
+                    'ip_limit' => $u->node_ip_limit,
+                ];
+            })->all();
     }
 }

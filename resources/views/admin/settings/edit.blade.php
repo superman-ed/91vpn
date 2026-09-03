@@ -56,6 +56,7 @@
                 <div class="row">
                     <div class="form-group col-md-6"><label>充值返利比例（%）</label><input name="rebate_rate" type="number" step="0.1" value="{{ old('rebate_rate', $rebateRate) }}" class="form-control"><small class="text-muted">下线每次充值，邀请人获得该比例返利。</small></div>
                     <div class="form-group col-md-6"><label>受邀注册奖励（元）</label><input name="signup_bonus" type="number" step="0.01" value="{{ old('signup_bonus', $signupBonus) }}" class="form-control"><small class="text-muted">通过邀请码注册的新用户获得的初始资金。</small></div>
+                    <div class="form-group col-md-6"><label>免费签到流量上限（GB）</label><input name="free_traffic_cap_gb" type="number" step="0.1" min="0" value="{{ old('free_traffic_cap_gb', $freeTrafficCapGb) }}" class="form-control"><small class="text-muted">非会员签到累积流量的封顶（每月再生）；需另建一个「节点等级=0」的免费体验节点。填 0 关闭免费档。</small></div>
                 </div>
             </div>
         </div>
