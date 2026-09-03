@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
+use App\Http\Controllers\Admin\HelpArticleController as AdminHelpArticleController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
@@ -111,6 +112,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('plans/{plan}/toggle-sale', [AdminPlanController::class, 'toggleSale'])->name('admin.plans.toggle-sale');
     Route::post('plans/{plan}/move', [AdminPlanController::class, 'move'])->name('admin.plans.move');
     Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
+    Route::resource('help', AdminHelpArticleController::class)->except('show')->names('admin.help')->parameters(['help' => 'help']);
     Route::get('users/export', [AdminUserController::class, 'export'])->name('admin.users.export');
     Route::get('users', [AdminUserController::class, 'index'])->name('admin.users.index');
     Route::get('users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');

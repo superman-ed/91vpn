@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AnnouncementApiController;
 use App\Http\Controllers\Api\AppApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\HelpApiController;
 use App\Http\Controllers\Api\InviteApiController;
 use App\Http\Controllers\Api\MessageApiController;
 use App\Http\Controllers\Api\NodeApiController;
@@ -23,6 +24,7 @@ Route::post('/auth/register', [AuthApiController::class, 'register'])->middlewar
 Route::get('/app/version', [AppApiController::class, 'version']);                                    // 版本检查(登录前也可调)
 Route::get('/app/config', [AppApiController::class, 'config']);                                       // 运行时配置(在线客服 Crisp 等)
 Route::get('/plans', [ShopApiController::class, 'index']);                                            // 套餐目录(公开:游客未登录也可浏览,购买时才要求登录)
+Route::get('/help', [HelpApiController::class, 'index']);                                             // 帮助中心/文档(公开:游客也可看)
 
 // 需登录:Bearer api_token
 Route::middleware('client.token')->group(function () {
