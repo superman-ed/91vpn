@@ -88,6 +88,7 @@
                     <li class="menu-header">系统</li>
                     <li class="{{ request()->is('admin/system/login-logs*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/login-logs"><i class="fas fa-sign-in-alt"></i><span>登录日志</span></a></li>
                     <li class="{{ request()->is('admin/system/devices*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/devices"><i class="fas fa-mobile-alt"></i><span>设备统计</span></a></li>
+                    <li class="{{ request()->is('admin/system/crashes*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/crashes"><i class="fas fa-bug"></i><span>崩溃日志</span></a></li>
                     <li class="{{ request()->is('admin/system/acquisition*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/acquisition"><i class="fas fa-route"></i><span>来路统计</span></a></li>
                     <li class="{{ request()->is('admin/system/audit*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/audit"><i class="fas fa-clipboard-list"></i><span>操作日志</span></a></li>
                     <li class="{{ request()->is('admin/system/emails*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/emails"><i class="fas fa-envelope-open-text"></i><span>邮件记录</span></a></li>

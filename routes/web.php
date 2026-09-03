@@ -137,6 +137,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('online', [App\Http\Controllers\Admin\OnlineUserController::class, 'index'])->name('admin.online.index');
     Route::get('system/login-logs', [App\Http\Controllers\Admin\LoginLogController::class, 'index'])->name('admin.system.login-logs');
     Route::get('system/devices', [App\Http\Controllers\Admin\DeviceStatController::class, 'index'])->name('admin.system.devices');
+    Route::get('system/crashes', [App\Http\Controllers\Admin\CrashLogController::class, 'index'])->name('admin.system.crashes');
+    Route::get('system/crashes/{fingerprint}', [App\Http\Controllers\Admin\CrashLogController::class, 'show'])->name('admin.system.crashes.show');
     Route::get('system/acquisition', [App\Http\Controllers\Admin\AcquisitionController::class, 'index'])->name('admin.system.acquisition');
     Route::get('system/audit', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('admin.system.audit');
     Route::get('system/emails', [App\Http\Controllers\Admin\EmailLogController::class, 'index'])->name('admin.system.emails');

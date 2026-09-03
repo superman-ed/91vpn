@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AccountApiController;
 use App\Http\Controllers\Api\AnnouncementApiController;
 use App\Http\Controllers\Api\AppApiController;
 use App\Http\Controllers\Api\AuthApiController;
+use App\Http\Controllers\Api\CrashController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\HelpApiController;
 use App\Http\Controllers\Api\InviteApiController;
@@ -25,6 +26,7 @@ Route::get('/app/version', [AppApiController::class, 'version']);               
 Route::get('/app/config', [AppApiController::class, 'config']);                                       // 运行时配置(在线客服 Crisp 等)
 Route::get('/plans', [ShopApiController::class, 'index']);                                            // 套餐目录(公开:游客未登录也可浏览,购买时才要求登录)
 Route::get('/help', [HelpApiController::class, 'index']);                                             // 帮助中心/文档(公开:游客也可看)
+Route::post('/crash', [CrashController::class, 'report'])->middleware('throttle:30,1');               // 崩溃上报(公开:游客也可能崩溃;token 可选;限流防刷)
 
 // 需登录:Bearer api_token
 Route::middleware('client.token')->group(function () {

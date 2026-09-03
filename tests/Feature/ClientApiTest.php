@@ -89,6 +89,35 @@ it('rejects device list without a token', function () {
     $this->getJson('/api/devices')->assertStatus(401);
 });
 
+// ---- 崩溃上报(公开,token 可选) ----
+
+it('accepts a crash report with a token and attaches the user', function () {
+    apiUser();
+    $this->postJson('/api/crash',
+        ['message' => "TypeError: undefined is not a function", 'stack' => 'at HomeScreen', 'platform' => 'android', 'app_version' => '0.1.0', 'device_id' => 'd1'],
+        ['Authorization' => 'Bearer TESTTOKEN123'])
+        ->assertOk()->assertJsonPath('ret', 1);
+    $u = App\Models\User::where('username', 'ctest')->first();
+    $this->assertDatabaseHas('crash_logs', ['user_id' => $u->id, 'platform' => 'android', 'app_version' => '0.1.0']);
+});
+
+it('accepts a guest crash report without a token (user_id null)', function () {
+    $this->postJson('/api/crash', ['message' => 'boom', 'platform' => 'android'])
+        ->assertOk()->assertJsonPath('ret', 1);
+    $this->assertDatabaseHas('crash_logs', ['user_id' => null, 'message' => 'boom']);
+});
+
+it('requires a message on crash report', function () {
+    $this->postJson('/api/crash', ['platform' => 'android'])->assertStatus(422);
+});
+
+it('groups same errors under one fingerprint ignoring numbers', function () {
+    $this->postJson('/api/crash', ['message' => 'Cannot read prop x of 123', 'platform' => 'android'])->assertOk();
+    $this->postJson('/api/crash', ['message' => 'Cannot read prop x of 456', 'platform' => 'android'])->assertOk();
+    // 两条数字不同但归一后相同 → 同一 fingerprint
+    expect(App\Models\CrashLog::distinct('fingerprint')->count('fingerprint'))->toBe(1);
+});
+
 // ---- 节点列表 ----
 
 it('lists all online nodes and flags the ones above the user class as locked', function () {
