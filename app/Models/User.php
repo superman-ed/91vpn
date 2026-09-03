@@ -136,6 +136,12 @@ class User extends Authenticatable
         return $this->hasMany(AliveIp::class);
     }
 
+    // 自研客户端上报的设备清单(机型/系统/版本/最后在线),见 Api\DeviceController
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
+    }
+
     // 当前在线设备数：最近 ONLINE_WINDOW 秒内上报的去重 IP 数
     public function onlineDevices(): int
     {

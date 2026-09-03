@@ -61,6 +61,34 @@ it('rejects device report without a token', function () {
     $this->postJson('/api/device/report', ['device_id' => 'x'])->assertStatus(401);
 });
 
+it('lists the user devices (newest first) and flags the current one', function () {
+    apiUser();
+    // 上报两台设备
+    $this->postJson('/api/device/report', ['device_id' => 'devA', 'platform' => 'android', 'brand' => 'Xiaomi', 'model' => 'Redmi K60', 'os_version' => '14', 'app_version' => '1.0.0'], ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+    $this->postJson('/api/device/report', ['device_id' => 'devB', 'platform' => 'android', 'model' => 'Pixel 8'], ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+
+    $res = $this->getJson('/api/devices?device_id=devA', ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+    $data = collect($res->json('data'));
+    expect($data)->toHaveCount(2);
+    expect($data->firstWhere('device_id', 'devA')['is_current'])->toBeTrue();
+    expect($data->firstWhere('device_id', 'devB')['is_current'])->toBeFalse();
+    expect($data->firstWhere('device_id', 'devA')['brand'])->toBe('Xiaomi');
+});
+
+it('removes only the current user own device', function () {
+    apiUser();
+    $this->postJson('/api/device/report', ['device_id' => 'devA', 'platform' => 'android'], ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+    $id = App\Models\Device::where('device_id', 'devA')->value('id');
+
+    $this->deleteJson("/api/devices/{$id}", [], ['Authorization' => 'Bearer TESTTOKEN123'])
+        ->assertOk()->assertJsonPath('ret', 1);
+    $this->assertDatabaseMissing('devices', ['device_id' => 'devA']);
+});
+
+it('rejects device list without a token', function () {
+    $this->getJson('/api/devices')->assertStatus(401);
+});
+
 // ---- 节点列表 ----
 
 it('lists all online nodes and flags the ones above the user class as locked', function () {

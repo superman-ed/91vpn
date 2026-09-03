@@ -35,6 +35,8 @@ Route::middleware('client.token')->group(function () {
     Route::post('/account/password', [AccountApiController::class, 'updatePassword']); // 修改密码
     Route::post('/account/profile', [AccountApiController::class, 'updateProfile']);   // 修改昵称
     Route::post('/device/report', [DeviceController::class, 'report']);          // 设备上报
+    Route::get('/devices', [DeviceController::class, 'index']);                   // 设备列表(我的→在线设备)
+    Route::delete('/devices/{id}', [DeviceController::class, 'destroy']);         // 下线/移除一台设备
 
     // 商店 / 下单 / 支付
     Route::get('/orders', [ShopApiController::class, 'orders']);                  // 订单历史

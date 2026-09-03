@@ -12,6 +12,37 @@ use Illuminate\Http\Request;
  */
 class DeviceController extends Controller
 {
+    /** GET /api/devices —— 当前用户的设备清单(按最后在线倒序);可带 ?device_id= 标记本机 */
+    public function index(Request $request)
+    {
+        $current = (string) $request->query('device_id', '');
+
+        $list = $request->user()->devices()
+            ->orderByDesc('last_seen')
+            ->get()
+            ->map(fn (Device $d) => [
+                'id' => $d->id,
+                'device_id' => $d->device_id,
+                'platform' => $d->platform,
+                'brand' => $d->brand,
+                'model' => $d->model,
+                'os_version' => $d->os_version,
+                'app_version' => $d->app_version,
+                'last_seen' => $d->last_seen?->toDateTimeString(),
+                'is_current' => $current !== '' && $d->device_id === $current,
+            ]);
+
+        return response()->json(['ret' => 1, 'data' => $list]);
+    }
+
+    /** DELETE /api/devices/{id} —— 下线/移除本账号名下的一台设备(仅能删自己的) */
+    public function destroy(Request $request, int $id)
+    {
+        $deleted = $request->user()->devices()->whereKey($id)->delete();
+
+        return response()->json(['ret' => $deleted ? 1 : 0]);
+    }
+
     /** POST /api/device/report */
     public function report(Request $request)
     {
