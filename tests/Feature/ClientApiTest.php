@@ -63,14 +63,29 @@ it('rejects device report without a token', function () {
 
 // ---- 节点列表 ----
 
-it('returns servable nodes filtered by class and online', function () {
-    apiUser(['class' => 2]);
+it('lists all online nodes and flags the ones above the user class as locked', function () {
+    apiUser(['class' => 2, 'class_expire' => now()->addDay()]);
     App\Models\Node::create(['name' => 'HK', 'server' => 's', 'port' => 1, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 1, 'online' => true, 'secret' => 'a']);
-    App\Models\Node::create(['name' => 'VIP', 'server' => 's', 'port' => 2, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 5, 'online' => true, 'secret' => 'b']);  // 等级不够
-    App\Models\Node::create(['name' => 'OFF', 'server' => 's', 'port' => 3, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'online' => false, 'secret' => 'c']); // 离线
+    App\Models\Node::create(['name' => 'VIP', 'server' => 's', 'port' => 2, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 5, 'online' => true, 'secret' => 'b']);  // 超出等级 → locked
+    App\Models\Node::create(['name' => 'OFF', 'server' => 's', 'port' => 3, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'online' => false, 'secret' => 'c']); // 离线不列
     $res = $this->getJson('/api/servers', ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
-    expect($res->json('data'))->toHaveCount(1);
-    expect($res->json('data.0.name'))->toBe('HK');
+
+    $data = collect($res->json('data'));
+    expect($data)->toHaveCount(2);   // 全量在线,含超等级的付费节点
+    expect($data->firstWhere('name', 'HK')['locked'])->toBeFalse();
+    expect($data->firstWhere('name', 'VIP')['locked'])->toBeTrue();
+});
+
+it('flags all paid nodes as locked for a non-member but still lists them', function () {
+    apiUser(['class' => 0, 'class_expire' => now()->subDay()]);   // 非会员/过期
+    App\Models\Node::create(['name' => 'FREE', 'server' => 's', 'port' => 1, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'online' => true, 'secret' => 'a']);
+    App\Models\Node::create(['name' => 'PAID', 'server' => 's', 'port' => 2, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 1, 'online' => true, 'secret' => 'b']);
+    $res = $this->getJson('/api/servers', ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+
+    $data = collect($res->json('data'));
+    expect($data)->toHaveCount(2);
+    expect($data->firstWhere('name', 'FREE')['locked'])->toBeFalse();
+    expect($data->firstWhere('name', 'PAID')['locked'])->toBeTrue();
 });
 
 // ---- 公告 ----
