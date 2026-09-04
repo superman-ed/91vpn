@@ -97,13 +97,54 @@ class UserController extends Controller
             'data' => [
                 'node_id' => $node->id,
                 'name' => $node->name,
-                'server' => $node->server,
+                // SSPanel mod_mu 契约:所有连接参数打包进分号串,格式为
+                //   <host>;<port>;<alterId>;<network>;<tls>;<k=v|k=v>
+                // 我们自研 agent 与 XrayR 读下面的扁平字段;soga 与真正的
+                // SSPanel 生态读这个串。与 users 端点的 data/users 双键同理。
+                'server' => $this->sspanelServerString($node),
+                // 扁平字段(自研 agent 用),保持原样
+                'host' => $node->host,
                 'port' => $node->port,
                 'type' => $node->type,          // vmess 等
                 'net' => $node->net,            // tcp/ws...
+                'path' => $node->path,
+                'tls' => (bool) $node->tls,
                 'traffic_rate' => (float) $node->traffic_rate,
                 'node_class' => (int) $node->node_class,
+                'node_speedlimit' => (float) $node->speed_limit,
+                'node_group' => (int) $node->node_group,
+                'custom_config' => $node->custom_config,
             ],
+        ]);
+    }
+
+    /**
+     * 拼 SSPanel mod_mu 的 server 分号串。
+     *
+     * 格式:<host>;<port>;<alterId>;<network>;<tls>;<k=v|k=v>
+     *
+     * 注意两条实测出来的规则(来自对 soga 的逆向,见 sogacore 项目
+     * compatibility/adversarial-sspanel.md):
+     *   - network 段【存在但为空】会被拒绝,所以 net 必须有值
+     *   - 给了 network 却缺 tls 段(共 4 段)会被拒绝,所以至少要凑满 5 段
+     */
+    private function sspanelServerString($node): string
+    {
+        $params = [];
+        if ($node->path !== '' && $node->path !== null) {
+            $params[] = 'path=' . $node->path;
+        }
+        if ($node->host !== '' && $node->host !== null) {
+            $params[] = 'host=' . $node->host;
+        }
+
+        return implode(';', [
+            $node->server,
+            (string) $node->port,
+            '0',                                   // alterId,现代 vmess 一律 0
+            $node->net ?: 'tcp',                   // 不能为空串
+            $node->tls ? 'tls' : 'none',
+            implode('|', $params),
         ]);
     }
 }
