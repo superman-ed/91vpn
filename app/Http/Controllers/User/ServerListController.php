@@ -11,6 +11,7 @@ class ServerListController extends Controller
     public function index()
     {
         $nodes = Node::where('online', true)
+            ->where('enabled', true)   // 排空/维护中的节点不展示
             ->orderBy('sort')->orderBy('id')->get();
 
         return view('user.servers', ['nodes' => $nodes]);

@@ -118,6 +118,7 @@ class SubscriptionService
         $maxClass = $user->hasActivePackage() ? $user->class : 0;
 
         return Node::where('online', true)
+            ->where('enabled', true)   // 排空的节点(enabled=false)不进订阅,阻止新连接
             ->where('node_class', '<=', $maxClass)
             ->orderBy('sort')
             ->get();

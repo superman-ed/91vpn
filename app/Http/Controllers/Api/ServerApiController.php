@@ -18,6 +18,7 @@ class ServerApiController extends Controller
         $maxClass = $user->hasActivePackage() ? $user->class : 0;
 
         $nodes = Node::where('online', true)
+            ->where('enabled', true)   // 排空/维护中的节点不给用户展示或选择
             ->orderBy('sort')->orderBy('id')->get()
             ->map(fn (Node $n) => [
                 'id' => $n->id,

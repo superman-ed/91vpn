@@ -34,6 +34,7 @@
                 <div class="form-group col-md-3"><label>节点限速 Mbps（0不限）</label><input name="speed_limit" type="number" value="{{ old('speed_limit', $node->speed_limit ?? 0) }}" class="form-control"></div>
                 <div class="form-group col-md-3"><label>分组（0不限）</label><input name="node_group" type="number" value="{{ old('node_group', $node->node_group ?? 0) }}" class="form-control"></div>
                 <div class="form-group col-md-3"><label>排序</label><input name="sort" type="number" value="{{ old('sort', $node->sort ?? 0) }}" class="form-control"></div>
+                <div class="form-group col-md-3"><label>对用户开放</label><select name="enabled" class="form-control"><option value="1" @selected(old('enabled', $node->enabled ?? true))>开放</option><option value="0" @selected(! old('enabled', $node->enabled ?? true))>排空/维护(不服务用户)</option></select><small class="text-muted">排空时 agent 照常在线,但用户从此节点漏干,可安全下线</small></div>
             </div>
         </div>
     </div>

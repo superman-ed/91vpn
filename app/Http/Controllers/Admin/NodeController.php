@@ -85,10 +85,12 @@ class NodeController extends Controller
             'node_group' => ['nullable', 'integer', 'min:0'],
             'speed_limit' => ['nullable', 'integer', 'min:0'],
             'sort' => ['nullable', 'integer'],
+            'enabled' => ['nullable', 'boolean'],
         ]);
         $data['host'] = $data['host'] ?? '';
         $data['path'] = $data['path'] ?? '';
         $data['tls'] = $request->boolean('tls');
+        $data['enabled'] = $request->boolean('enabled'); // 对用户开放(排空/维护时取消勾选,agent 照常在线但不再服务用户)
 
         return $data;
     }

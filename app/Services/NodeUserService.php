@@ -24,6 +24,12 @@ class NodeUserService
     {
         $isFreeNode = (int) $node->node_class === 0;
 
+        // 节点被运维排空(enabled=false)时,返回空名单——即便 agent 还在跑/心跳照写 online,
+        // 用户也会从该节点漏干(no servable users),实现"先摘用户、漏干、再停 agent"的优雅下线。
+        if (! $node->enabled) {
+            return [];
+        }
+
         $query = DB::table('users')
             ->where('banned', false)
             ->where('class', '>=', $node->node_class)
