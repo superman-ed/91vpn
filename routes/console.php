@@ -31,3 +31,9 @@ Schedule::command('stats:snapshot')->everyTenMinutes();
 
 // 每日 9 点给 3 天内到期会员发到期提醒站内信（近 4 天去重，不重复轰炸）
 Schedule::command('notify:expiry')->dailyAt('09:00');
+
+// 每分钟把心跳失联(>180s)的节点置离线，避免死节点仍被下发给用户
+Schedule::command('nodes:mark-offline')->everyMinute();
+
+// 每日 4 点按保留天数清理日志/统计表(登录/崩溃/日流量),防磁盘无限增长
+Schedule::command('logs:prune')->dailyAt('04:00');
