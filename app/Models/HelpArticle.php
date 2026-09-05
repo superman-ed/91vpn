@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class HelpArticle extends Model
 {
-    protected $fillable = ['category', 'title', 'content', 'sort', 'published'];
+    protected $fillable = ['category', 'platform', 'title', 'content', 'sort', 'published'];
 
     protected $casts = ['published' => 'boolean'];
 }

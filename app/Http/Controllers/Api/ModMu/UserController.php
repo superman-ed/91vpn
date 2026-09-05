@@ -15,12 +15,16 @@ class UserController extends Controller
     {
         $users = $service->servableUsers($request->attributes->get('node'));
 
-        // 同时给 data 和 users:SSPanel mod_mu / XrayR 读 `data`,我们自研 agent 读 `users`。
-        // 双键=两个消费端都兼容,且不赌 XrayR 到底读哪个(步骤② 真机确认后可收敛)。
+        // SSPanel mod_mu 契约:用户列表在 `data`。
+        //
+        // 曾同时输出 `data` 与 `users` 两个键,因为不确定消费端读哪个。
+        // 2026-09-04 已在真机确认:自研 agent 的 sspanel 适配器读 `data`
+        // (internal/panel/sspanel/sspanel.go 的 envelope 结构),XrayR 同样读 `data`。
+        // 双键会把 payload 整整翻一倍 —— 10,000 用户时单次响应从 1.2 MB 变 2.3 MB,
+        // 而节点每 30-60 秒拉一次。故收敛为单键。
         return response()->json([
             'ret' => 1,
             'data' => $users,
-            'users' => $users,
         ]);
     }
 
@@ -114,6 +118,12 @@ class UserController extends Controller
                 'node_speedlimit' => (float) $node->speed_limit,
                 'node_group' => (int) $node->node_group,
                 'custom_config' => $node->custom_config,
+                // SSPanel mod_mu 契约:节点拉取/上报周期由面板集中下发,
+                // 优先于节点本地配置。改这里对所有节点生效。
+                'base_config' => [
+                    'pull_interval' => 60,
+                    'push_interval' => 60,
+                ],
             ],
         ]);
     }

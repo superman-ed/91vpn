@@ -51,6 +51,7 @@ class HelpArticleController extends Controller
     {
         $data = $request->validate([
             'category' => ['required', 'string', 'max:50'],
+            'platform' => ['required', 'in:all,android,windows,ios,macos'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
             'sort' => ['nullable', 'integer'],
