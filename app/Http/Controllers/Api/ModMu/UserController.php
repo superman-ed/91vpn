@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\ModMu;
 
 use App\Http\Controllers\Controller;
 use App\Services\AliveIpService;
+use App\Services\ForwardRuleService;
 use App\Services\NodeUserService;
 use App\Services\TrafficService;
 use Illuminate\Http\Request;
@@ -92,6 +93,30 @@ class UserController extends Controller
      * ⚠️ 占位:返回我们 Node 表已有的字段。SSPanel 对节点类型/传输的精确编码(sort + server 串)
      * 细节留待步骤② 真机 XrayR 接入时按其解析报错逐字段校准,不在此凭记忆臆造。
      */
+    /**
+     * GET /mod_mu/nodes/{node}/routes —— 节点拉取转发规则
+     *
+     * 契约见 sogacore 的 docs/RELAY-SCHEMA.md §3 与 RELAY-DESIGN.md §9。
+     *
+     * [!!] 非中转角色返回 **404**，不是 200 加空列表。
+     *
+     * agent 用 404 判定"这个面板没有中转功能"，记一条 info 后【停止轮询】。
+     * 返回 200 空列表的话它会一直轮询下去；返回 500 则会被当成故障并反复告警。
+     * 多数节点是落地，这个差别决定了日志里是一条 info 还是每分钟一条错误。
+     */
+    public function nodeRoutes(Request $request, ForwardRuleService $service)
+    {
+        $node = $request->attributes->get('node');
+        if (! $node->forwards()) {
+            abort(404);
+        }
+
+        return response()->json([
+            'ret' => 1,
+            'data' => $service->compileForNode($node),
+        ]);
+    }
+
     public function nodeInfo(Request $request)
     {
         $node = $request->attributes->get('node');
