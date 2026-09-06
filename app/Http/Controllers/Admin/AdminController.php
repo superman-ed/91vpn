@@ -23,22 +23,22 @@ class AdminController extends Controller
         return view('admin.admins.create');
     }
 
-    /** 添加管理员：可新建账号，或把已有邮箱提升为管理员 */
+    /** 添加管理员：可新建账号，或把已有账户名提升为管理员(后台按账户名登录) */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
+            'username' => ['required', 'string', 'regex:/^[A-Za-z0-9_]{4,20}$/'],
             'name' => ['nullable', 'string', 'max:32'],
             'password' => ['nullable', 'string', 'min:8'],
-        ]);
+        ], [], ['username' => '账户名']);
 
-        $existing = User::where('email', $data['email'])->first();
+        $existing = User::where('username', $data['username'])->first();
 
         if ($existing) {
             $existing->update(['is_admin' => true]);
-            audit('admin.grant', "将 {$existing->email} 提升为管理员", $existing);
+            audit('admin.grant', "将 {$existing->username} 提升为管理员", $existing);
 
-            return redirect('/admin/admins')->with('status', "已将 {$existing->email} 提升为管理员");
+            return redirect('/admin/admins')->with('status', "已将 {$existing->username} 提升为管理员");
         }
 
         if (empty($data['password'])) {
@@ -46,8 +46,8 @@ class AdminController extends Controller
         }
 
         User::create([
+            'username' => $data['username'],
             'name' => $data['name'] ?: '管理员',
-            'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'uuid' => (string) Str::uuid(),
             'passwd' => Str::lower(Str::random(6)),
@@ -58,9 +58,9 @@ class AdminController extends Controller
             'class_expire' => now(),
             'is_admin' => true,
         ]);
-        audit('admin.create', "新建管理员账号 {$data['email']}");
+        audit('admin.create', "新建管理员账号 {$data['username']}");
 
-        return redirect('/admin/admins')->with('status', "管理员 {$data['email']} 已创建");
+        return redirect('/admin/admins')->with('status', "管理员 {$data['username']} 已创建");
     }
 
     /** 撤销管理员权限（降为普通用户），带保护 */
@@ -74,8 +74,8 @@ class AdminController extends Controller
         }
 
         $user->update(['is_admin' => false]);
-        audit('admin.revoke', "撤销 {$user->email} 的管理员权限", $user);
+        audit('admin.revoke', "撤销 {$user->username} 的管理员权限", $user);
 
-        return back()->with('status', "已撤销 {$user->email} 的管理员权限");
+        return back()->with('status', "已撤销 {$user->username} 的管理员权限");
     }
 }

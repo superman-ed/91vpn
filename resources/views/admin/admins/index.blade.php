@@ -9,19 +9,19 @@
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
-            <thead><tr><th>ID</th><th>邮箱</th><th>昵称</th><th>注册时间</th><th>操作</th></tr></thead>
+            <thead><tr><th>ID</th><th>账户名</th><th>昵称</th><th>注册时间</th><th>操作</th></tr></thead>
             <tbody>
             @forelse($admins as $u)
             <tr>
                 <td class="text-muted">#{{ $u->id }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $u->email }} @if($u->id === auth()->id())<span class="adm-pill primary">我</span>@endif</td>
+                <td style="color:#34395e;font-weight:600">{{ $u->username ?: $u->email }} @if($u->id === auth()->id())<span class="adm-pill primary">我</span>@endif</td>
                 <td>{{ $u->name ?: '—' }}</td>
                 <td class="text-muted">{{ $u->created_at?->format('Y-m-d') }}</td>
                 <td>
                     @if($u->id === auth()->id())
                         <span class="text-muted">—</span>
                     @else
-                        <form method="POST" action="/admin/admins/{{ $u->id }}" class="d-inline" data-dgr="撤销后 {{ $u->email }} 将失去所有后台权限，变回普通用户。" data-dgr-word="REVOKE">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm">撤销管理员</button></form>
+                        <form method="POST" action="/admin/admins/{{ $u->id }}" class="d-inline" data-dgr="撤销后 {{ $u->username ?: $u->email }} 将失去所有后台权限，变回普通用户。" data-dgr-word="REVOKE">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm">撤销管理员</button></form>
                     @endif
                 </td>
             </tr>

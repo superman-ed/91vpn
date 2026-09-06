@@ -10,12 +10,12 @@
     <div class="card adm-form-card">
         <div class="card-header"><span class="ic"><i class="fas fa-user-plus"></i></span><h4>管理员账号</h4></div>
         <div class="card-body">
-            <p class="form-tip">若邮箱已是注册用户，将直接把 TA 提升为管理员（无需填密码）；若邮箱不存在，则新建一个管理员账号（需填密码）。</p>
+            <p class="form-tip">若账户名已是注册用户，将直接把 TA 提升为管理员（无需填密码）；若不存在，则新建一个管理员账号（需填密码）。后台用账户名登录。</p>
             <div class="row">
                 <div class="form-group col-md-6">
-                    <label>邮箱</label>
-                    <input name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" placeholder="admin@yourdomain.com" required>
-                    @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <label>账户名</label>
+                    <input name="username" value="{{ old('username') }}" class="form-control @error('username') is-invalid @enderror" placeholder="4–20 位字母/数字/下划线" required>
+                    @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="form-group col-md-6">
                     <label>昵称（选填）</label>
