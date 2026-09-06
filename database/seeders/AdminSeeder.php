@@ -11,11 +11,12 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
+        // 账户名是登录/身份键,故按 username 幂等匹配(避免库里已有 admin 却按 email 匹配不到而撞唯一约束)
         User::updateOrCreate(
-            ['email' => 'admin@test.local'],
+            ['username' => 'admin'], // App 登录:账户名 admin / 密码 password
             [
                 'name' => 'admin',
-                'username' => 'admin', // App 登录:账户名 admin / 密码 password
+                'email' => 'admin@test.local',
                 'password' => Hash::make('password'),
                 'uuid' => (string) Str::uuid(),
                 'passwd' => Str::random(6),
