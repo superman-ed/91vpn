@@ -33,9 +33,18 @@ class ForwardRule extends Model
         return $this->hasMany(ForwardOutbound::class, 'rule_id')->orderBy('sort');
     }
 
-    /** 本规则的入站是否跑在指定节点上。 */
+    /**
+     * 本规则的入站是否跑在指定节点上。
+     *
+     * [!] 比较前先归一成 int。JSON 列里可能存着字符串 "60"（表单提交的
+     * 永远是字符串），严格比较下 60 !== "60"，规则会被判定为不在该节点上、
+     * 下发变成空的 —— 而界面上看一切正常。写入侧已转 int，这里再兜一道，
+     * 因为历史数据改不了。
+     */
     public function runsOn(int $nodeId): bool
     {
-        return in_array($nodeId, $this->inbound_node_set ?? [], true);
+        $set = array_map('intval', $this->inbound_node_set ?? []);
+
+        return in_array($nodeId, $set, true);
     }
 }
