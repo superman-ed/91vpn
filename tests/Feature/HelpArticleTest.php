@@ -22,12 +22,12 @@ it('游客(无 token)也能读帮助中心', function () {
 it('管理员可新增/编辑/删除帮助文档', function () {
     $admin = User::factory()->create(['is_admin' => true]);
 
-    $this->actingAs($admin)->post('/admin/help', ['category' => '常见问题', 'title' => '如何使用', 'content' => '内容', 'sort' => 1, 'published' => '1'])
+    $this->actingAs($admin)->post('/admin/help', ['category' => '常见问题', 'platform' => 'all', 'title' => '如何使用', 'content' => '内容', 'sort' => 1, 'published' => '1'])
         ->assertRedirect('/admin/help');
     $a = HelpArticle::firstWhere('title', '如何使用');
     expect($a)->not->toBeNull();
 
-    $this->actingAs($admin)->put("/admin/help/{$a->id}", ['category' => '账号', 'title' => '改标题', 'content' => '新内容', 'sort' => 2, 'published' => '1'])
+    $this->actingAs($admin)->put("/admin/help/{$a->id}", ['category' => '账号', 'platform' => 'android', 'title' => '改标题', 'content' => '新内容', 'sort' => 2, 'published' => '1'])
         ->assertRedirect('/admin/help');
     expect($a->fresh()->title)->toBe('改标题');
 

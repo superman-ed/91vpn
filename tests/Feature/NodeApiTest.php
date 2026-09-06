@@ -31,13 +31,19 @@ it('returns servable users for a node', function () {
     User::factory()->create(['class' => 3, 'class_expire' => now()->addDay(), 'transfer_enable' => 1024 ** 3, 'u' => 1024 ** 3, 'd' => 0]); // 流量耗尽
 
     $res = $this->getJson("/mod_mu/users?node_id={$node->id}&key=NODESECRET")->assertOk();
-    $data = $res->json('users');
+    $data = $res->json('data');
 
     expect($data)->toHaveCount(1);
     expect($data[0]['uuid'])->toBe($ok->uuid);
 
-    // 双键兼容:XrayR 读 data、我们 agent 读 users,两者应是同一份
-    expect($res->json('data'))->toEqual($res->json('users'));
+    // [!] 用户名单只在 `data` 一个键下。
+    //
+    // 曾同时输出 data 与 users 两个键（不确定消费端读哪个），2026-09-04 在真机
+    // 确认自研 agent 与 XrayR 都读 data 后收敛为单键 —— 双键会把 payload 整整
+    // 翻倍（10,000 用户时 1.2MB → 2.3MB），而节点每 30-60 秒拉一次。
+    //
+    // 这条断言就是防止有人"为了兼容"把 users 键加回来。
+    expect($res->json('users'))->toBeNull();
 });
 
 it('exposes SSPanel audit + node-info endpoints for XrayR', function () {

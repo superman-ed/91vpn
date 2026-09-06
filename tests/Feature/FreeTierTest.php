@@ -42,7 +42,7 @@ it('serves non-members with free traffic on a free node, at the node speed', fun
     // 非会员,已用已超免费封顶 → 不服务
     User::factory()->create(['class' => 0, 'class_expire' => now(), 'transfer_enable' => 5 * 1024 ** 3, 'u' => 3 * 1024 ** 3, 'd' => 0]);
 
-    $data = $this->getJson("/mod_mu/users?node_id={$free->id}&key=NODESECRET")->assertOk()->json('users');
+    $data = $this->getJson("/mod_mu/users?node_id={$free->id}&key=NODESECRET")->assertOk()->json('data');
 
     expect(collect($data)->pluck('uuid'))->toContain($ok->uuid);
     expect($data)->toHaveCount(1);
@@ -54,7 +54,7 @@ it('does not serve non-members on a paid node', function () {
     $paid = makeNode(['node_class' => 1]);
     User::factory()->create(['class' => 0, 'class_expire' => now(), 'transfer_enable' => 1024 ** 3, 'u' => 0, 'd' => 0]);
 
-    $data = $this->getJson("/mod_mu/users?node_id={$paid->id}&key=NODESECRET")->assertOk()->json('users');
+    $data = $this->getJson("/mod_mu/users?node_id={$paid->id}&key=NODESECRET")->assertOk()->json('data');
 
     expect($data)->toHaveCount(0);
 });
@@ -66,7 +66,7 @@ it('caps expired-member usage on a free node by the free cap', function () {
     // 过期会员,已用在免费封顶内 → 可连免费节点烧剩余
     $ok = User::factory()->create(['class' => 3, 'class_expire' => now()->subDay(), 'transfer_enable' => 100 * 1024 ** 3, 'u' => 1024 ** 3, 'd' => 0]);
 
-    $data = $this->getJson("/mod_mu/users?node_id={$free->id}&key=NODESECRET")->assertOk()->json('users');
+    $data = $this->getJson("/mod_mu/users?node_id={$free->id}&key=NODESECRET")->assertOk()->json('data');
 
     expect(collect($data)->pluck('uuid'))->toContain($ok->uuid);
     expect($data)->toHaveCount(1);
@@ -77,7 +77,7 @@ it('lets an active member use full quota on a free node (not limited by free cap
     // 会员,已用超过免费封顶但在自身额度内 → 免费节点照常服务(会员不受免费封顶约束)
     $member = User::factory()->create(['class' => 2, 'class_expire' => now()->addDays(10), 'transfer_enable' => 100 * 1024 ** 3, 'u' => 3 * 1024 ** 3, 'd' => 0]);
 
-    $data = $this->getJson("/mod_mu/users?node_id={$free->id}&key=NODESECRET")->assertOk()->json('users');
+    $data = $this->getJson("/mod_mu/users?node_id={$free->id}&key=NODESECRET")->assertOk()->json('data');
 
     expect(collect($data)->pluck('uuid'))->toContain($member->uuid);
 });
