@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 beforeEach(fn () => $this->admin = User::factory()->create(['is_admin' => true]));
 
@@ -28,27 +29,51 @@ it('admin page lists only admins', function () {
         ->assertDontSee('customer@test.local');
 });
 
+// `[!!]` 管理员按 **username** 标识，不是 email。
+//
+// 这三个用例原本 POST 的是 email —— 那是接口早先的形态。控制器改成
+// 按 username 之后（username 是 required），每次提交都因缺字段被打回，
+// 三个用例一直红着。断言还在，被断言的东西变了。
+//
+// 当时最误导的是第三个：它断言"无密码时不该建出账号"，失败信息看起来像
+// "无密码也建成了"，实际上根本没走到创建那一步 —— 那个 email 是同文件
+// 前面的用例留下的。**假红比不测更糟**，它让人怀疑一个好的功能。
 it('promotes an existing user to admin', function () {
-    $u = User::factory()->create(['email' => 'promote@test.local', 'is_admin' => false]);
+    $u = User::factory()->create(['username' => 'promoteme', 'is_admin' => false]);
 
-    $this->actingAs($this->admin)->post('/admin/admins', ['email' => 'promote@test.local'])->assertRedirect('/admin/admins');
+    $this->actingAs($this->admin)->post('/admin/admins', ['username' => 'promoteme'])
+        ->assertRedirect('/admin/admins');
     expect($u->fresh()->is_admin)->toBeTrue();
 });
 
 it('creates a new admin account with password', function () {
     $this->actingAs($this->admin)->post('/admin/admins', [
-        'email' => 'newadmin@test.local', 'name' => 'Boss', 'password' => 'secret123',
+        'username' => 'newadmin', 'name' => 'Boss', 'password' => 'secret123',
     ])->assertRedirect('/admin/admins');
 
-    $created = User::where('email', 'newadmin@test.local')->first();
+    $created = User::where('username', 'newadmin')->first();
     expect($created)->not->toBeNull();
     expect($created->is_admin)->toBeTrue();
+    // 新建的管理员必须能用给定密码登录 —— 只断言 is_admin 的话，
+    // 密码没被正确 hash 也照样绿。
+    expect(Hash::check('secret123', $created->password))->toBeTrue();
 });
 
 it('rejects new admin account without password', function () {
-    $this->actingAs($this->admin)->post('/admin/admins', ['email' => 'nopass@test.local'])
+    $this->actingAs($this->admin)->post('/admin/admins', ['username' => 'nopassuser'])
         ->assertSessionHasErrors('password');
-    expect(User::where('email', 'nopass@test.local')->exists())->toBeFalse();
+    expect(User::where('username', 'nopassuser')->exists())->toBeFalse();
+});
+
+// `[!]` 用户名的格式约束也要锁住：控制器用正则限定 4~20 位字母数字下划线。
+// 不测的话，哪天有人放宽成任意字符串，注入面就悄悄变大了。
+it('rejects an invalid username', function () {
+    foreach (['ab', 'has space', 'with-dash', str_repeat('x', 21)] as $bad) {
+        $this->actingAs($this->admin)->post('/admin/admins',
+            ['username' => $bad, 'password' => 'secret123'])
+            ->assertSessionHasErrors('username');
+    }
+    expect(User::where('is_admin', true)->count())->toBe(1); // 只有 beforeEach 那个
 });
 
 it('demotes another admin but not self or the last admin', function () {

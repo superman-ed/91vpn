@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\ModMu;
 
 use App\Http\Controllers\Controller;
 use App\Services\AliveIpService;
-use App\Services\ForwardRuleService;
 use App\Services\NodeUserService;
 use App\Services\TrafficService;
 use Illuminate\Http\Request;
@@ -14,7 +13,20 @@ class UserController extends Controller
     /** GET /mod_mu/users —— 节点拉取可服务用户名单 */
     public function index(Request $request, NodeUserService $service)
     {
-        $users = $service->servableUsers($request->attributes->get('node'));
+        $node = $request->attributes->get('node');
+
+        // [decided] D-1：中转 / 跳板 / 入口一律不认证、不持有用户名单，
+        // 只透传字节；认证只在落地做。
+        //
+        // [!!] 这个判据此前【定义了但从没被调用】—— Node::needsUsers() 存在，
+        // 全项目零引用。也就是说给节点标 role=relay，这里照样把真实用户名单
+        // 连同凭据发过去，而中转机往往是租来的、最容易被接管的那一台。
+        // 现象上还看不出异常：中转不认证用户，多一份名单它也用不着。
+        if (! $node->needsUsers()) {
+            return response()->json(['ret' => 1, 'data' => []]);
+        }
+
+        $users = $service->servableUsers($node);
 
         // SSPanel mod_mu 契约:用户列表在 `data`。
         //
@@ -93,30 +105,6 @@ class UserController extends Controller
      * ⚠️ 占位:返回我们 Node 表已有的字段。SSPanel 对节点类型/传输的精确编码(sort + server 串)
      * 细节留待步骤② 真机 XrayR 接入时按其解析报错逐字段校准,不在此凭记忆臆造。
      */
-    /**
-     * GET /mod_mu/nodes/{node}/routes —— 节点拉取转发规则
-     *
-     * 契约见 sogacore 的 docs/RELAY-SCHEMA.md §3 与 RELAY-DESIGN.md §9。
-     *
-     * [!!] 非中转角色返回 **404**，不是 200 加空列表。
-     *
-     * agent 用 404 判定"这个面板没有中转功能"，记一条 info 后【停止轮询】。
-     * 返回 200 空列表的话它会一直轮询下去；返回 500 则会被当成故障并反复告警。
-     * 多数节点是落地，这个差别决定了日志里是一条 info 还是每分钟一条错误。
-     */
-    public function nodeRoutes(Request $request, ForwardRuleService $service)
-    {
-        $node = $request->attributes->get('node');
-        if (! $node->forwards()) {
-            abort(404);
-        }
-
-        return response()->json([
-            'ret' => 1,
-            'data' => $service->compileForNode($node),
-        ]);
-    }
-
     public function nodeInfo(Request $request)
     {
         $node = $request->attributes->get('node');

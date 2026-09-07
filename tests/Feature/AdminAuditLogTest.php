@@ -36,9 +36,10 @@ it('records an audit entry when admin marks an order paid', function () {
 });
 
 it('records audit when granting admin to an existing user', function () {
-    $target = User::factory()->create(['email' => 'promote@test.local', 'is_admin' => false]);
+    // `[!]` 按 username 提升，不是 email —— 见 AdminManageTest 的说明。
+    $target = User::factory()->create(['username' => 'auditpromote', 'is_admin' => false]);
 
-    $this->actingAs(auditAdmin())->post('/admin/admins', ['email' => 'promote@test.local']);
+    $this->actingAs(auditAdmin())->post('/admin/admins', ['username' => 'auditpromote']);
 
     expect(AuditLog::where('action', 'admin.grant')->where('target_id', $target->id)->exists())->toBeTrue();
     expect($target->fresh()->is_admin)->toBeTrue();

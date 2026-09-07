@@ -40,12 +40,25 @@ it('toggles plan on-sale state', function () {
     expect($plan->fresh()->on_sale)->toBeTrue();
 });
 
-it('moves a plan up by swapping sort with its neighbor', function () {
+// `[!!]` 断言【顺序】而不是具体的 sort 数值。
+//
+// 原本断言的是 a=2 / b=1，那是"交换两个 sort 值"这个旧实现的产物。
+// 控制器后来改成"整表重写为 0,1,2… 连续 sort"（见 PlanController::move
+// 的说明：交换法在多个套餐共用同一 sort 时会退化），于是结果变成
+// b=0 / a=1，测试就一直红着 —— 而功能是好的。
+//
+// 断言数值等于把实现细节焊进测试。这里改成断言"b 排在 a 前面"，
+// 那才是这个功能要保证的东西，换哪种实现都成立。
+it('moves a plan up so it sorts before its neighbor', function () {
     $a = Plan::create(['name' => 'A', 'price' => 10, 'period' => 'month', 'transfer_gb' => 10, 'sort' => 1]);
     $b = Plan::create(['name' => 'B', 'price' => 10, 'period' => 'month', 'transfer_gb' => 10, 'sort' => 2]);
 
+    // 前置条件：动之前 a 确实在 b 前面。少了这句，"两个都没动"也能让下面通过。
+    expect($a->fresh()->sort)->toBeLessThan($b->fresh()->sort);
+
     $this->actingAs(cpAdmin())->post("/admin/plans/{$b->id}/move", ['dir' => 'up']);
 
-    expect($a->fresh()->sort)->toBe(2);
-    expect($b->fresh()->sort)->toBe(1);   // b 上移到 a 前
+    expect($b->fresh()->sort)->toBeLessThan($a->fresh()->sort);
+    // sort 应当被重写成连续值，不留空洞 —— 这是新实现的要点。
+    expect(Plan::orderBy('sort')->pluck('sort')->all())->toBe([0, 1]);
 });
