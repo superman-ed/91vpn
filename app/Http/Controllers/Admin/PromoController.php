@@ -18,12 +18,14 @@ class PromoController extends Controller
         $channels = PromoChannel::orderByDesc('id')->get();
 
         // 各推广码业绩：注册数 / 付费用户 / 营收
-        $reg = User::whereNotNull('promo_code')->selectRaw('promo_code, count(*) as c')->groupBy('promo_code')->pluck('c', 'promo_code');
-        $paidRows = Order::where('orders.status', 'paid')
+        // 渠道 code 建库时强制大写,但 Web 归因存的 promo_code 保留原始大小写 → 按 upper() 归一分组,否则大小写不符导致漏计。
+        // 营收含 queued(排队订单钱已收,与营收口径一致)。
+        $reg = User::whereNotNull('promo_code')->selectRaw('upper(promo_code) as code, count(*) as c')->groupBy(\DB::raw('upper(promo_code)'))->pluck('c', 'code');
+        $paidRows = Order::whereIn('orders.status', ['paid', 'queued'])
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->whereNotNull('users.promo_code')
-            ->selectRaw('users.promo_code as code, count(distinct users.id) as paid_users, sum(orders.amount) as revenue')
-            ->groupBy('users.promo_code')->get()->keyBy('code');
+            ->selectRaw('upper(users.promo_code) as code, count(distinct users.id) as paid_users, sum(orders.amount) as revenue')
+            ->groupBy(\DB::raw('upper(users.promo_code)'))->get()->keyBy('code');
 
         $stats = $channels->mapWithKeys(function ($ch) use ($reg, $paidRows) {
             $regCount = (int) ($reg[$ch->code] ?? 0);

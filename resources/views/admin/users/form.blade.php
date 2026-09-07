@@ -28,14 +28,14 @@
     </div>
 </div>
 
-<form method="POST" action="/admin/users/{{ $user->id }}" class="adm-form" id="userEditForm" data-orig-money="{{ (float) $user->money }}">@csrf @method('PUT')
+<form method="POST" action="/admin/users/{{ $user->id }}" class="adm-form" id="userEditForm" data-orig-money="{{ (float) $user->money }}">@csrf @method('PUT')<input type="hidden" name="original_money" value="{{ (float) $user->money }}">
     <div class="card adm-form-card">
         <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#63c76a,#3fae57)"><i class="fas fa-sliders-h"></i></span><h4>套餐 / 权益</h4></div>
         <div class="card-body">
             <div class="row">
                 <div class="form-group col-md-4"><label>昵称</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control"></div>
                 <div class="form-group col-md-4"><label>等级</label><input name="class" type="number" value="{{ old('class', $user->class) }}" class="form-control" required></div>
-                <div class="form-group col-md-4"><label>到期时间</label><input name="class_expire" type="date" value="{{ old('class_expire', $user->class_expire?->format('Y-m-d')) }}" class="form-control"></div>
+                <div class="form-group col-md-4"><label>到期时间</label><input name="class_expire" type="datetime-local" value="{{ old('class_expire', $user->class_expire?->format('Y-m-d\TH:i')) }}" class="form-control"></div>
                 <div class="form-group col-md-4"><label>流量配额（GB）</label><input name="transfer_enable_gb" type="number" step="any" min="0" value="{{ old('transfer_enable_gb', bytes_to_gb($user->transfer_enable)) }}" class="form-control" required></div>
                 <div class="form-group col-md-4"><label>限速 Mbps（0不限）</label><input name="node_speed_limit" type="number" value="{{ old('node_speed_limit', $user->node_speed_limit) }}" class="form-control"></div>
                 <div class="form-group col-md-4"><label>设备数（0不限）</label><input name="node_ip_limit" type="number" value="{{ old('node_ip_limit', $user->node_ip_limit) }}" class="form-control"></div>

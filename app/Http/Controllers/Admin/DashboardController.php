@@ -16,7 +16,8 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $today = today();
-        $paid = Order::where('status', 'paid');
+        // 已收款订单:paid + queued(排队中的钱已收,只是套餐排队等激活),营收/趋势按此口径
+        $paid = Order::whereIn('status', ['paid', 'queued']);
 
         // 日期区间(默认近 14 天),限制最长 180 天
         $to = $this->parseDate($request->query('to'), $today);
@@ -29,7 +30,7 @@ class DashboardController extends Controller
         }
 
         // 区间每日收入
-        $byDay = Order::where('status', 'paid')->whereNotNull('paid_at')
+        $byDay = Order::whereIn('status', ['paid', 'queued'])->whereNotNull('paid_at')
             ->whereBetween('paid_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
             ->get(['amount', 'paid_at'])->groupBy(fn ($o) => $o->paid_at->toDateString());
 

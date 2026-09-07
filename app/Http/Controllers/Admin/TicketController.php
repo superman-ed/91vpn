@@ -39,7 +39,8 @@ class TicketController extends Controller
     {
         $data = $request->validate(['content' => ['required', 'string']]);
         $ticket->replies()->create(['user_id' => auth()->id(), 'is_admin' => true, 'content' => $data['content']]);
-        $ticket->update(['last_reply_at' => now()]);
+        // 回复即置回 open(与用户侧对称):否则回复已关闭工单后状态仍是 closed,该工单不在开启队列里、回复被埋没
+        $ticket->update(['last_reply_at' => now(), 'status' => 'open']);
         audit('ticket.reply', "回复工单 #{$ticket->id}「".\Illuminate\Support\Str::limit($ticket->subject, 24)."」", $ticket);
 
         return back()->with('status', '已回复');

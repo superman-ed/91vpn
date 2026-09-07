@@ -99,6 +99,7 @@ class UserController extends Controller
             'node_speed_limit' => ['nullable', 'integer', 'min:0'],
             'node_ip_limit' => ['nullable', 'integer', 'min:0'],
             'money' => ['nullable', 'numeric'],
+            'original_money' => ['nullable', 'numeric'], // 打开编辑页时的余额快照,用于判断管理员是否真的改了余额
         ]);
 
         $quota = (int) round($data['transfer_enable_gb'] * (1024 ** 3));
@@ -112,8 +113,13 @@ class UserController extends Controller
             'node_ip_limit' => $data['node_ip_limit'] ?? 0,
         ]);
 
-        // 余额变动走调账入口,自动补记资金流水(表单未提交 money 字段时不动余额)
-        if (array_key_exists('money', $data) && $data['money'] !== null) {
+        // 余额变动走调账入口(设为绝对值,delta 在锁内按当前 DB 值算)。
+        // 只在管理员"确实改了余额"时才调账:与打开页时的快照 original_money 相等则跳过,
+        // 避免存别的字段时把期间用户已充值/消费的余额覆盖回旧值(真金白银丢失)。
+        $moneyChanged = array_key_exists('money', $data) && $data['money'] !== null
+            && (! array_key_exists('original_money', $data) || $data['original_money'] === null
+                || (float) $data['money'] !== (float) $data['original_money']);
+        if ($moneyChanged) {
             $billing->adminAdjust($user, (float) $data['money'], auth()->user()->ident());
         }
 

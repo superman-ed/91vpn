@@ -29,26 +29,31 @@ class PlanController extends Controller
         return back()->with('status', $plan->on_sale ? '已上架' : '已下架');
     }
 
-    /** POST /admin/plans/{plan}/move —— 排序上移/下移（与相邻套餐互换 sort） */
+    /** POST /admin/plans/{plan}/move —— 排序上移/下移 */
     public function move(Request $request, Plan $plan)
     {
+        // 健壮做法:取当前显示顺序(sort,id)全表 → 与相邻项交换位置 → 整表重写为 0,1,2… 连续 sort。
+        // 避免原"交换 sort 值"在批量建套餐共用同一 sort 时退化(跳多行/拆散组),并保证 sort 连续唯一。
         $dir = $request->input('dir') === 'up' ? 'up' : 'down';
-        $neighbor = Plan::where('sort', $dir === 'up' ? '<' : '>', $plan->sort)
-            ->orderBy('sort', $dir === 'up' ? 'desc' : 'asc')->first();
-
-        if (! $neighbor) {   // 同 sort 值时退化为按 id 邻接
-            $neighbor = Plan::where('id', $dir === 'up' ? '<' : '>', $plan->id)
-                ->where('sort', $plan->sort)->orderBy('id', $dir === 'up' ? 'desc' : 'asc')->first();
-        }
-        if ($neighbor) {
-            [$a, $b] = [$plan->sort, $neighbor->sort];
-            if ($a === $b) {
-                $b = $dir === 'up' ? $a - 1 : $a + 1;
+        \DB::transaction(function () use ($plan, $dir) {
+            $plans = Plan::orderBy('sort')->orderBy('id')->lockForUpdate()->get();
+            $i = $plans->search(fn ($p) => $p->id === $plan->id);
+            if ($i === false) {
+                return;
             }
-            $plan->update(['sort' => $b]);
-            $neighbor->update(['sort' => $a]);
+            $j = $dir === 'up' ? $i - 1 : $i + 1;
+            if ($j < 0 || $j >= $plans->count()) {
+                return; // 已在顶/底
+            }
+            $ordered = $plans->all();
+            [$ordered[$i], $ordered[$j]] = [$ordered[$j], $ordered[$i]];
+            foreach ($ordered as $pos => $p) {
+                if ($p->sort !== $pos) {
+                    $p->update(['sort' => $pos]);
+                }
+            }
             audit('plan.update', ($dir === 'up' ? '上移' : '下移')."套餐「{$plan->name}」排序", $plan);
-        }
+        });
 
         return back();
     }
@@ -70,6 +75,7 @@ class PlanController extends Controller
             'ip_limit' => ['nullable', 'integer', 'min:0'],
             'sort' => ['nullable', 'integer'],
             'prices' => ['required', 'array'],
+            'prices.*' => ['nullable', 'numeric', 'min:0'], // 各档价格校验(与 update 对齐,防负价/垃圾值)
         ]);
 
         // 流量包：单件，仅取“1个月”价格，立即生效不排队
@@ -136,6 +142,11 @@ class PlanController extends Controller
 
     public function destroy(Plan $plan)
     {
+        // orders.plan_id 是 cascadeOnDelete 且无软删:直接删会连带物理抹除该套餐所有订单(含已支付)→ 财务凭据丢失。
+        // 有成交记录的套餐不允许删除,引导改用「下架」(toggleSale)。
+        if (\App\Models\Order::where('plan_id', $plan->id)->exists()) {
+            return redirect('/admin/plans')->with('status', '该套餐已有订单记录,不能删除(会连带删除历史订单)。请改用「下架」。');
+        }
         audit('plan.delete', "删除套餐「{$plan->name}」", $plan);
         $plan->delete();
         return redirect('/admin/plans')->with('status', '套餐已删除');

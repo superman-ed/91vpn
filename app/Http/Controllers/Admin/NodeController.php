@@ -54,6 +54,11 @@ class NodeController extends Controller
 
     public function destroy(Node $node)
     {
+        // node_daily_traffic.node_id 是 cascadeOnDelete 且无软删:直接删会连带抹除该节点历史流量账(对账凭据丢失)。
+        // 有流量记录的节点不允许删除,引导改用「禁用」(enabled=false)。
+        if (\App\Models\NodeDailyTraffic::where('node_id', $node->id)->exists()) {
+            return redirect('/admin/nodes')->with('status', '该节点已有流量记录,不能删除(会连带删除历史流量账)。请改为「禁用」。');
+        }
         audit('node.delete', "删除节点「{$node->name}」", $node);
         $node->delete();
 

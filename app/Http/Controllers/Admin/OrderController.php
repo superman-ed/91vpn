@@ -32,10 +32,11 @@ class OrderController extends Controller
                 'queued' => Order::where('status', 'queued')->count(),
                 'cancelled' => Order::where('status', 'cancelled')->count(),
             ],
-            'totalRevenue' => $totalRevenue = Order::where('status', 'paid')->sum('amount'),
+            // 营收=已收款订单:paid + queued(排队中的钱已收,paid_at 已写,只是套餐排队等激活),不能只算 paid
+            'totalRevenue' => $totalRevenue = Order::whereIn('status', ['paid', 'queued'])->sum('amount'),
             'totalRebate' => $totalRebate = \App\Models\Payback::sum('amount'),
             'netProfit' => $totalRevenue - $totalRebate,
-            'todayRevenue' => Order::where('status', 'paid')->whereDate('paid_at', today())->sum('amount'),
+            'todayRevenue' => Order::whereIn('status', ['paid', 'queued'])->whereDate('paid_at', today())->sum('amount'),
         ]);
     }
 
@@ -94,7 +95,11 @@ class OrderController extends Controller
         if ($order->status !== 'pending') {
             return back()->with('status', '该订单非待支付状态');
         }
-        $billing->completeOrder($order, 'manual');
+        // 走 settleOrder(行锁 + 锁内复查 pending),防止管理员并发双击重复发货(时长翻倍/库存多扣)
+        $done = $billing->settleOrder($order, 'manual');
+        if (! $done) {
+            return back()->with('status', '该订单已被处理(可能重复提交)');
+        }
         audit('order.mark_paid', "手动标记订单 {$order->order_no} 已支付并发货", $order);
 
         return back()->with('status', "订单 #{$order->id} 已标记支付并发货");

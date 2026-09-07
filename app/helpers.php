@@ -33,12 +33,20 @@ if (! function_exists('csv_download')) {
      */
     function csv_download(string $filename, array $header, iterable $rows): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        return response()->streamDownload(function () use ($header, $rows) {
+        // 防 CSV 公式注入:以 = + - @ 或 制表/回车 开头的单元格,前置 ' 让 Excel/WPS 当文本而非公式
+        // (昵称等用户可控字段会进导出,不转义则管理员打开时可能执行 =cmd|... 之类)
+        $sanitize = static function ($v) {
+            if (is_string($v) && $v !== '' && in_array($v[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                return "'" . $v;
+            }
+            return $v;
+        };
+        return response()->streamDownload(function () use ($header, $rows, $sanitize) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");   // UTF-8 BOM
             fputcsv($out, $header);
             foreach ($rows as $row) {
-                fputcsv($out, $row);
+                fputcsv($out, array_map($sanitize, $row));
             }
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);

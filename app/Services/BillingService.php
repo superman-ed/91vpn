@@ -86,7 +86,11 @@ class BillingService
                 $order->plan->decrement('stock');
             }
             if ($order->coupon_id && $order->coupon) {
-                $order->coupon->increment('used');
+                // 原子受限自增:used 不超过 max_use(max_use<0=不限)。防并发结算把限量券刷穿,
+                // 且用尽后 used 恰好=max_use,后续 isUsable() 能正确判为不可用。
+                \App\Models\Coupon::whereKey($order->coupon_id)
+                    ->where(fn ($q) => $q->where('max_use', '<', 0)->orWhereColumn('used', '<', 'max_use'))
+                    ->increment('used');
             }
 
             $plan = $order->plan;

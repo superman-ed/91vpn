@@ -56,7 +56,7 @@ class CouponController extends Controller
             'count' => ['required', 'integer', 'min:1', 'max:500'],
             'prefix' => ['nullable', 'string', 'max:12', 'alpha_num'],
             'type' => ['required', 'in:percent,amount'],
-            'value' => ['required', 'numeric', 'min:0'],
+            'value' => array_merge(['required', 'numeric', 'min:0'], $request->input('type') === 'percent' ? ['max:100'] : []), // 百分比券≤100,防免单/倒付
             'periods' => ['nullable', 'array'],
             'periods.*' => ['in:month,quarter,half_year,year'],
             'max_use' => ['nullable', 'integer'],
@@ -116,7 +116,7 @@ class CouponController extends Controller
             'code' => ['required', 'string', 'max:32', Rule::unique('coupons', 'code')->ignore($coupon?->id)],
             'note' => ['nullable', 'string', 'max:100'],
             'type' => ['required', 'in:percent,amount'],
-            'value' => ['required', 'numeric', 'min:0'],
+            'value' => array_merge(['required', 'numeric', 'min:0'], $request->input('type') === 'percent' ? ['max:100'] : []), // 百分比券≤100,防免单/倒付
             'periods' => ['nullable', 'array'],
             'periods.*' => ['in:month,quarter,half_year,year'],
             'max_use' => ['nullable', 'integer'],
