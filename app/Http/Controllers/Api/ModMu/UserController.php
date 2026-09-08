@@ -83,7 +83,14 @@ class UserController extends Controller
     public function nodeHeartbeat(Request $request)
     {
         $node = $request->attributes->get('node');
-        $node->update(['online' => true, 'last_heartbeat' => now()->timestamp]);
+        $patch = ['online' => true, 'last_heartbeat' => now()->timestamp];
+        // 节点上报它【实际生效】的 accept_proxy(eaca9fe:报的是生效值,false 也报、无 omitempty)。
+        // 存下供配对校验;has() 判有没有带这个键——没带(旧 agent)则不动,保留 null 表示"从没报过"。
+        if ($request->has('accept_proxy')) {
+            $patch['reported_accept_proxy'] = $request->boolean('accept_proxy');
+            $patch['accept_proxy_reported_at'] = now();
+        }
+        $node->update($patch);
 
         return response()->json(['ret' => 1]);
     }
@@ -164,11 +171,9 @@ class UserController extends Controller
             $cc['server_names'] = $node->reality_server_names ?? [];
             $cc['short_ids'] = $node->reality_short_ids ?? [];
         }
-        // accept_proxy:agent 现从本地 config 读;一并放进 custom_config,待 agent 的
-        // wireCustomConfig 增此字段即面板中控(向前兼容:未知键被 agent 忽略)。
-        if ($node->accept_proxy_protocol) {
-            $cc['accept_proxy'] = true;
-        }
+        // accept_proxy:无条件下发(不是仅 true 时才发)——否则节点收不到会回落本地 agent.conf,
+        // 那个值面板看不见,配对错开时两端都不报错(见节点侧 eaca9fe 的上报设计)。
+        $cc['accept_proxy'] = (bool) $node->accept_proxy_protocol;
 
         return $cc;
     }
