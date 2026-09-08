@@ -126,22 +126,16 @@ class UserController extends Controller
                 'net' => $node->net,            // tcp/ws...
                 'path' => $node->path,
                 'tls' => (bool) $node->tls,
-                'security' => $node->securityLayer(),   // none|tls|reality(扁平,XrayR/自研兜底)
-                'flow' => $node->flow ?: '',            // xtls-rprx-vision
-                'accept_proxy_protocol' => (bool) $node->accept_proxy_protocol, // 落地在中转后面时开(读 PROXY 头拿真 IP)
-                // REALITY 结构块(扁平消费方用;priv 只在此下发给落地 agent,不进订阅)
-                'reality' => $node->usesReality() ? [
-                    'dest' => $node->reality_dest,
-                    'server_names' => $node->reality_server_names ?? [],
-                    'public_key' => $node->reality_public_key,
-                    'private_key' => $node->reality_private_key,
-                    'short_ids' => $node->reality_short_ids ?? [],
-                ] : null,
+                'security' => $node->securityLayer(),   // none|tls|reality(扁平,XrayR 兜底)
+                'flow' => $node->flow ?: '',            // 扁平,同上
                 'traffic_rate' => (float) $node->traffic_rate,
                 'node_class' => (int) $node->node_class,
                 'node_speedlimit' => (float) $node->speed_limit,
                 'node_group' => (int) $node->node_group,
-                'custom_config' => $node->custom_config,
+                // [!!] REALITY/flow/security/accept_proxy 的【权威通道 = custom_config】——
+                // agent(sogacore)的 wireCustomConfig 从这里读(契约 key:security/private_key/
+                // dest/server_names/short_ids/flow)。priv 只在此下发落地 agent,不进订阅。
+                'custom_config' => $this->customConfigFor($node),
                 // SSPanel mod_mu 契约:节点拉取/上报周期由面板集中下发,
                 // 优先于节点本地配置。改这里对所有节点生效。
                 'base_config' => [
@@ -150,6 +144,33 @@ class UserController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * 构造下发给 agent 的 custom_config —— reality/flow/security 的权威通道。
+     * key 与 sogacore agent 的 wireCustomConfig 对齐:security / private_key / dest /
+     * server_names / short_ids / flow。私钥只在此下发落地 agent(不进订阅)。
+     */
+    private function customConfigFor($node): array
+    {
+        $cc = (array) ($node->custom_config ?? []);
+        $cc['security'] = $node->securityLayer();          // tls|reality(none 时 agent 忽略)
+        if ($node->flow) {
+            $cc['flow'] = $node->flow;                     // xtls-rprx-vision
+        }
+        if ($node->usesReality()) {
+            $cc['private_key'] = $node->reality_private_key;
+            $cc['dest'] = $node->reality_dest;
+            $cc['server_names'] = $node->reality_server_names ?? [];
+            $cc['short_ids'] = $node->reality_short_ids ?? [];
+        }
+        // accept_proxy:agent 现从本地 config 读;一并放进 custom_config,待 agent 的
+        // wireCustomConfig 增此字段即面板中控(向前兼容:未知键被 agent 忽略)。
+        if ($node->accept_proxy_protocol) {
+            $cc['accept_proxy'] = true;
+        }
+
+        return $cc;
     }
 
     /**
@@ -164,6 +185,9 @@ class UserController extends Controller
      */
     private function sspanelServerString($node): string
     {
+        // [!] REALITY/flow/accept_proxy 不走这个分号串:agent(sogacore)是从 custom_config
+        // 读它们的(见 wireCustomConfig)。串第 5 段只表达 tls/none(保守,ParseServerString 认;
+        // reality 由 custom_config.security 覆盖)。串这里只保留 path/host。
         $params = [];
         if ($node->path !== '' && $node->path !== null) {
             $params[] = 'path=' . $node->path;
@@ -171,29 +195,13 @@ class UserController extends Controller
         if ($node->host !== '' && $node->host !== null) {
             $params[] = 'host=' . $node->host;
         }
-        // vless 的 xtls-rprx-vision(可与 reality 或 tls 搭配),独立于 security
-        if ($node->flow !== '' && $node->flow !== null) {
-            $params[] = 'flow=' . $node->flow;
-        }
-        if ($node->accept_proxy_protocol) {
-            $params[] = 'accept_proxy=1';   // 落地读中转 PROXY v2 头,还原真实客户端 IP
-        }
-        // REALITY 参数进 params 段,由 agent 的 NodeFromServerString 解析(契约 key:dest/sni/pbk/priv/sid)。
-        // [!!] priv(私钥)只随 nodeInfo 下发给落地 agent,【绝不进客户端订阅】——订阅只出 pbk。
-        if ($node->usesReality()) {
-            $params[] = 'dest=' . $node->reality_dest;
-            $params[] = 'sni=' . implode(',', $node->reality_server_names ?? []);
-            $params[] = 'pbk=' . $node->reality_public_key;
-            $params[] = 'priv=' . $node->reality_private_key;
-            $params[] = 'sid=' . implode(',', $node->reality_short_ids ?? []);
-        }
 
         return implode(';', [
             $node->server,
             (string) $node->port,
             '0',                                   // alterId,现代 vmess 一律 0
             $node->net ?: 'tcp',                   // 不能为空串
-            $node->securityLayer(),                // none|tls|reality(agent 第5段读它)
+            $node->tls ? 'tls' : 'none',           // 仅 tls/none;reality 走 custom_config
             implode('|', $params),
         ]);
     }
