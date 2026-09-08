@@ -126,6 +126,16 @@ class UserController extends Controller
                 'net' => $node->net,            // tcp/ws...
                 'path' => $node->path,
                 'tls' => (bool) $node->tls,
+                'security' => $node->securityLayer(),   // none|tls|reality(扁平,XrayR/自研兜底)
+                'flow' => $node->flow ?: '',            // xtls-rprx-vision
+                // REALITY 结构块(扁平消费方用;priv 只在此下发给落地 agent,不进订阅)
+                'reality' => $node->usesReality() ? [
+                    'dest' => $node->reality_dest,
+                    'server_names' => $node->reality_server_names ?? [],
+                    'public_key' => $node->reality_public_key,
+                    'private_key' => $node->reality_private_key,
+                    'short_ids' => $node->reality_short_ids ?? [],
+                ] : null,
                 'traffic_rate' => (float) $node->traffic_rate,
                 'node_class' => (int) $node->node_class,
                 'node_speedlimit' => (float) $node->speed_limit,
@@ -160,13 +170,26 @@ class UserController extends Controller
         if ($node->host !== '' && $node->host !== null) {
             $params[] = 'host=' . $node->host;
         }
+        // vless 的 xtls-rprx-vision(可与 reality 或 tls 搭配),独立于 security
+        if ($node->flow !== '' && $node->flow !== null) {
+            $params[] = 'flow=' . $node->flow;
+        }
+        // REALITY 参数进 params 段,由 agent 的 NodeFromServerString 解析(契约 key:dest/sni/pbk/priv/sid)。
+        // [!!] priv(私钥)只随 nodeInfo 下发给落地 agent,【绝不进客户端订阅】——订阅只出 pbk。
+        if ($node->usesReality()) {
+            $params[] = 'dest=' . $node->reality_dest;
+            $params[] = 'sni=' . implode(',', $node->reality_server_names ?? []);
+            $params[] = 'pbk=' . $node->reality_public_key;
+            $params[] = 'priv=' . $node->reality_private_key;
+            $params[] = 'sid=' . implode(',', $node->reality_short_ids ?? []);
+        }
 
         return implode(';', [
             $node->server,
             (string) $node->port,
             '0',                                   // alterId,现代 vmess 一律 0
             $node->net ?: 'tcp',                   // 不能为空串
-            $node->tls ? 'tls' : 'none',
+            $node->securityLayer(),                // none|tls|reality(agent 第5段读它)
             implode('|', $params),
         ]);
     }
