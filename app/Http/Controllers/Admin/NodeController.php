@@ -104,13 +104,25 @@ class NodeController extends Controller
         $data['path'] = $data['path'] ?? '';
         $data['tls'] = $request->boolean('tls');
         $data['enabled'] = $request->boolean('enabled'); // 对用户开放(排空/维护时取消勾选,agent 照常在线但不再服务用户)
-        $data['flow'] = $data['flow'] ?? '';
+        // C 修:flow 仅 vless 有意义;vmess 强制置空(否则 agent 见 flow 会 ErrFlowNeedsVLESS 拒整节点)
+        $data['flow'] = $data['type'] === 'vless' ? ($data['flow'] ?? '') : '';
         $data['accept_proxy_protocol'] = $request->boolean('accept_proxy_protocol');
 
         // REALITY:type=vless 且勾了启用才配置;否则清空(切回 vmess/普通 vless 不残留旧密钥)
         $realityOn = $data['type'] === 'vless' && $request->boolean('reality_enabled') && ! empty($data['reality_dest']);
         if ($realityOn) {
-            $data['reality_dest'] = $data['reality_dest'];
+            // B 修:dest 必须 host:port —— 手滑漏端口(如 www.apple.com)会让 agent
+            // "reality dest unreachable" 全员连不上而面板无提示。漏端口自动补 :443 再强校验。
+            $dest = trim((string) $data['reality_dest']);
+            if (! str_contains($dest, ':')) {
+                $dest .= ':443';
+            }
+            if (! preg_match('/^[A-Za-z0-9.\-]+:\d{1,5}$/', $dest)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'reality_dest' => 'REALITY dest 需为 host:port(如 www.apple.com:443)',
+                ]);
+            }
+            $data['reality_dest'] = $dest;
             $data['reality_server_names'] = array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', (string) $data['reality_server_names']))));
             // 密钥面板生成(与 xray x25519 对拍一致);仅当缺失或运维勾了"重新生成"才铸造,避免每次保存都换密钥使全员掉线
             $needKey = $request->boolean('reality_regen') || empty($node?->reality_private_key);
