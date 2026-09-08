@@ -11,7 +11,7 @@ class Node extends Model
         'node_class', 'node_group', 'speed_limit', 'secret',
         'online', 'enabled', 'role', 'last_heartbeat', 'sort', 'custom_config',
         'flow', 'reality_dest', 'reality_server_names', 'reality_private_key',
-        'reality_public_key', 'reality_short_ids',
+        'reality_public_key', 'reality_short_ids', 'accept_proxy_protocol',
     ];
 
     protected $casts = [
@@ -22,6 +22,7 @@ class Node extends Model
         'custom_config' => 'array',
         'reality_server_names' => 'array',
         'reality_short_ids' => 'array',
+        'accept_proxy_protocol' => 'boolean',
     ];
 
     /** 是否 REALITY 入站:以 private_key 是否设置为准(下发/订阅的 security 由此派生)。 */

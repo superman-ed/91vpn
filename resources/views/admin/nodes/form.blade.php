@@ -14,7 +14,7 @@
                 <div class="form-group col-md-6"><label>节点名称</label><input name="name" value="{{ old('name', $node->name) }}" class="form-control" placeholder="如：香港01" required></div>
                 <div class="form-group col-md-6"><label>连接地址（中转入口域名/IP）</label><input name="server" value="{{ old('server', $node->server) }}" class="form-control" required></div>
                 <div class="form-group col-md-3"><label>端口</label><input name="port" type="number" value="{{ old('port', $node->port) }}" class="form-control" required></div>
-                <div class="form-group col-md-3"><label>协议</label><select name="type" class="form-control"><option value="vmess">VMess</option></select></div>
+                <div class="form-group col-md-3"><label>协议</label><select name="type" class="form-control"><option value="vmess" @selected(old('type', $node->type ?? 'vmess') == 'vmess')>VMess</option><option value="vless" @selected(old('type', $node->type) == 'vless')>VLESS</option></select></div>
                 <div class="form-group col-md-3"><label>传输</label><select name="net" class="form-control" id="netSel"><option value="tcp" @selected(old('net', $node->net) == 'tcp')>TCP</option><option value="ws" @selected(old('net', $node->net) == 'ws')>WebSocket</option></select></div>
                 <div class="form-group col-md-3"><label>TLS</label><select name="tls" class="form-control"><option value="0" @selected(! old('tls', $node->tls))>关闭</option><option value="1" @selected(old('tls', $node->tls))>开启</option></select></div>
             </div>
@@ -22,6 +22,21 @@
                 <div class="form-group col-md-6"><label>WS 路径（net=ws 时）</label><input name="path" value="{{ old('path', $node->path) }}" class="form-control" placeholder="/"></div>
                 <div class="form-group col-md-6"><label>Host / SNI（ws Host 或 TLS SNI，选填）</label><input name="host" value="{{ old('host', $node->host) }}" class="form-control"></div>
             </div>
+
+            {{-- VLESS 现代抗封:flow(vision) + REALITY + PROXY 头。仅 VLESS 有意义;VMess 忽略。 --}}
+            <div class="row">
+                <div class="form-group col-md-3"><label>Flow（VLESS）</label><select name="flow" class="form-control"><option value="" @selected(! old('flow', $node->flow))>无</option><option value="xtls-rprx-vision" @selected(old('flow', $node->flow) == 'xtls-rprx-vision')>xtls-rprx-vision</option></select></div>
+                <div class="form-group col-md-3"><label>REALITY</label><select name="reality_enabled" class="form-control"><option value="0" @selected(! old('reality_enabled', $node->usesReality()))>关闭</option><option value="1" @selected(old('reality_enabled', $node->usesReality()))>启用</option></select><small class="text-muted">仅 VLESS;启用后填 dest,密钥自动生成</small></div>
+                <div class="form-group col-md-6"><label>REALITY dest（借用真站）</label><input name="reality_dest" value="{{ old('reality_dest', $node->reality_dest) }}" class="form-control" placeholder="www.apple.com:443"></div>
+            </div>
+            <div class="row">
+                <div class="form-group col-md-6"><label>REALITY server_names（SNI，逗号/换行分隔）</label><textarea name="reality_server_names" rows="2" class="form-control" placeholder="www.apple.com">{{ old('reality_server_names', is_array($node->reality_server_names) ? implode(', ', $node->reality_server_names) : '') }}</textarea></div>
+                <div class="form-group col-md-3"><label>重新生成密钥</label><select name="reality_regen" class="form-control"><option value="0">否（保留现有）</option><option value="1">是（换新，全员需更新订阅）</option></select></div>
+                <div class="form-group col-md-3"><label>接受 PROXY 头</label><select name="accept_proxy_protocol" class="form-control"><option value="0" @selected(! old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>关闭</option><option value="1" @selected(old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>开启（落地在中转后面时）</option></select><small class="text-muted">开了必须防火墙只放行中转 IP</small></div>
+            </div>
+            @if($node->exists && $node->usesReality())
+            <div class="row"><div class="form-group col-md-12"><label>REALITY public_key（客户端订阅自动带,只读）</label><input value="{{ $node->reality_public_key }}" class="form-control" readonly><small class="text-muted">short_ids: {{ implode(', ', $node->reality_short_ids ?? []) }} · private_key 仅下发落地 agent,不显示</small></div></div>
+            @endif
         </div>
     </div>
 

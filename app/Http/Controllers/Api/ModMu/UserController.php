@@ -128,6 +128,7 @@ class UserController extends Controller
                 'tls' => (bool) $node->tls,
                 'security' => $node->securityLayer(),   // none|tls|reality(扁平,XrayR/自研兜底)
                 'flow' => $node->flow ?: '',            // xtls-rprx-vision
+                'accept_proxy_protocol' => (bool) $node->accept_proxy_protocol, // 落地在中转后面时开(读 PROXY 头拿真 IP)
                 // REALITY 结构块(扁平消费方用;priv 只在此下发给落地 agent,不进订阅)
                 'reality' => $node->usesReality() ? [
                     'dest' => $node->reality_dest,
@@ -173,6 +174,9 @@ class UserController extends Controller
         // vless 的 xtls-rprx-vision(可与 reality 或 tls 搭配),独立于 security
         if ($node->flow !== '' && $node->flow !== null) {
             $params[] = 'flow=' . $node->flow;
+        }
+        if ($node->accept_proxy_protocol) {
+            $params[] = 'accept_proxy=1';   // 落地读中转 PROXY v2 头,还原真实客户端 IP
         }
         // REALITY 参数进 params 段,由 agent 的 NodeFromServerString 解析(契约 key:dest/sni/pbk/priv/sid)。
         // [!!] priv(私钥)只随 nodeInfo 下发给落地 agent,【绝不进客户端订阅】——订阅只出 pbk。

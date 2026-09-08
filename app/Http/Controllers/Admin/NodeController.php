@@ -46,7 +46,7 @@ class NodeController extends Controller
 
     public function update(Request $request, Node $node)
     {
-        $node->update($this->validated($request));
+        $node->update($this->validated($request, $node));
         audit('node.update', "更新节点「{$node->name}」", $node);
 
         return redirect('/admin/nodes')->with('status', '节点已更新');
@@ -74,17 +74,25 @@ class NodeController extends Controller
         return back()->with('status', '节点密钥已重新生成，请同步更新节点后端配置');
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Node $node = null): array
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'server' => ['required', 'string', 'max:255'],
             'port' => ['required', 'integer', 'min:1', 'max:65535'],
-            'type' => ['required', 'in:vmess'],
+            'type' => ['required', 'in:vmess,vless'],
             'net' => ['required', 'in:tcp,ws'],
             'host' => ['nullable', 'string', 'max:255'],
             'path' => ['nullable', 'string', 'max:255'],
             'tls' => ['nullable', 'boolean'],
+            // vless 的 xtls-rprx-vision;白名单与 agent 的 node.Validate 对齐(ADR:只认这两值)
+            'flow' => ['nullable', 'in:,xtls-rprx-vision'],
+            // REALITY:填了 dest 即视为启用;server_names 逗号/换行分隔;密钥保存时自动生成(见下)
+            'reality_enabled' => ['nullable', 'boolean'],
+            'reality_dest' => ['nullable', 'string', 'max:255'],
+            'reality_server_names' => ['nullable', 'string', 'max:1000'],
+            'reality_regen' => ['nullable', 'boolean'],
+            'accept_proxy_protocol' => ['nullable', 'boolean'],
             'traffic_rate' => ['required', 'numeric', 'min:0'],
             'node_class' => ['required', 'integer', 'min:0', 'max:9'],
             'node_group' => ['nullable', 'integer', 'min:0'],
@@ -96,6 +104,35 @@ class NodeController extends Controller
         $data['path'] = $data['path'] ?? '';
         $data['tls'] = $request->boolean('tls');
         $data['enabled'] = $request->boolean('enabled'); // 对用户开放(排空/维护时取消勾选,agent 照常在线但不再服务用户)
+        $data['flow'] = $data['flow'] ?? '';
+        $data['accept_proxy_protocol'] = $request->boolean('accept_proxy_protocol');
+
+        // REALITY:type=vless 且勾了启用才配置;否则清空(切回 vmess/普通 vless 不残留旧密钥)
+        $realityOn = $data['type'] === 'vless' && $request->boolean('reality_enabled') && ! empty($data['reality_dest']);
+        if ($realityOn) {
+            $data['reality_dest'] = $data['reality_dest'];
+            $data['reality_server_names'] = array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', (string) $data['reality_server_names']))));
+            // 密钥面板生成(与 xray x25519 对拍一致);仅当缺失或运维勾了"重新生成"才铸造,避免每次保存都换密钥使全员掉线
+            $needKey = $request->boolean('reality_regen') || empty($node?->reality_private_key);
+            if ($needKey) {
+                $kp = \App\Services\Reality::keypair();
+                $data['reality_private_key'] = $kp['private_key'];
+                $data['reality_public_key'] = $kp['public_key'];
+                $data['reality_short_ids'] = [\App\Services\Reality::shortId()];
+            } else {
+                // 保留旧密钥(避免每次保存换密钥使全员掉线);只更新 dest/server_names
+                $data['reality_private_key'] = $node->reality_private_key;
+                $data['reality_public_key'] = $node->reality_public_key;
+                $data['reality_short_ids'] = $node->reality_short_ids;
+            }
+        } else {
+            $data['reality_dest'] = null;
+            $data['reality_server_names'] = null;
+            $data['reality_private_key'] = null;
+            $data['reality_public_key'] = null;
+            $data['reality_short_ids'] = null;
+        }
+        unset($data['reality_enabled'], $data['reality_regen']);
 
         return $data;
     }
