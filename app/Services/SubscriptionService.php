@@ -46,6 +46,34 @@ class SubscriptionService
         $this->assertUsable($user);
 
         $lines = $this->accessibleNodes($user)->map(function (Node $n) use ($user) {
+            // vless(reality / tls / none)出 vless:// 链接;只带公开参数,私钥绝不进订阅
+            if ($n->usesReality() || $n->type === 'vless') {
+                $p = ['encryption' => 'none', 'type' => $n->net ?: 'tcp'];
+                if ($n->flow) {
+                    $p['flow'] = $n->flow;
+                }
+                if ($n->usesReality()) {
+                    $p['security'] = 'reality';
+                    $p['sni'] = $n->reality_server_names[0] ?? '';
+                    $p['fp'] = 'chrome';
+                    $p['pbk'] = $n->reality_public_key;
+                    $p['sid'] = $n->reality_short_ids[0] ?? '';
+                } elseif ($n->tls) {
+                    $p['security'] = 'tls';
+                    $p['fp'] = 'chrome';
+                    if ($n->host !== '') {
+                        $p['sni'] = $n->host;
+                    }
+                }
+                if ($n->net === 'ws') {
+                    $p['path'] = $n->path ?: '/';
+                    if ($n->host !== '') {
+                        $p['host'] = $n->host;
+                    }
+                }
+                $p = array_filter($p, fn ($v) => $v !== '' && $v !== null);
+                return 'vless://'.$user->uuid.'@'.$n->server.':'.$n->port.'?'.http_build_query($p).'#'.rawurlencode($n->name);
+            }
             $conf = [
                 'v' => '2', 'ps' => $n->name, 'add' => $n->server, 'port' => (string) $n->port,
                 'id' => $user->uuid, 'aid' => '0', 'scy' => 'auto', 'net' => $n->net,
@@ -127,6 +155,60 @@ class SubscriptionService
     /** 单个节点转 Clash vmess 条目（注入用户 uuid） */
     private function nodeToProxy(Node $node, User $user): array
     {
+        // REALITY 节点:出 vless + reality + vision(mihomo 格式)。
+        // [!!] 只带公开子集(public-key/short-id/servername/flow),【私钥绝不进订阅】。
+        if ($node->usesReality()) {
+            return [
+                'name' => $node->name,
+                'type' => 'vless',
+                'server' => $node->server,
+                'port' => $node->port,
+                'uuid' => $user->uuid,
+                'network' => $node->net ?: 'tcp',
+                'udp' => true,
+                'tls' => true,
+                'flow' => $node->flow ?: '',                 // xtls-rprx-vision
+                'servername' => ($node->reality_server_names[0] ?? ''), // SNI 取白名单首个
+                'client-fingerprint' => 'chrome',            // uTLS 指纹伪装(REALITY 依赖)
+                'reality-opts' => [
+                    'public-key' => $node->reality_public_key,
+                    'short-id' => ($node->reality_short_ids[0] ?? ''),
+                ],
+            ];
+        }
+
+        // vless + tls(可带 vision flow);非 reality 的现代 vless
+        if ($node->type === 'vless') {
+            $proxy = [
+                'name' => $node->name,
+                'type' => 'vless',
+                'server' => $node->server,
+                'port' => $node->port,
+                'uuid' => $user->uuid,
+                'network' => $node->net ?: 'tcp',
+                'udp' => true,
+            ];
+            if ($node->flow) {
+                $proxy['flow'] = $node->flow;
+            }
+            if ($node->tls) {
+                $proxy['tls'] = true;
+                $proxy['client-fingerprint'] = 'chrome';
+                if ($node->host !== '') {
+                    $proxy['servername'] = $node->host;
+                }
+            }
+            if ($node->net === 'ws') {
+                $proxy['ws-opts'] = [
+                    'path' => $node->path ?: '/',
+                    'headers' => $node->host !== '' ? ['Host' => $node->host] : [],
+                ];
+            }
+
+            return $proxy;
+        }
+
+        // 默认 vmess(现有节点,行为不变)
         $proxy = [
             'name' => $node->name,
             'type' => 'vmess',
