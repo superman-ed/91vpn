@@ -34,6 +34,14 @@
                     @endif</td>
                 <td>
                     <a href="/admin/nodes/{{ $n->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
+                    {{-- 一键部署（ADR-008 P4b）--}}
+              <button type="button" class="btn btn-sm btn-outline-success js-deploy"
+                      data-node="{{ $n->id }}" data-name="{{ $n->name }}"
+                      data-host="{{ $n->server }}" data-role="{{ $n->role }}"
+                      data-port="{{ $n->port }}"
+                      data-src="{{ implode(',', $landingSrc[$n->id] ?? []) }}">
+                <i class="fas fa-rocket mr-1"></i>部署
+              </button>
                     <form method="POST" action="/admin/nodes/{{ $n->id }}" class="d-inline" data-dgr="删除节点「{{ $n->name }}」后，连接该节点的用户将立即无法使用，此操作不可撤销。" data-dgr-word="{{ $n->name }}">@csrf @method('DELETE')<button class="btn btn-danger btn-sm">删除</button></form>
                 </td>
             </tr>
@@ -43,3 +51,5 @@
     </div>
 </div>
 @endsection
+
+@include('admin.nodes._deploy')

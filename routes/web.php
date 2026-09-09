@@ -128,6 +128,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::delete('rules/{rule}', [\App\Http\Controllers\Admin\RelayRuleController::class, 'destroy'])->name('admin.rules.destroy');
     Route::post('rules/{rule}/regenerate-cred', [\App\Http\Controllers\Admin\RelayRuleController::class, 'regenerateCred']);
     Route::post('rules/{rule}/reality-keypair', [\App\Http\Controllers\Admin\RelayRuleController::class, 'realityKeypair']);
+    Route::post('nodes/{node}/deploy', [\App\Http\Controllers\Admin\RelayDeployController::class, 'start']);
+    Route::get('nodes/{node}/deploy/{run}', [\App\Http\Controllers\Admin\RelayDeployController::class, 'log']);
     Route::get('relay/monitor', [\App\Http\Controllers\Admin\RelayMonitorController::class, 'index'])->name('admin.relay.monitor');
     Route::get('relay/online-ip', [\App\Http\Controllers\Admin\RelayOnlineIpController::class, 'index'])->name('admin.relay.online-ip');
 
