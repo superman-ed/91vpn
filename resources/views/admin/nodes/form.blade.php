@@ -34,6 +34,53 @@
                 <div class="form-group col-md-3"><label>重新生成密钥</label><select name="reality_regen" class="form-control"><option value="0">否（保留现有）</option><option value="1">是（换新密钥对）</option></select><small class="text-danger">换新后旧订阅立即失效,客户端报 x509 证书错(非证书问题),须公告全员刷新订阅</small></div>
                 <div class="form-group col-md-3"><label>接受 PROXY 头</label><select name="accept_proxy_protocol" class="form-control"><option value="0" @selected(! old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>关闭</option><option value="1" @selected(old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>开启（落地在中转后面时）</option></select><small class="text-muted">开了必须防火墙只放行中转 IP</small></div>
             </div>
+            <div class="row">
+                <div class="form-group col-md-8"><label>dest 候选清单（换行/逗号分隔，节点上筛查）</label>
+                    <textarea name="dest_scan_candidates" rows="3" class="form-control" placeholder="www.a.example&#10;www.b.example">{{ old('dest_scan_candidates', $node->dest_scan_candidates) }}</textarea>
+                    <small class="text-muted">保存后由【该节点】去扫（可达与延迟是节点到那个站的关系，面板扫没有意义）。内容不变不会重扫。</small></div>
+                <div class="form-group col-md-4"><label>强制重扫（清单没变时）</label>
+                    <select name="dest_scan_rerun" class="form-control"><option value="0">否</option><option value="1">是</option></select>
+                    <small class="text-muted">节点两轮之间最少间隔 15 分钟。</small></div>
+            </div>
+            @if($node->exists && $node->dest_scan_result)
+            @php $rs = $node->dest_scan_result['results'] ?? []; @endphp
+            <div class="row"><div class="form-group col-md-12">
+                <label>筛查结果（{{ $node->dest_scan_at?->diffForHumans() }}，scan_id={{ $node->dest_scan_result['scan_id'] ?? '' }}）</label>
+                <table class="table table-sm table-bordered mb-1">
+                    <thead><tr><th>域名</th><th>判定</th><th>TLS1.3</th><th>X25519</th><th>h2</th><th>密钥组</th><th>延迟</th><th>备注</th></tr></thead>
+                    <tbody>
+                    @foreach($rs as $r)
+                        <tr>
+                            <td>{{ $r['host'] ?? '' }}</td>
+                            <td>@if(($r['verdict'] ?? '') === 'pass')<span class="badge badge-success">pass</span>
+                                @elseif(($r['verdict'] ?? '') === 'error')<span class="badge badge-warning">{{ $r['verdict'] }}</span>
+                                @else<span class="badge badge-danger">{{ $r['verdict'] ?? '' }}</span>@endif</td>
+                            <td>{{ ($r['tls13'] ?? false) ? '✓' : '✗' }}</td>
+                            <td>{{ ($r['x25519'] ?? false) ? '✓' : '✗' }}</td>
+                            <td>{{ ($r['h2'] ?? false) ? '✓' : '✗' }}</td>
+                            <td>{{ $r['key_group'] ?? '' }}</td>
+                            <td>{{ ($r['latency_ms'] ?? 0) ?: '-' }}{{ ($r['latency_ms'] ?? 0) ? 'ms' : '' }}</td>
+                            <td class="text-muted">{{ $r['cdn_hint'] ?? ($r['error'] ?? '') }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+                {{-- `[!]` 四关全过只是及格线。选谁还要看冷门度、以及这个 SNI 出现在
+                     【客户端实际连的那一跳】的 IP 上自不自然 —— 有中转时那一跳是中转，
+                     工具判不了，所以这里【不排序、不推荐】。 --}}
+                <small class="text-muted">✅ 只表示过了四关（TLS1.3 / X25519 可协商 / 非 CDN / h2），
+                    是<strong>及格线不是推荐</strong>：还要挑够冷门、且对<strong>客户端实际连的那一跳</strong>（有中转时是中转）自然的。
+                    ⚠️ error 表示<strong>节点连不上</strong>，不等于该站不合格。</small>
+            </div></div>
+            @php $same = \App\Models\Node::where('reality_dest', $node->reality_dest)
+                    ->where('id', '!=', $node->id)->where('reality_dest', '!=', '')->pluck('name'); @endphp
+            @if($node->reality_dest && $same->isNotEmpty())
+            <div class="row"><div class="form-group col-md-12">
+                <div class="alert alert-warning mb-0">这个 dest 还被 <strong>{{ $same->count() }}</strong> 个节点用着（{{ $same->take(5)->implode('、') }}）——
+                    dest 撞车意味着<strong>一次识别全灭</strong>，建议各节点用不同的。</div>
+            </div></div>
+            @endif
+            @endif
             @if($node->exists && $node->usesReality())
             <div class="row"><div class="form-group col-md-12"><label>REALITY public_key（客户端订阅自动带,只读）</label><input value="{{ $node->reality_public_key }}" class="form-control" readonly><small class="text-muted">short_ids: {{ implode(', ', $node->reality_short_ids ?? []) }} · private_key 仅下发落地 agent,不显示</small></div></div>
             @endif

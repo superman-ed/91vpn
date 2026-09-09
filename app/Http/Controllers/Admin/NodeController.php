@@ -93,6 +93,8 @@ class NodeController extends Controller
             'reality_server_names' => ['nullable', 'string', 'max:1000'],
             'reality_regen' => ['nullable', 'boolean'],
             'accept_proxy_protocol' => ['nullable', 'boolean'],
+            'dest_scan_candidates' => ['nullable', 'string', 'max:2000'],
+            'dest_scan_rerun' => ['nullable', 'boolean'],
             'traffic_rate' => ['required', 'numeric', 'min:0'],
             'node_class' => ['required', 'integer', 'min:0', 'max:9'],
             'node_group' => ['nullable', 'integer', 'min:0'],
@@ -107,6 +109,24 @@ class NodeController extends Controller
         // C 修:flow 仅 vless 有意义;vmess 强制置空(否则 agent 见 flow 会 ErrFlowNeedsVLESS 拒整节点)
         $data['flow'] = $data['type'] === 'vless' ? ($data['flow'] ?? '') : '';
         $data['accept_proxy_protocol'] = $request->boolean('accept_proxy_protocol');
+
+        // dest 候选筛查:id 取候选内容的哈希 —— 内容不变则 id 不变,节点不会重扫。
+        // [!!] 候选变了要把上一轮结果一并清掉:两份结果长得一模一样,
+        // 留着旧的会让运维以为新清单已经扫完了。
+        $cands = collect(preg_split('/[\s,]+/', mb_strtolower((string) ($data['dest_scan_candidates'] ?? ''))))
+            ->filter()->unique()->values()->all();
+        $newId = $cands === [] ? null : \App\Models\Node::destScanIdFor($cands);
+        if ($newId !== null && $request->boolean('dest_scan_rerun')) {
+            $newId .= '-'.now()->timestamp;   // 同一份清单要重扫:换个 id
+        }
+        // [!] 用 ?-> :新建节点时 $node 是 null,`$node->x ?? null` 在 PHP 8 下
+        // 仍会抛 "Attempt to read property on null" 警告。
+        if ($newId !== $node?->dest_scan_id) {
+            $data['dest_scan_id'] = $newId;
+            $data['dest_scan_result'] = null;
+            $data['dest_scan_at'] = null;
+        }
+        unset($data['dest_scan_rerun']);
 
         // REALITY:type=vless 且勾了启用才配置;否则清空(切回 vmess/普通 vless 不残留旧密钥)
         $realityOn = $data['type'] === 'vless' && $request->boolean('reality_enabled') && ! empty($data['reality_dest']);

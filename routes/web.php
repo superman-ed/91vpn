@@ -101,6 +101,7 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
     Route::get('/func/detect_rules', [ModMuUserController::class, 'detectRules']); // 审计规则(空=不审计)
     Route::get('/nodes/{node}/info', [ModMuUserController::class, 'nodeInfo']);    // 节点配置拉取(soga/XrayR 开机拉)
     Route::post('/nodes/{node}/info', [ModMuUserController::class, 'nodeHeartbeat']); // 节点状态/心跳上报(soga 实测走这里)
+    Route::post('/nodes/{node}/dest_scan', [ModMuUserController::class, 'destScan']);  // dest 候选筛查结果回报(本项目扩展)
 });
 
 // 管理后台

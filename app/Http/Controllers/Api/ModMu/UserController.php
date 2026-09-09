@@ -95,6 +95,31 @@ class UserController extends Controller
         return response()->json(['ret' => 1]);
     }
 
+    /**
+     * POST /mod_mu/nodes/{node}/dest_scan —— 节点回报一轮 dest 候选筛查结果。
+     *
+     * [!!] 只接受与【当前】dest_scan_id 匹配的那一轮。晚到的旧结果必须丢掉:
+     * 否则运维刚换了候选清单、页面上却被一份过期结果覆盖,而两者长得一模一样。
+     *
+     * [!] 结果条数封顶:body 是节点发来的,不设上限等于让它决定我们存多少。
+     */
+    public function destScan(Request $request)
+    {
+        $node = $request->attributes->get('node');
+        $scanId = (string) $request->input('scan_id');
+
+        if ($scanId === '' || $scanId !== (string) $node->dest_scan_id) {
+            return response()->json(['ret' => 1, 'msg' => 'stale scan_id ignored']);
+        }
+        $results = array_slice((array) $request->input('results', []), 0, 50);
+        $node->update([
+            'dest_scan_result' => ['scan_id' => $scanId, 'results' => $results],
+            'dest_scan_at' => now(),
+        ]);
+
+        return response()->json(['ret' => 1]);
+    }
+
     /** GET /mod_mu/func/detect_rules —— 审计规则(XrayR 开机会拉)。暂返回空=不审计,消除报错日志 */
     public function detectRules()
     {
@@ -171,6 +196,14 @@ class UserController extends Controller
             $cc['server_names'] = $node->reality_server_names ?? [];
             $cc['short_ids'] = $node->reality_short_ids ?? [];
         }
+        // dest 候选筛查任务(sogacore compatibility/dest-scan.md)。
+        // [!!] 只在有候选时下发;id 是幂等键——面板每周期都重发同一份 nodeInfo,
+        // 没有它节点会每 60 秒把同一批候选重扫一遍(对第三方是持续的可疑流量)。
+        $cands = $node->destScanCandidates();
+        if ($cands !== [] && $node->dest_scan_id) {
+            $cc['dest_scan'] = ['id' => $node->dest_scan_id, 'candidates' => $cands];
+        }
+
         // accept_proxy:无条件下发(不是仅 true 时才发)——否则节点收不到会回落本地 agent.conf,
         // 那个值面板看不见,配对错开时两端都不报错(见节点侧 eaca9fe 的上报设计)。
         $cc['accept_proxy'] = (bool) $node->accept_proxy_protocol;

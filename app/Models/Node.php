@@ -13,6 +13,7 @@ class Node extends Model
         'flow', 'reality_dest', 'reality_server_names', 'reality_private_key',
         'reality_public_key', 'reality_short_ids', 'accept_proxy_protocol',
         'reported_accept_proxy', 'accept_proxy_reported_at',
+        'dest_scan_candidates', 'dest_scan_id', 'dest_scan_result', 'dest_scan_at',
     ];
 
     protected $casts = [
@@ -25,10 +26,32 @@ class Node extends Model
         'reality_short_ids' => 'array',
         'accept_proxy_protocol' => 'boolean',
         'reported_accept_proxy' => 'boolean',
+        'dest_scan_result' => 'array',
+        'dest_scan_at' => 'datetime',
         'accept_proxy_reported_at' => 'datetime',
     ];
 
     /** 是否 REALITY 入站:以 private_key 是否设置为准(下发/订阅的 security 由此派生)。 */
+    /** 候选清单：按换行/逗号切开、去空、去重、小写。 */
+    public function destScanCandidates(): array
+    {
+        $raw = (string) ($this->dest_scan_candidates ?? '');
+        $items = preg_split('/[\s,]+/', mb_strtolower($raw)) ?: [];
+
+        return array_values(array_unique(array_filter($items)));
+    }
+
+    /**
+     * 候选内容的幂等键。内容不变则 id 不变 —— 节点因此不会反复重扫。
+     * [!] 强制重扫时由控制器另加时间戳后缀。
+     */
+    public static function destScanIdFor(array $candidates): string
+    {
+        sort($candidates);
+
+        return substr(sha1(implode(',', $candidates)), 0, 8);
+    }
+
     public function usesReality(): bool
     {
         return ! empty($this->reality_private_key);
