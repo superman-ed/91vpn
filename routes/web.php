@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\NodeController as AdminNodeController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Api\ModMu\ForwardController as ModMuForwardController;
 use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\LoginController;
@@ -102,6 +103,15 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
     Route::get('/nodes/{node}/info', [ModMuUserController::class, 'nodeInfo']);    // 节点配置拉取(soga/XrayR 开机拉)
     Route::post('/nodes/{node}/info', [ModMuUserController::class, 'nodeHeartbeat']); // 节点状态/心跳上报(soga 实测走这里)
     Route::post('/nodes/{node}/dest_scan', [ModMuUserController::class, 'destScan']);  // dest 候选筛查结果回报(本项目扩展)
+
+    // 中转节点的规则面（ADR-008：从 relaypanel 并入）。
+    // [!] /routes 对非中转角色返回 404 —— agent 把 404 解读为"本部署没有中转功能"
+    // 并停止轮询,这正是落地节点该有的行为,不是错误。
+    Route::get('/nodes/{node}/routes', [ModMuForwardController::class, 'routes']);
+    Route::post('/nodes/{node}/rules/traffic', [ModMuForwardController::class, 'ruleTraffic']);
+    Route::post('/nodes/{node}/rules/aliveip', [ModMuForwardController::class, 'ruleAliveIp']);
+    Route::post('/nodes/{node}/rules/status', [ModMuForwardController::class, 'ruleStatus']);
+    Route::post('/nodes/{node}/rules/sync', [ModMuForwardController::class, 'ruleSync']);
 });
 
 // 管理后台
