@@ -180,6 +180,13 @@ class UserController extends Controller
                 // 我们自研 agent 与 XrayR 读下面的扁平字段;soga 与真正的
                 // SSPanel 生态读这个串。与 users 端点的 data/users 双键同理。
                 'server' => $this->sspanelServerString($node),
+                // [!!] role 是【我们的扩展】,sspanel 本身没有这个字段。
+                // agent 靠它判断"本节点有没有自己的入站":中转/跳板/入口没有,
+                // 它们的监听全部来自转发规则。不发这个字段的话,agent 会把中转
+                // 当落地去解析 server 串,而中转的 port 是 0 —— 于是每个拉取周期
+                // 报一次 "port is required (got 0)",节点看起来是坏的。
+                // [D] ADR-008 P5 切换时真机撞到:规则下发一切正常,只有 nodeInfo 在报错。
+                'role' => $node->role,
                 // 扁平字段(自研 agent 用),保持原样
                 'host' => $node->host,
                 'port' => $node->port,

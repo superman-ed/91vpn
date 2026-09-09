@@ -183,7 +183,11 @@ class RuleCheck
         // [!] ADR-008 之后这是【本地一次查询】：落地就在同一个库里。
         // 合并之前要跨面板走内部只读 API（LandingPosture + 两侧 token +
         // 宿主网关地址），那套已随合并删除。
+        // [!!] 只认【落地角色】：中转与落地可能是同一台机器（同一个 server 地址
+        // 两条节点记录）。不过滤的话 keyBy('server') 会让中转那条覆盖落地那条，
+        // 于是配对校验查的是中转自己的收头状态 —— 一个看起来正常的错误答案。
         $nodes = \App\Models\Node::whereIn('server', array_column($pairs, 1))
+            ->whereIn('role', ['landing', 'both'])
             ->get()->keyBy('server');
 
         $p = [];

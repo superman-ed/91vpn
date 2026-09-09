@@ -99,3 +99,21 @@ it('面板配的与节点实际在跑的不一致时提示', function () {
     expect(array_filter(pairingTexts(ruleSending(0), 'warn'),
         fn ($t) => str_contains($t, '还没拉到')))->not->toBeEmpty();
 });
+
+// `[!!]` 中转与落地可能是【同一台机器】（stage 5 就是这样）：同一个 server
+// 地址两条节点记录。配对校验必须只认落地那条 —— 否则它查的是中转自己的
+// 收头状态，给出一个看起来正常的错误答案。
+it('同一地址上有中转记录时，配对校验仍认落地那条', function () {
+    // 落地：没在收头
+    landingWith(reported: false, expected: false);
+    // 同一台机器上的中转记录（后建，keyBy 会让它覆盖）
+    Node::create([
+        'name' => '同机中转', 'server' => '9.9.9.9', 'port' => 0, 'type' => 'vmess',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'R2',
+        'role' => 'relay', 'accept_proxy_protocol' => true,
+        'reported_accept_proxy' => true, 'accept_proxy_reported_at' => now(),
+    ]);
+
+    // 规则发头、落地没收 → 必须仍然报 broken
+    expect(pairingTexts(ruleSending(2), 'broken'))->not->toBeEmpty();
+});

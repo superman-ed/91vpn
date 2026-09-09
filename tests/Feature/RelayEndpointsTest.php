@@ -131,3 +131,17 @@ it('中转在规则端点通、在用户端点仍拿不到名单', function () {
     $body = $this->getJson("/mod_mu/users?node_id={$n->id}&key=RELAYSECRET")->assertOk()->getContent();
     expect($body)->not->toContain($u->uuid);
 });
+
+// `[!!]` nodeInfo 必须带 role：agent 靠它判断"本节点有没有自己的入站"。
+// `[D]` ADR-008 P5 切换时真机撞到：不发这个字段，agent 把中转当落地解析，
+// 而中转的 port 是 0 —— 每个拉取周期报一次 "port is required (got 0)"，
+// 规则明明下发正常，节点却看起来是坏的。
+it('nodeInfo 带上 role，中转不会被当成落地解析', function () {
+    $n = epRelayNode();
+    $res = $this->getJson("/mod_mu/nodes/{$n->id}/info?key=RELAYSECRET")->assertOk();
+    expect($res->json('data.role'))->toBe('relay');
+
+    $land = epRelayNode(['role' => 'landing', 'secret' => 'L2', 'port' => 34567]);
+    expect($this->getJson("/mod_mu/nodes/{$land->id}/info?key=L2")->json('data.role'))
+        ->toBe('landing');
+});
