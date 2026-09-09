@@ -35,7 +35,4 @@ return [
         ],
     ],
 
-    // 面板间内部 API 共享 token(relaypanel ↔ 91vpn 的 accept_proxy 配对校验)。两侧 .env 必须一致;留空=端点禁用(返 404)。
-    'relay_internal_token' => env('RELAY_INTERNAL_TOKEN', ''),
-
 ];

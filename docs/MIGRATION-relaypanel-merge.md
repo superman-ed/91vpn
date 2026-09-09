@@ -4,8 +4,28 @@
 > 中转+落地的**唯一节点控制面**（一张节点表、一个 mod_mu、一颗一键部署按钮）。
 > 完成后 relaypanel 退休。
 >
-> **状态**：📋 已规划，未开工。逐步勾选，跨会话可接着做。
+> **状态**：🟢 主体已迁移（P1–P5 完成、P7 完成）。剩 P0 网络限制、P6 确认、P8 退休。
 > 相关记忆：`relaypanel-merge-plan`、`node-oneclick-deploy`、`reality-relay-topology`。
+
+## 复核与修复记录（2026-09-09）
+
+用户自行完成了迁移（提交 `5f0dea1`→`9e569fa`，立了 ADR-008）。事后按本清单对账，
+**主体扎实**：ForwardRuleService 两份逐字节一致（无漂移）、Node 辅助方法齐、视图改用
+`layouts.admin`、配对校验改本地查询（还多防了"中转/落地同机 keyBy 覆盖"）、自查补了中转遥测。
+
+对账发现并**已修**三处：
+- ✅ **#1 部署/规则表单 JS 不加载**：`layouts.admin` 缺 `@stack('scripts')` 和 csrf-token
+  meta，`@push('scripts')` 被丢弃 → 部署按钮点了没反应。已补两行（csrf meta + stack）。
+- ✅ **#2 P7 死端点残留**：`api.php` 的 `/internal/relay/accept-proxy` 路由 +
+  `Api\Internal\RelayController` + `services.relay_internal_token` 已全删（消费端早已本地化）。
+- ✅ **#3 landingSrc 没传**：`AdminNodeController@index` 现计算每台落地的中转源 IP 传给弹窗，
+  accept_proxy 防火墙白名单恢复预填。
+
+**仍开放**（非本次修复范围）：
+- ⚪ #4 落地部署仍手粘 91vpn 自身 api_url/node_id/secret（面板即本机，可自动带入；不影响功能）。
+- 🟠 #5 = P0：admin 无网络限制（91vpn 公网 8088，admin 仅登录）——SSH 全网部署按钮该锁 127-only/隧道。
+- 🟠 #6 = P8：relaypanel 仍满血在跑（非只读），两个能改中转的控制面并存。
+- ❓ #7 = P6：需确认中转 agent 是否全部重指 91vpn。
 
 ## 背景（为什么这么做、为什么是这个方向）
 
@@ -44,40 +64,41 @@
 
 ## P1 数据模型搬回 91vpn（纯新增，drop 即回滚）
 
-- [ ] 重建 `forward_rules` + `forward_outbounds`（用 relaypanel **演进版** schema：
-      含 inbound_opts / reality / send_proxy 等字段）。
-- [ ] 新增 `rule_traffic` / `rule_alive_ip` / `rule_outbound_status` / `node_net_traffic`。
-- [ ] 给 91vpn `nodes` 加中转列：`quota_gb` / `quota_reset_day` / rule_sync 字段 / uptime·load。
-- [ ] 建对应 Model（ForwardRule / ForwardOutbound / 三张状态表 / 扩展 Node）；Reality、AuditLog 复用 91vpn 的。
-- ✅ 可逆：全是新表新列，无人引用，drop 回滚。
+- [x] 重建 `forward_rules` + `forward_outbounds`（演进版 schema）。（迁移 `200001/200002`）
+- [x] 新增 `rule_traffic` / `rule_alive_ip` / `rule_outbound_status` / `node_net_traffic`。（`200003–200006`）
+- [x] 给 `nodes` 加中转列：quota（`200007`）/ rule_sync（`200008`）/ 遥测 uptime·load（`210000`，自查补）。
+- [x] 建对应 Model（ForwardRule / ForwardOutbound / 三张状态表 / 扩展 Node）；Reality、AuditLog 复用 91vpn 的。
+- ✅ 已跑：`migrate:status` 全 Ran。
 
 ## P2 搬编译与校验服务（不接线）
 
-- [ ] 搬 `ForwardRuleService`（编译链）、`RuleCheck`、`RuleSync` 进 91vpn。
-- [ ] 移植 relaypanel 的测试（CompileParity、配对校验→本地版）。
+- [x] 搬 `ForwardRuleService`（编译链，与 relaypanel 逐字节一致）、`RuleCheck`、`RuleSync` 进 91vpn。
+- [x] 配对校验改**本地查询**（提交 `226e280`），并多防了中转/落地同机 keyBy 覆盖。
+- [x] 移植测试。
 - ✅ 可逆：纯新增，未接线不生效。
 
 ## P3 给 91vpn mod_mu 加中转端点（可并行验证）
 
-- [ ] 现有 `mod_mu` 组加：`nodes/{node}/routes`、`nodes/{node}/rules/{traffic,aliveip,status,sync}`，
-      复用 `node.secret` 中间件。
-- [ ] 把**一台**中转 agent 的 `api_url` 重指 91vpn，验证能拉到 routes。
+- [x] 现有 `mod_mu` 组加：`nodes/{node}/routes`、`nodes/{node}/rules/{traffic,aliveip,status,sync}`
+      （`ModMuForwardController`，复用 `node.secret`；`/routes` 对非中转返 404）。
+- [ ] 把**一台**中转 agent 的 `api_url` 重指 91vpn，验证能拉到 routes。（→ 见 P6）
 - 💡 白赚：91vpn 是公网的，中转终于能直接够到面板（relaypanel 127-only 时够不着）。
 - ✅ 可逆：删路由即可；其余中转仍连 relaypanel。
 
 ## P4 拓扑管理 UI 进 91vpn 后台（可并行）
 
-- [ ] 搬 `RuleController` + rules 视图 + monitor + online-ip。
-- [ ] 把 relaypanel node-form 的额外字段（quota 等）并进 91vpn `AdminNodeController` / 节点表单。
-- [ ] 挂在 91vpn admin 鉴权 + P0 网络限制之后。
-- ✅ 可逆：新增后台页，cutover 前 relaypanel 仍权威。
+- [x] 搬 `Relay{Rule,Monitor,OnlineIp}Controller` + rules 视图 + relay-monitor + relay-online-ip（均 `@extends('layouts.admin')`）。
+- [x] node-form 的额外字段（quota 等）并进 91vpn 节点表单。
+- [x] 挂在 91vpn admin 鉴权后（⚠️ P0 网络限制尚未加，见下）。
+- ✅ 可逆：新增后台页。
 
 ## P5 一键部署进 91vpn（可并行）
 
-- [ ] 搬 `DeployController` / `Deployer` / `DeployRun` 命令 + `deploy_runs` 表 + 按钮/弹窗。
-- [ ] 落地部署简化：面板即 91vpn，node-id/secret/api-url **自动带入**，不再手粘。
-- [ ] 部署路由走 P0 网络限制。
-- ✅ 可逆：新增，未挂菜单前不影响。
+- [x] 搬 `RelayDeployController` / `Deployer` / `DeployRun` 命令 + `deploy_runs` 表 + 按钮/弹窗（`nodes/index` + `_deploy`）。
+- [x] 修复：弹窗 JS 靠 `@push('scripts')`，而 `layouts.admin` 缺 stack+csrf meta，已补（复核 #1）。
+- [x] 修复：`landingSrc` 未传 → 防火墙源 IP 预填为空，已在 `AdminNodeController@index` 补上（复核 #3）。
+- [ ] ⚪ 落地部署简化：仍手粘 91vpn 自身 api_url/node_id/secret，未做自动带入（复核 #4，不影响功能）。
+- [ ] 部署路由走 P0 网络限制（见 P0，未做）。
 
 ## P6 数据切换（⚠️ 不可逆线）
 
@@ -89,10 +110,10 @@
 
 ## P7 删跨面板管道
 
-- [ ] 删 `config/services.php` 的 `relay_internal_token`。
-- [ ] 删 91vpn `app/Http/Controllers/Api/Internal/RelayController.php` + 其路由。
-- [ ] 删 relaypanel `LandingPosture`；accept_proxy 配对校验从 HTTP → **本地查询**
-      （RuleCheck 直接读同库的 `nodes.accept_proxy_protocol` vs `reported_accept_proxy`）。
+- [x] 删 `config/services.php` 的 `relay_internal_token`。（复核 #2）
+- [x] 删 91vpn `app/Http/Controllers/Api/Internal/RelayController.php` + `api.php` 路由。（复核 #2）
+- [x] `LandingPosture` 随合并删除；配对校验已改**本地查询**（RuleCheck 直接读同库
+      `nodes.accept_proxy_protocol` vs `reported_accept_proxy`）。
 
 ## P8 relaypanel 退休（最后，且 91vpn 验稳后）
 

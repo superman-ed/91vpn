@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', '管理后台') — 91VPN</title>
     <link rel="stylesheet" href="/stisla/assets/modules/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/stisla/assets/modules/fontawesome/css/all.min.css">
@@ -123,6 +124,10 @@
 <script src="/stisla/assets/js/stisla.js"></script>
 <script src="/stisla/assets/js/scripts.js"></script>
 <script src="/stisla/assets/js/custom.js"></script>
+
+{{-- 页面级 JS 注入点(jQuery/Bootstrap 之后)。ADR-008 并入的一键部署、规则表单
+     等页用 @push('scripts') 往这里塞脚本;此前后台无页面用过,故 layout 一直缺这个 stack。 --}}
+@stack('scripts')
 
 {{-- 统一危险操作确认组件：form 上加 data-dgr="提示"，高危再加 data-dgr-word="需输入的词" --}}
 <style>

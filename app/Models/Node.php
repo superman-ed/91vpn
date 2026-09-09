@@ -127,6 +127,10 @@ class Node extends Model
     /** 中转类角色 —— 这些节点会拿到转发规则，且不持有用户名单。 */
     public const RELAY_ROLES = ['relay', 'springboard', 'front', 'both'];
 
+    /** 全部合法角色。[!] 后台表单的白名单校验用它 —— 打错一个字母会落到
+     *  DB 默认的 landing，而那意味着中转拿到用户名单。*/
+    public const ROLES = ['landing', 'relay', 'springboard', 'front', 'both'];
+
     /**
      * 本节点是否承担转发。
      *

@@ -17,11 +17,49 @@ class NodeController extends Controller
         $totalByNode = \App\Models\NodeDailyTraffic::selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
             ->groupBy('node_id')->get()->keyBy('node_id');
 
+        $nodes = Node::orderBy('sort')->orderBy('id')->get();
+
         return view('admin.nodes.index', [
-            'nodes' => Node::orderBy('sort')->orderBy('id')->get(),
+            'nodes' => $nodes,
             'todayByNode' => $todayByNode,
             'totalByNode' => $totalByNode,
+            // 每台落地的"允许中转源 IP":哪些中转的规则把它当出站目标 → 那些中转的 server。
+            // 供一键部署落地时预填 accept_proxy 防火墙白名单(ADR-008 P5)。
+            'landingSrc' => $this->landingSourcesFor($nodes),
         ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int,Node>  $nodes
+     * @return array<int,array<int,string>>  landing node id => [中转 server IP...]
+     */
+    private function landingSourcesFor($nodes): array
+    {
+        $serverById = $nodes->pluck('server', 'id');
+        $rules = \App\Models\ForwardRule::with('outbounds')->get();
+        $out = [];
+        foreach ($nodes as $n) {
+            if ($n->role !== 'landing') {
+                continue;
+            }
+            $ips = [];
+            foreach ($rules as $r) {
+                $targetsThis = $r->outbounds->contains(fn ($o) => in_array(
+                    (int) $n->id, array_map('intval', $o->target_node_set ?? []), true
+                ));
+                if (! $targetsThis) {
+                    continue;
+                }
+                foreach ($r->inbound_node_set ?? [] as $rid) {
+                    if ($ip = $serverById[(int) $rid] ?? null) {
+                        $ips[$ip] = true;
+                    }
+                }
+            }
+            $out[$n->id] = array_keys($ips);
+        }
+
+        return $out;
     }
 
     public function create()
@@ -79,7 +117,11 @@ class NodeController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'server' => ['required', 'string', 'max:255'],
-            'port' => ['required', 'integer', 'min:1', 'max:65535'],
+            // [!!] min:0 而不是 min:1：中转/跳板/入口节点【没有自己的端口】——
+            // 它的监听来自转发规则，节点上的 port 恒为 0。写死 min:1 的话后台
+            // 根本填不出一个合法的中转节点（中转 #93 当初只能用 tinker 建）。
+            // 落地节点仍然必须有端口，见下面的 after() 校验。
+            'port' => ['required', 'integer', 'min:0', 'max:65535'],
             'type' => ['required', 'in:vmess,vless'],
             'net' => ['required', 'in:tcp,ws'],
             'host' => ['nullable', 'string', 'max:255'],
@@ -93,6 +135,11 @@ class NodeController extends Controller
             'reality_server_names' => ['nullable', 'string', 'max:1000'],
             'reality_regen' => ['nullable', 'boolean'],
             'accept_proxy_protocol' => ['nullable', 'boolean'],
+            // [!!] role 必须是白名单里的值:打错一个字母就会落到 DB 默认(landing),
+            // 而一台本该只透传的中转会因此【拿到全部用户名单与凭据】。
+            'role' => ['nullable', 'in:'.implode(',', \App\Models\Node::ROLES)],
+            'quota_gb' => ['nullable', 'integer', 'min:0'],
+            'quota_reset_day' => ['nullable', 'integer', 'min:1', 'max:28'],
             'dest_scan_candidates' => ['nullable', 'string', 'max:2000'],
             'dest_scan_rerun' => ['nullable', 'boolean'],
             'traffic_rate' => ['required', 'numeric', 'min:0'],
@@ -165,6 +212,16 @@ class NodeController extends Controller
             $data['reality_short_ids'] = null;
         }
         unset($data['reality_enabled'], $data['reality_regen']);
+
+        // [!] port=0 只对不认证用户的角色成立。落地(含 both)要发订阅，
+        // 订阅里 port=0 的节点客户端连不上，而且不会有任何报错 ——
+        // 用户只看到"连不上"。所以在这里挡住。
+        $role = $data['role'] ?? $node?->role ?? 'landing';
+        if ((int) ($data['port'] ?? 0) === 0 && in_array($role, ['landing', 'both'], true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'port' => '落地节点必须有端口（只有中转/跳板/入口可以是 0，它们的监听来自转发规则）',
+            ]);
+        }
 
         return $data;
     }

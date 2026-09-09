@@ -94,3 +94,111 @@ it('列表页把配对错配标出来', function () {
 
     $this->actingAs(relayAdminUser())->get('/admin/rules')->assertOk()->assertSee('会下发但用户连不上');
 });
+
+// ── 写入路径 ────────────────────────────────────────────────────────────
+//
+// `[!!]` 上面那组只把页面打开，于是【整整一轮】没人发现：控制器 use 的
+// App\Services\Audit 根本没跟着搬过来，规则的增/改/删/换凭据/生成密钥对
+// 全是 Class not found 500，而 481 个用例照样全绿。
+// 页面能打开 ≠ 能用 —— 写入路径必须自己有用例。
+
+function ruleFormPayload(Node $n, array $over = []): array
+{
+    return array_merge([
+        'name' => '新规则', 'enabled' => 1, 'speed_limit' => 0,
+        'inbound_type' => 'direct', 'inbound_node_set' => [$n->id],
+        'listen_port' => '30011', 'balance' => 'roundrobin',
+        'backup_balance' => 'fallback', 'hc_enabled' => 0,
+        'hc_interval_sec' => 30, 'hc_max_fail' => 3, 'hc_max_success' => 2,
+        'out_type' => ['direct'], 'out_pool' => ['primary'], 'out_enabled' => [1],
+        'out_target_addr' => ['9.9.9.9'], 'out_target_port' => ['443'],
+    ], $over);
+}
+
+it('能新建规则,并且记进审计', function () {
+    $n = pageRelayNode();
+    $this->actingAs(relayAdminUser())->post('/admin/rules', ruleFormPayload($n))
+        ->assertRedirect();
+
+    expect(ForwardRule::where('name', '新规则')->exists())->toBeTrue();
+    expect(\App\Models\AuditLog::where('action', 'rule.create')->exists())->toBeTrue();
+});
+
+it('能改规则,审计里写的是改了什么', function () {
+    $n = pageRelayNode();
+    $r = pageRule($n);
+    $this->actingAs(relayAdminUser())
+        ->put("/admin/rules/{$r->id}", ruleFormPayload($n, ['name' => '改名了', 'listen_port' => '30099']))
+        ->assertRedirect();
+
+    expect($r->fresh()->name)->toBe('改名了');
+    $log = \App\Models\AuditLog::where('action', 'rule.update')->firstOrFail();
+    expect($log->description)->toContain('listen_port');   // 记的是变更内容，不只是"被修改了"
+    expect($log->target_type)->toBe('rule');               // 不是 @anonymous
+});
+
+it('能删规则', function () {
+    $r = pageRule(pageRelayNode());
+    $this->actingAs(relayAdminUser())->delete("/admin/rules/{$r->id}")->assertRedirect();
+    expect(ForwardRule::find($r->id))->toBeNull();
+    expect(\App\Models\AuditLog::where('action', 'rule.delete')->exists())->toBeTrue();
+});
+
+it('能重生成凭据与 REALITY 密钥对', function () {
+    $r = pageRule(pageRelayNode());
+    $admin = relayAdminUser();
+
+    $this->actingAs($admin)->post("/admin/rules/{$r->id}/regenerate-cred")->assertRedirect();
+    $this->actingAs($admin)->post("/admin/rules/{$r->id}/reality-keypair")->assertRedirect();
+
+    expect($r->fresh()->inbound_opts['reality']['private_key'] ?? null)->not->toBeNull();
+    expect(\App\Models\AuditLog::whereIn('action', ['rule.cred', 'rule.keypair'])->count())->toBe(2);
+});
+
+// `[!!]` 审计会被整表导出、贴进工单，读者比配置页广。
+// 私钥/凭据落进 description 就等于泄露 —— 这条守的是 Audit::redact()。
+it('审计不写私钥与凭据', function () {
+    $n = pageRelayNode();
+    $r = pageRule($n);
+    $this->actingAs(relayAdminUser())->put("/admin/rules/{$r->id}", ruleFormPayload($n, [
+        'name' => $r->name,
+        'inbound_opts_reality_private_key' => 'PRIVATE-KEY-SHOULD-NOT-APPEAR',
+    ]));
+
+    foreach (\App\Models\AuditLog::all() as $log) {
+        expect($log->description)->not->toContain('PRIVATE-KEY-SHOULD-NOT-APPEAR');
+    }
+});
+
+// 后台建中转节点：此前表单没有 role 字段,新建的一律是 DB 默认 landing ——
+// 也就是【后台根本建不出中转节点】,只能去数据库里改。
+it('后台能建出中转节点并设额度', function () {
+    $this->actingAs(relayAdminUser())->post('/admin/nodes', [
+        'name' => '香港中转', 'server' => '1.2.3.4', 'port' => 0, 'type' => 'vmess',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'sort' => 0,
+        'role' => 'relay', 'quota_gb' => 500, 'quota_reset_day' => 5,
+    ])->assertRedirect();
+
+    $n = Node::where('name', '香港中转')->firstOrFail();
+    expect($n->role)->toBe('relay');
+    expect($n->quota_gb)->toBe(500);
+    expect($n->quota_reset_day)->toBe(5);
+});
+
+it('role 只收白名单里的值', function () {
+    $this->actingAs(relayAdminUser())->post('/admin/nodes', [
+        'name' => 'X', 'server' => '1.2.3.4', 'port' => 0, 'type' => 'vmess',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'sort' => 0,
+        'role' => 'relayy',   // 打错一个字母 → 落到默认 landing → 中转拿到用户名单
+    ])->assertSessionHasErrors('role');
+});
+
+// `[!]` port=0 只对中转成立。落地节点 port=0 会进订阅，客户端连不上
+// 且没有任何报错 —— 用户只看到"连不上"。
+it('落地节点不许 port=0', function () {
+    $this->actingAs(relayAdminUser())->post('/admin/nodes', [
+        'name' => 'X', 'server' => '1.2.3.4', 'port' => 0, 'type' => 'vmess',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'sort' => 0,
+        'role' => 'landing',
+    ])->assertSessionHasErrors('port');
+});

@@ -34,6 +34,24 @@
                 <div class="form-group col-md-3"><label>重新生成密钥</label><select name="reality_regen" class="form-control"><option value="0">否（保留现有）</option><option value="1">是（换新密钥对）</option></select><small class="text-danger">换新后旧订阅立即失效,客户端报 x509 证书错(非证书问题),须公告全员刷新订阅</small></div>
                 <div class="form-group col-md-3"><label>接受 PROXY 头</label><select name="accept_proxy_protocol" class="form-control"><option value="0" @selected(! old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>关闭</option><option value="1" @selected(old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>开启（落地在中转后面时）</option></select><small class="text-muted">开了必须防火墙只放行中转 IP</small></div>
             </div>
+            {{-- 角色与额度（ADR-008：中转并入后，这两项必须能在后台设置。
+                 [!!] 此前表单没有 role，新建的节点一律是 DB 默认的 landing ——
+                 也就是【后台根本建不出中转节点】，只能去数据库里改。 --}}
+            <div class="row">
+                <div class="form-group col-md-4"><label>角色</label>
+                    <select name="role" class="form-control">
+                        @foreach(['landing' => '落地（认证用户、发订阅）', 'relay' => '中转（只透传，不碰用户名单）', 'springboard' => '跳板', 'front' => '入口', 'both' => '兼作落地与中转'] as $k => $v)
+                            <option value="{{ $k }}" @selected(old('role', $node->role ?? 'landing') === $k)>{{ $v }}</option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">[!] 中转/跳板/入口<strong>拿不到用户名单</strong>（D-1），它们的监听来自转发规则。</small></div>
+                <div class="form-group col-md-4"><label>整机额度（GB，0=不限）</label>
+                    <input name="quota_gb" type="number" min="0" value="{{ old('quota_gb', $node->quota_gb ?? 0) }}" class="form-control">
+                    <small class="text-muted">按机房账单口径的整机网卡用量，不是代理流量。</small></div>
+                <div class="form-group col-md-4"><label>额度重置日</label>
+                    <input name="quota_reset_day" type="number" min="1" max="28" value="{{ old('quota_reset_day', $node->quota_reset_day ?? 1) }}" class="form-control"></div>
+            </div>
+
             <div class="row">
                 <div class="form-group col-md-8"><label>dest 候选清单（换行/逗号分隔，节点上筛查）</label>
                     <textarea name="dest_scan_candidates" rows="3" class="form-control" placeholder="www.a.example&#10;www.b.example">{{ old('dest_scan_candidates', $node->dest_scan_candidates) }}</textarea>

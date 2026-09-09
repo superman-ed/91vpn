@@ -19,8 +19,8 @@ use Illuminate\Support\Facades\Route;
 
 // 客户端对接 API —— 无状态,Bearer api_token 认证(前缀 /api 由框架自动加)
 
-// 面板间内部只读(供 relaypanel 配对校验;共享 token 鉴权,内部调,不给客户端)
-Route::get('/internal/relay/accept-proxy', [\App\Http\Controllers\Api\Internal\RelayController::class, 'acceptProxy'])->middleware('throttle:60,1');
+// [ADR-008] 面板间内部 accept_proxy 只读端点已随合并删除:配对校验现在是同库本地查询
+// (见 RuleCheck),不再需要跨面板 HTTP + 共享 token。
 
 // 公开(无需 token)
 Route::post('/auth/login', [AuthApiController::class, 'login'])->middleware('throttle:10,1');       // 登录(账户名+密码),限流防撞库
