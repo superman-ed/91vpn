@@ -14,6 +14,7 @@ class Node extends Model
         'reality_public_key', 'reality_short_ids', 'accept_proxy_protocol',
         'reported_accept_proxy', 'accept_proxy_reported_at',
         'dest_scan_candidates', 'dest_scan_id', 'dest_scan_result', 'dest_scan_at',
+        'reported_dest', 'reported_dest_up', 'reported_dest_failures', 'dest_reported_at',
     ];
 
     protected $casts = [
@@ -28,10 +29,31 @@ class Node extends Model
         'reported_accept_proxy' => 'boolean',
         'dest_scan_result' => 'array',
         'dest_scan_at' => 'datetime',
+        'reported_dest_up' => 'boolean',
+        'dest_reported_at' => 'datetime',
         'accept_proxy_reported_at' => 'datetime',
     ];
 
     /** 是否 REALITY 入站:以 private_key 是否设置为准(下发/订阅的 security 由此派生)。 */
+    /**
+     * dest 探活的展示状态：ok / down / unknown。
+     *
+     * [!!] 陈旧一律按 unknown,不按 ok:一台停机的节点,它最后一次上报的 true
+     * 会永远留在库里 —— 不判过期就等于把"节点死了"渲染成"dest 是好的"。
+     * 阈值取 5 分钟(节点上报周期通常 60 秒)。
+     */
+    public function destHealth(): string
+    {
+        if (is_null($this->reported_dest_up) || ! $this->dest_reported_at) {
+            return 'unknown';
+        }
+        if ($this->dest_reported_at->lt(now()->subMinutes(5))) {
+            return 'unknown';
+        }
+
+        return $this->reported_dest_up ? 'ok' : 'down';
+    }
+
     /** 候选清单：按换行/逗号切开、去空、去重、小写。 */
     public function destScanCandidates(): array
     {

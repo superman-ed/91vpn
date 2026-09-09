@@ -90,6 +90,16 @@ class UserController extends Controller
             $patch['reported_accept_proxy'] = $request->boolean('accept_proxy');
             $patch['accept_proxy_reported_at'] = now();
         }
+        // REALITY dest 探活(sogacore bfd8740)。dest 失效是静默的:节点照常监听、
+        // 面板一切正常,而没人能完成握手 —— agent 一直在探,这里把它存下来。
+        // [!] has() 判有没有带这个键:非 reality 节点不带(agent 侧 omitempty),
+        // 旧 agent 也不带,两种都保持 null=从没报过,而不是写成 false。
+        if ($request->has('reality_dest_up')) {
+            $patch['reported_dest'] = (string) $request->input('reality_dest', '');
+            $patch['reported_dest_up'] = $request->boolean('reality_dest_up');
+            $patch['reported_dest_failures'] = (int) $request->input('reality_dest_failures', 0);
+            $patch['dest_reported_at'] = now();
+        }
         $node->update($patch);
 
         return response()->json(['ret' => 1]);
