@@ -18,6 +18,7 @@ class Node extends Model
         // 中转相关（ADR-008 从 relaypanel 并入）
         'quota_gb', 'quota_reset_day', 'applied_hash', 'fetched_hash',
         'sync_error', 'sync_degraded', 'sync_rules', 'sync_reported_at',
+        'uptime_sec', 'load',
     ];
 
     /**

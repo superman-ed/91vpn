@@ -145,3 +145,37 @@ it('nodeInfo 带上 role，中转不会被当成落地解析', function () {
     expect($this->getJson("/mod_mu/nodes/{$land->id}/info?key=L2")->json('data.role'))
         ->toBe('landing');
 });
+
+// `[!!]` 心跳要累加【整机网卡】增量，否则中转监控页的额度永远是 0 ——
+// 而页面本身打得开，是个"看起来在跑"的功能。
+// `[D]` ADR-008 迁移后逐项核对时发现漏了这一段。
+it('心跳累加整机网卡流量与运行时长', function () {
+    $n = epRelayNode();
+
+    $this->postJson("/mod_mu/nodes/{$n->id}/info?key=RELAYSECRET", [
+        'uptime' => 12345, 'load' => '0.10 0.20 0.30', 'net_up' => 1000, 'net_down' => 2000,
+    ])->assertOk();
+    $this->postJson("/mod_mu/nodes/{$n->id}/info?key=RELAYSECRET", [
+        'uptime' => 12400, 'load' => '0.11 0.21 0.31', 'net_up' => 500, 'net_down' => 700,
+    ])->assertOk();
+
+    $n->refresh();
+    expect((int) $n->uptime_sec)->toBe(12400);
+    expect($n->load)->toBe('0.11 0.21 0.31');
+
+    // [!] 累加而不是覆盖：agent 报的是增量。写成覆盖的话，
+    // 一天里除最后一次以外的上报都会被抹掉，而结果看起来仍像个合理数字。
+    $row = \App\Models\NodeNetTraffic::where('node_id', $n->id)->first();
+    expect((int) $row->up)->toBe(1500);
+    expect((int) $row->down)->toBe(2700);
+});
+
+// 额度百分比要真能算出来（它读的就是上面那张表）。
+it('额度百分比按周期用量算得出来', function () {
+    $n = epRelayNode(['quota_gb' => 1, 'quota_reset_day' => 1]);
+    \App\Models\NodeNetTraffic::create([
+        'node_id' => $n->id, 'date' => now()->toDateString(),
+        'up' => 512 * 1024 * 1024, 'down' => 0,
+    ]);
+    expect(round($n->fresh()->quotaPercent()))->toBe(50.0);
+});

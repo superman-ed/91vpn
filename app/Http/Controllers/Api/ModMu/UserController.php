@@ -102,7 +102,33 @@ class UserController extends Controller
     public function nodeHeartbeat(Request $request)
     {
         $node = $request->attributes->get('node');
-        $patch = ['online' => true, 'last_heartbeat' => now()->timestamp];
+        $patch = [
+            'online' => true,
+            'last_heartbeat' => now()->timestamp,
+            'uptime_sec' => (int) $request->input('uptime', 0),
+            'load' => mb_substr((string) $request->input('load', ''), 0, 32) ?: null,
+        ];
+
+        // [!!] net_up / net_down 是【整机网卡】的周期增量,不是代理流量 ——
+        // 系统更新、备份、别的服务都算在内。用它做额度告警是够的(机房也按整机算),
+        // 做计费不行。
+        //
+        // agent 那边保证了两件事,这里才敢直接累加:首个周期返回 0
+        // (没有基线时把开机以来的累计量当增量会凭空多出几百 GB),
+        // 计数器变小视为重置也返回 0。
+        //
+        // [D] ADR-008 迁移后核对时发现漏了这一段:中转监控页的额度会永远是 0,
+        // 而页面本身打得开 —— 一个"看起来在跑"的功能。
+        $nu = max(0, (int) $request->input('net_up', 0));
+        $nd = max(0, (int) $request->input('net_down', 0));
+        if ($nu || $nd) {
+            $row = \App\Models\NodeNetTraffic::firstOrNew([
+                'node_id' => $node->id, 'date' => now()->toDateString(),
+            ]);
+            $row->up += $nu;
+            $row->down += $nd;
+            $row->save();
+        }
         // 节点上报它【实际生效】的 accept_proxy(eaca9fe:报的是生效值,false 也报、无 omitempty)。
         // 存下供配对校验;has() 判有没有带这个键——没带(旧 agent)则不动,保留 null 表示"从没报过"。
         if ($request->has('accept_proxy')) {
