@@ -45,6 +45,17 @@ class UserController extends Controller
     public function addTraffic(Request $request, TrafficService $service)
     {
         $node = $request->attributes->get('node');
+
+        // [decided] D-1 的【写】方向：中转不认证用户,也就没有"这些字节属于谁"
+        // 这个信息 —— 它上报的按用户流量只可能是伪造的。
+        //
+        // [!!] 这是计费面:一台被接管的中转若能替任意用户记流量,
+        // 可以把别人的额度刷爆,或给自己的账号免单。中转的用量走
+        // 【按规则】的上报,不走这里。
+        if (! $node->needsUsers()) {
+            return response()->json(['ret' => 1, 'count' => 0]);
+        }
+
         $logs = $request->input('data', []);
 
         $count = $service->record($node, is_array($logs) ? $logs : []);
@@ -56,6 +67,14 @@ class UserController extends Controller
     public function aliveIp(Request $request, AliveIpService $service)
     {
         $node = $request->attributes->get('node');
+
+        // [decided] D-1 同上:在线 IP 是审计与设备数限制的依据。
+        // 中转没有用户身份,它报上来的 (user, ip) 只能是编的 ——
+        // 采纳它等于让被接管的中转能把任意用户挤下线、或污染审计记录。
+        if (! $node->needsUsers()) {
+            return response()->json(['ret' => 1, 'count' => 0, 'blocked' => []]);
+        }
+
         $logs = $request->input('data', []);
         $logs = is_array($logs) ? $logs : [];
 
