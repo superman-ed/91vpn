@@ -71,6 +71,10 @@
                     <li class="menu-header">运营</li>
                     <li class="{{ request()->is('admin/users*') ? 'active' : '' }}"><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i><span>用户管理</span></a></li>
                     <li class="{{ request()->is('admin/nodes*') ? 'active' : '' }}"><a class="nav-link" href="/admin/nodes"><i class="fas fa-server"></i><span>节点管理</span></a></li>
+                    {{-- 中转（ADR-008：从独立的中转面板并入，不再需要开两个后台）--}}
+                    <li class="{{ request()->is('admin/rules*') ? 'active' : '' }}"><a class="nav-link" href="/admin/rules"><i class="fas fa-random"></i><span>转发规则</span></a></li>
+                    <li class="{{ request()->is('admin/relay/monitor') ? 'active' : '' }}"><a class="nav-link" href="/admin/relay/monitor"><i class="fas fa-heartbeat"></i><span>中转监控</span></a></li>
+                    <li class="{{ request()->is('admin/relay/online-ip') ? 'active' : '' }}"><a class="nav-link" href="/admin/relay/online-ip"><i class="fas fa-network-wired"></i><span>中转在线IP</span></a></li>
                     <li class="{{ request()->is('admin/plans*') ? 'active' : '' }}"><a class="nav-link" href="/admin/plans"><i class="fas fa-box"></i><span>套餐管理</span></a></li>
                     <li class="{{ request()->is('admin/orders*') ? 'active' : '' }}"><a class="nav-link" href="/admin/orders"><i class="fas fa-receipt"></i><span>订单管理</span></a></li>
                     <li class="{{ request()->is('admin/finance*') ? 'active' : '' }}"><a class="nav-link" href="/admin/finance"><i class="fas fa-money-bill-wave"></i><span>资金流水</span></a></li>

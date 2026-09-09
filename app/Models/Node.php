@@ -175,6 +175,12 @@ class Node extends Model
         return $this->periodBytes() / ($q * 1024 * 1024 * 1024) * 100;
     }
 
+    /** 供下拉框显示：#3 香港中转 (1.2.3.4:443)。（ADR-008 从 relaypanel 搬入）*/
+    public function label(): string
+    {
+        return "#{$this->id} {$this->name} ({$this->server}".($this->port ? ":{$this->port}" : '').')';
+    }
+
     /** 心跳是否新鲜（中转页用；落地那边看 online）。 */
     public function alive(int $staleSec = 180): bool
     {
