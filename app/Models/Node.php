@@ -15,6 +15,19 @@ class Node extends Model
         'reported_accept_proxy', 'accept_proxy_reported_at',
         'dest_scan_candidates', 'dest_scan_id', 'dest_scan_result', 'dest_scan_at',
         'reported_dest', 'reported_dest_up', 'reported_dest_failures', 'dest_reported_at',
+        // 中转相关（ADR-008 从 relaypanel 并入）
+        'quota_gb', 'quota_reset_day', 'applied_hash', 'fetched_hash', 'rule_error',
+        'rule_degraded', 'rule_count', 'rule_synced_at',
+    ];
+
+    /**
+     * [!!] 与列默认值保持一致：`nodes.role` 的 DB 默认是 landing，而模型没有
+     * 对应默认值时，`Node::create()` 返回的【内存对象】role 是 null ——
+     * 于是"建完立刻判断"的代码会得到 needsUsers()=false，节点静默不发用户。
+     * 现象上看不出来（节点在线、心跳正常，只是没有用户）。
+     */
+    protected $attributes = [
+        'role' => 'landing',
     ];
 
     protected $casts = [
@@ -105,6 +118,44 @@ class Node extends Model
      * [decided] D-1（sogacore docs/RELAY-SCHEMA.md §6）：中转/跳板/入口一律
      * 不认证、不持有用户名单，只透传字节；认证只在落地做。
      */
+    /**
+     * 本计费周期内的整机用量（字节）。
+     *
+     * [!] 周期起点按 quota_reset_day 算，不是自然月 —— 机房的周期各不相同，
+     * 按自然月算会在月初给出一个偏小的假象。
+     * （ADR-008：从 relaypanel 原样搬入）
+     */
+    public function periodBytes(): int
+    {
+        $day = max(1, min(28, (int) ($this->quota_reset_day ?: 1)));
+        $now = now();
+        $start = $now->copy()->day($day)->startOfDay();
+        if ($now->lt($start)) {
+            $start = $start->subMonth();
+        }
+
+        return (int) NodeNetTraffic::where('node_id', $this->id)
+            ->where('date', '>=', $start->toDateString())
+            ->sum(\Illuminate\Support\Facades\DB::raw('up + down'));
+    }
+
+    /** 额度用了百分之多少。没设额度返回 null。 */
+    public function quotaPercent(): ?float
+    {
+        $q = (int) ($this->quota_gb ?? 0);
+        if ($q <= 0) {
+            return null;
+        }
+
+        return $this->periodBytes() / ($q * 1024 * 1024 * 1024) * 100;
+    }
+
+    /** 心跳是否新鲜（中转页用；落地那边看 online）。 */
+    public function alive(int $staleSec = 180): bool
+    {
+        return $this->enabled && (time() - (int) $this->last_heartbeat) <= $staleSec;
+    }
+
     public function needsUsers(): bool
     {
         return $this->role === 'landing' || $this->role === 'both';
