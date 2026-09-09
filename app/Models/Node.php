@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Node extends Model
@@ -195,5 +196,25 @@ class Node extends Model
     public function needsUsers(): bool
     {
         return $this->role === 'landing' || $this->role === 'both';
+    }
+
+    /**
+     * 能出现在【用户面前】的节点 —— 订阅、节点列表页、客户端 API 都走这个。
+     *
+     * [decided] D-1 的展示面：中转/跳板/入口不认证用户，用户也【连不上它们】——
+     * 它们的 port 恒为 0，监听来自转发规则。
+     *
+     * [!!] 此前三处面向用户的查询都只筛 online + enabled，谁都没筛 role。
+     * 中转 #93 (online=1, enabled=1, port=0) 因此【当时就摆在 /user/servers
+     * 和客户端 API 的节点列表里】；没进订阅纯粹是因为它 class=200 碰巧高于
+     * 所有用户的等级 —— 那是配置巧合，不是守卫。把中转的存在告诉用户本身
+     * 也是多余的：那是内部拓扑。
+     *
+     * 收敛成一个 scope，是因为漏的方式已经证明了：这类过滤散在三处，
+     * 第四处一定还会漏。
+     */
+    public function scopeUserVisible(Builder $q): Builder
+    {
+        return $q->whereIn('role', ['landing', 'both']);
     }
 }

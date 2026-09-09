@@ -97,6 +97,26 @@ class NodeController extends Controller
         if (\App\Models\NodeDailyTraffic::where('node_id', $node->id)->exists()) {
             return redirect('/admin/nodes')->with('status', '该节点已有流量记录,不能删除(会连带删除历史流量账)。请改为「禁用」。');
         }
+
+        // [!!] 上面那道只看 node_daily_traffic —— 那是【代理流量】,中转节点
+        // 根本不产生。也就是说中转可以被直接删掉,而 rule_traffic /
+        // node_net_traffic 的 node_id 都是 cascadeOnDelete:它的中转流量账
+        // 会跟着一起消失,和落地节点被挡住的正是同一件事。
+        if (\App\Models\RuleTraffic::where('node_id', $node->id)->exists()
+            || \App\Models\NodeNetTraffic::where('node_id', $node->id)->exists()) {
+            return redirect('/admin/nodes')->with('status',
+                '该节点已有中转流量记录,不能删除(会连带删除历史账)。请改为「禁用」。');
+        }
+
+        // [!!] forward_rules.inbound_node_set / forward_outbounds.target_node_set
+        // 是 JSON 列,【没有外键】—— 删掉节点不会有任何报错,规则里留下一个
+        // 指向不存在节点的 id。现象是那条规则悄悄少在一台机器上生效,
+        // 而面板哪儿都不会说。所以在这里挡住,并指出是哪几条规则。
+        $refs = $this->rulesReferencing($node->id);
+        if ($refs !== []) {
+            return redirect('/admin/nodes')->with('status',
+                '该节点仍被转发规则引用（'.implode('、', $refs).'）,不能删除。请先在规则里移除它。');
+        }
         audit('node.delete', "删除节点「{$node->name}」", $node);
         $node->delete();
 
@@ -110,6 +130,23 @@ class NodeController extends Controller
         audit('node.regenerate_secret', "重置节点「{$node->name}」通信密钥", $node);
 
         return back()->with('status', '节点密钥已重新生成，请同步更新节点后端配置');
+    }
+
+    /** 哪些转发规则还引用着这个节点（入站节点集 / 出站目标节点集，两者都是 JSON 列）。 */
+    private function rulesReferencing(int $nodeId): array
+    {
+        $names = [];
+        foreach (\App\Models\ForwardRule::with('outbounds')->get() as $rule) {
+            $hit = in_array($nodeId, $rule->inbound_node_set ?? [], false);
+            foreach ($rule->outbounds as $ob) {
+                $hit = $hit || in_array($nodeId, $ob->target_node_set ?? [], false);
+            }
+            if ($hit) {
+                $names[] = $rule->name;
+            }
+        }
+
+        return $names;
     }
 
     private function validated(Request $request, ?Node $node = null): array

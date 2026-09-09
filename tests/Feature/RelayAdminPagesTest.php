@@ -202,3 +202,89 @@ it('落地节点不许 port=0', function () {
         'role' => 'landing',
     ])->assertSessionHasErrors('port');
 });
+
+// ── D-1 的展示面 ────────────────────────────────────────────────────────
+//
+// `[!!]` 三处面向用户的查询(订阅 / 节点列表页 / 客户端 API)此前都只筛
+// online + enabled,谁都没筛 role。中转 #93 因此【当时就摆在】节点列表和
+// 客户端 API 里;没进订阅纯粹因为它 class=200 碰巧高于所有用户等级 ——
+// 那是配置巧合,不是守卫。
+
+function visibleRelayNode(): Node
+{
+    return Node::create([
+        'name' => '中转别露出来', 'server' => '1.2.3.4', 'port' => 0, 'type' => 'vmess',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'S',
+        'role' => 'relay', 'online' => true, 'enabled' => true,
+    ]);
+}
+
+function visibleLandingNode(): Node
+{
+    return Node::create([
+        'name' => '落地看得见', 'server' => '9.9.9.9', 'port' => 443, 'type' => 'vmess',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'L',
+        'role' => 'landing', 'online' => true, 'enabled' => true,
+    ]);
+}
+
+it('用户节点列表页不显示中转', function () {
+    visibleRelayNode();
+    visibleLandingNode();
+
+    $this->actingAs(User::factory()->create())->get('/user/servers')
+        ->assertOk()->assertSee('落地看得见')->assertDontSee('中转别露出来');
+});
+
+it('客户端 API 不返回中转', function () {
+    visibleRelayNode();
+    visibleLandingNode();
+
+    apiUser();   // 客户端 API 走 Bearer api_token，不是会话
+    $res = $this->getJson('/api/servers', ['Authorization' => 'Bearer TESTTOKEN123'])->assertOk();
+    $names = collect($res->json('data'))->pluck('name')->all();
+    expect($names)->toContain('落地看得见')->not->toContain('中转别露出来');
+});
+
+it('订阅里没有中转', function () {
+    visibleRelayNode();
+    visibleLandingNode();
+    $u = apiUser();   // 订阅要求账号有效且有流量,用现成的 helper
+
+    $body = app(\App\Services\SubscriptionService::class)->generateClash($u->fresh());
+    expect($body)->toContain('落地看得见')->not->toContain('中转别露出来');
+});
+
+// ── 删节点 ──────────────────────────────────────────────────────────────
+//
+// `[!!]` 原来只挡 node_daily_traffic ——那是代理流量,中转根本不产生。
+// 也就是说中转可以被直接删掉,而 rule_traffic / node_net_traffic 都是
+// cascadeOnDelete,它的流量账会跟着消失。
+
+it('有中转流量的节点删不掉', function () {
+    $n = visibleRelayNode();
+    \App\Models\NodeNetTraffic::create([
+        'node_id' => $n->id, 'date' => now()->toDateString(), 'up' => 1, 'down' => 1,
+    ]);
+
+    $this->actingAs(relayAdminUser())->delete("/admin/nodes/{$n->id}")->assertRedirect();
+    expect(Node::find($n->id))->not->toBeNull();
+});
+
+// `[!!]` inbound_node_set 是 JSON 列,没有外键 —— 删掉节点不会有任何报错,
+// 规则里留下一个指向不存在节点的 id,那条规则悄悄少在一台机器上生效。
+it('被规则引用的节点删不掉,并说出是哪条规则', function () {
+    $n = pageRelayNode();
+    $r = pageRule($n);
+
+    $this->actingAs(relayAdminUser())->delete("/admin/nodes/{$n->id}")
+        ->assertRedirect();
+    expect(Node::find($n->id))->not->toBeNull();
+    expect(session('status'))->toContain($r->name);
+});
+
+it('没有引用也没有流量的节点可以删', function () {
+    $n = visibleRelayNode();
+    $this->actingAs(relayAdminUser())->delete("/admin/nodes/{$n->id}")->assertRedirect();
+    expect(Node::find($n->id))->toBeNull();
+});

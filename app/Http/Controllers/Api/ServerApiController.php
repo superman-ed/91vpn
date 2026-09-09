@@ -17,7 +17,8 @@ class ServerApiController extends Controller
         $user = $request->user();
         $maxClass = $user->hasActivePackage() ? $user->class : 0;
 
-        $nodes = Node::where('online', true)
+        $nodes = Node::userVisible()   // D-1：中转/跳板/入口不进用户面
+            ->where('online', true)
             ->where('enabled', true)   // 排空/维护中的节点不给用户展示或选择
             ->orderBy('sort')->orderBy('id')->get()
             ->map(fn (Node $n) => [
