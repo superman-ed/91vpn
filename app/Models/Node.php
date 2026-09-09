@@ -16,8 +16,8 @@ class Node extends Model
         'dest_scan_candidates', 'dest_scan_id', 'dest_scan_result', 'dest_scan_at',
         'reported_dest', 'reported_dest_up', 'reported_dest_failures', 'dest_reported_at',
         // 中转相关（ADR-008 从 relaypanel 并入）
-        'quota_gb', 'quota_reset_day', 'applied_hash', 'fetched_hash', 'rule_error',
-        'rule_degraded', 'rule_count', 'rule_synced_at',
+        'quota_gb', 'quota_reset_day', 'applied_hash', 'fetched_hash',
+        'sync_error', 'sync_degraded', 'sync_rules', 'sync_reported_at',
     ];
 
     /**
@@ -65,6 +65,31 @@ class Node extends Model
         }
 
         return $this->reported_dest_up ? 'ok' : 'down';
+    }
+
+    /**
+     * 收 PROXY 头的"面板期望值 / 节点实际在跑的值"。
+     *
+     * [!!] 陈旧一律按未知（reported=null），不按 ok：一台停机的节点，
+     * 它最后一次上报的 true 会永远留在库里 —— 不判过期就等于把"节点死了"
+     * 渲染成"配对没问题"。阈值 5 分钟（上报周期通常 60 秒）。
+     *
+     * [!] ADR-008 合并之后这是【本地一次查询】。拆分时它要跨面板走内部 API
+     * （LandingPosture + 两侧 token + 宿主网关地址），那套已随合并删掉。
+     *
+     * @return array{expected:bool,reported:?bool,reported_at:?\Illuminate\Support\Carbon}
+     */
+    public function acceptProxyPosture(): array
+    {
+        $fresh = $this->accept_proxy_reported_at
+            && $this->accept_proxy_reported_at->gt(now()->subMinutes(5));
+
+        return [
+            'expected' => (bool) $this->accept_proxy_protocol,
+            'reported' => $fresh && ! is_null($this->reported_accept_proxy)
+                ? (bool) $this->reported_accept_proxy : null,
+            'reported_at' => $this->accept_proxy_reported_at,
+        ];
     }
 
     /** 候选清单：按换行/逗号切开、去空、去重、小写。 */
