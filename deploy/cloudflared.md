@@ -17,7 +17,7 @@
 
 | 主机名 | Access | 给谁用 |
 |---|---|---|
-| `admin.91app.shop` | ✅ 整站保护（只有你的邮箱） | 管理后台 |
+| `summer.91app.shop` | ✅ 整站保护（只有你的邮箱） | 管理后台 |
 | `app.91app.shop` | ❌ 不套 | 用户网页、客户端 API、节点心跳 |
 
 两条 Public Hostname 挂在**同一条隧道**上，都指向 `127.0.0.1:8088`。
@@ -74,7 +74,7 @@ Zero Trust → Networks → Tunnels → **Create a tunnel** → **Cloudflared**
 
 | Subdomain | Domain | Service Type | URL |
 |---|---|---|---|
-| `admin` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
+| `summer` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
 | `app` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
 
 `[!]` Service 选 **HTTP** 不是 HTTPS：容器里跑的是明文 nginx，TLS 由
@@ -90,7 +90,7 @@ Zero Trust → Access → Applications → Add an application → **Self-hosted*
 | 字段 | 值 |
 |---|---|
 | Application name | `91vpn-admin` |
-| Application domain | `admin.91app.shop` |
+| Application domain | `summer.91app.shop` |
 | Path | **留空**（整站） |
 
 策略：Action = **Allow**，Include = **Emails** → 你的邮箱。
@@ -146,7 +146,7 @@ token 拿到后，在 Claude Code 里用 `!` 开头执行（这样只经过你�
 ```
 systemctl status cloudflared-91vpn        # active
 curl -sI https://app.91app.shop/login     # 200（用户面）
-curl -sI https://admin.91app.shop/        # 302 → Cloudflare Access 登录页
+curl -sI https://summer.91app.shop/        # 302 → Cloudflare Access 登录页
 ```
 
 ---
@@ -158,7 +158,7 @@ curl -sI https://admin.91app.shop/        # 302 → Cloudflare Access 登录页
 ```
 curl -sI https://app.91app.shop/login                  # 用户面 200
 curl -s  https://app.91app.shop/mod_mu/nodes/60/info   # 节点接口(带 key 才有数据,这里看是否被 Access/WAF 拦)
-curl -sI https://admin.91app.shop/                     # 302 → Access 登录页,说明后台确实被保护
+curl -sI https://summer.91app.shop/                     # 302 → Access 登录页,说明后台确实被保护
 ```
 
 要看到的是面板自己的响应，**不是** Access 登录页的 302、也不是 403。
@@ -170,7 +170,7 @@ curl -sI https://admin.91app.shop/                     # 302 → Access 登录�
 ```
 sed -i 's|^APP_URL=.*|APP_URL=https://app.91app.shop|' /home/dev/web/91vpn/.env
 grep -q '^ADMIN_HOST=' /home/dev/web/91vpn/.env \
-  || echo 'ADMIN_HOST=admin.91app.shop' >> /home/dev/web/91vpn/.env
+  || echo 'ADMIN_HOST=summer.91app.shop' >> /home/dev/web/91vpn/.env
 docker exec 91vpn-app-1 php artisan config:clear
 ```
 
