@@ -20,6 +20,10 @@ class NodeController extends Controller
         $nodes = Node::orderBy('sort')->orderBy('id')->get();
 
         return view('admin.nodes.index', [
+            // `[!!]` 额度用量【一次算完】，不要在视图里逐行调 quotaPercent()。
+            // 那个方法自己查一次库，视图里再显示一次用量又是一次 —— 12 个设了
+            // 额度的节点就多 24 次查询（实测 5 → 29）。节点表本来只要 5 次。
+            'periodBytes' => $this->periodBytesFor($nodes),
             'nodes' => $nodes,
             'todayByNode' => $todayByNode,
             'totalByNode' => $totalByNode,
@@ -33,6 +37,47 @@ class NodeController extends Controller
      * @param  \Illuminate\Support\Collection<int,Node>  $nodes
      * @return array<int,array<int,string>>  landing node id => [中转 server IP...]
      */
+    /**
+     * 每台节点在【它自己的计费周期内】的整机网卡用量，一次查完。
+     *
+     * `[!]` 周期起点按各自的 quota_reset_day 算，所以不能一条 SQL 全搞定；
+     * 但可以按"最早的那个起点"一次拉回来，再在内存里按各自起点求和 ——
+     * 换来的是常数次查询而不是 O(节点数)。
+     *
+     * @param  \Illuminate\Support\Collection<int,Node>  $nodes
+     * @return array<int,int> node_id => 周期内字节数
+     */
+    private function periodBytesFor($nodes): array
+    {
+        $withQuota = $nodes->filter(fn (Node $n) => (int) ($n->quota_gb ?? 0) > 0);
+        if ($withQuota->isEmpty()) {
+            return [];
+        }
+
+        $starts = [];
+        foreach ($withQuota as $n) {
+            $day = max(1, min(28, (int) ($n->quota_reset_day ?: 1)));
+            $start = now()->day($day)->startOfDay();
+            if (now()->lt($start)) {
+                $start = $start->subMonth();
+            }
+            $starts[$n->id] = $start->toDateString();
+        }
+
+        $rows = \App\Models\NodeNetTraffic::whereIn('node_id', array_keys($starts))
+            ->where('date', '>=', min($starts))
+            ->get(['node_id', 'date', 'up', 'down']);
+
+        $out = array_fill_keys(array_keys($starts), 0);
+        foreach ($rows as $r) {
+            if ((string) $r->date >= $starts[$r->node_id]) {
+                $out[$r->node_id] += (int) $r->up + (int) $r->down;
+            }
+        }
+
+        return $out;
+    }
+
     private function landingSourcesFor($nodes): array
     {
         $serverById = $nodes->pluck('server', 'id');

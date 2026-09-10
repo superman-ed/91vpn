@@ -376,3 +376,60 @@ it('Fmt::bytes 的格式约定', function () {
     expect(\App\Support\Fmt::bytes(1536, 1))->toBe('1.5 KB');
     expect(\App\Support\Fmt::bytes(5 * 1024 * 1024))->toBe('5 MB');  // 尾随零去掉
 });
+
+// ── 节点列表：角色与额度 ────────────────────────────────────────────────
+//
+// `[!!]` 合并之后中转与落地在同一张表里(ADR-008)，不标角色就只能靠名字猜，
+// 而这两类节点的运维含义完全不同：中转拿不到用户名单(D-1)、端口来自转发规则、
+// 不进任何人的订阅。
+it('节点列表标出角色,中转不显示 :0 端口', function () {
+    pageRelayNode();                       // 中转，port=0
+    visibleLandingNode();
+
+    $html = $this->actingAs(relayAdminUser())->get('/admin/nodes')->assertOk()->getContent();
+
+    expect($html)->toContain('中转')->toContain('落地')
+        ->toContain('端口见转发规则')       // port=0 有解释，不是看着像配错了
+        ->not->toContain('1.2.3.4:0');      // 也不写成 ":0"
+});
+
+// `[!!]` 额度此前只能在表单里【设】，没有任何页面显示【用了多少】——
+// 而额度的用途正是防机房超量账单，看不见等于没设。
+it('节点列表显示整机额度用量', function () {
+    $n = pageRelayNode();
+    $n->update(['quota_gb' => 100, 'quota_reset_day' => 1]);
+    \App\Models\NodeNetTraffic::create([
+        'node_id' => $n->id, 'date' => today()->toDateString(),
+        'up' => 30 * 1024 ** 3, 'down' => 20 * 1024 ** 3,   // 50 GB / 100 GB = 50%
+    ]);
+
+    $this->actingAs(relayAdminUser())->get('/admin/nodes')
+        ->assertOk()->assertSee('50%')->assertSee('/ 100 GB');
+});
+
+it('没设额度的节点显示"不限"', function () {
+    visibleLandingNode();
+
+    $this->actingAs(relayAdminUser())->get('/admin/nodes')->assertOk()->assertSee('不限');
+});
+
+// `[!]` 额度用量必须在控制器里一次算完:视图里逐行调 quotaPercent() 会让
+// 每个设了额度的节点多两次查询(实测 12 个节点 5 → 29 次)。
+it('额度用量不随节点数增加查询次数', function () {
+    for ($i = 0; $i < 8; $i++) {
+        Node::create([
+            'name' => "n{$i}", 'server' => "10.1.1.{$i}", 'port' => 443, 'type' => 'vmess',
+            'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => "S{$i}",
+            'role' => 'landing', 'quota_gb' => 200, 'quota_reset_day' => 1,
+        ]);
+    }
+    $admin = relayAdminUser();
+
+    \Illuminate\Support\Facades\DB::flushQueryLog();
+    \Illuminate\Support\Facades\DB::enableQueryLog();
+    $this->actingAs($admin)->get('/admin/nodes')->assertOk();
+    $n = count(\Illuminate\Support\Facades\DB::getQueryLog());
+    \Illuminate\Support\Facades\DB::disableQueryLog();
+
+    expect($n)->toBeLessThan(15);   // 常数级；逐行查的话 8 个节点就 ~20+
+});
