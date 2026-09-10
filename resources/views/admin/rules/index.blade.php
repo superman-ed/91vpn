@@ -32,8 +32,14 @@
           $brokens = $probs->where('level', 'broken');
           // `[!]` 未知也要露出来：PROXY 头配对查不到落地状态时，
           // 沉默等于告诉运维"没问题"，而这正是它最危险的地方。
+          // `[!]` UDP 那条单独拎出来：它也含"PROXY 头"三个字，会被下面的
+          // $unsure 顺手抓走,渲染成带问号的"未知"样式 —— 而它不是未知,
+          // 是确定会发生的事(节点必定关掉本规则的 UDP)。
+          $udpOff  = $probs->where('level', 'warn')->filter(
+              fn ($x) => str_contains($x['text'], 'UDP 关掉'));
           $unsure  = $probs->where('level', 'warn')->filter(
-              fn ($x) => str_contains($x['text'], 'PROXY 头') || str_contains($x['text'], 'accept_proxy'));
+              fn ($x) => ! str_contains($x['text'], 'UDP 关掉')
+                  && (str_contains($x['text'], 'PROXY 头') || str_contains($x['text'], 'accept_proxy')));
           $inNodes = collect($r->inbound_node_set ?? [])
               ->map(fn ($id) => $nodes[$id]->name ?? "#$id");
           $backup = $r->outbounds->where('pool', 'backup');
@@ -63,6 +69,15 @@
               <div class="hint mt-1">
                 <i class="fas fa-question-circle"></i>
                 {{ $unsure->first()['text'] }}
+              </div>
+            @endif
+            {{-- `[!]` 与上面两档分开显示：它不是"会不会出事"的判断,
+                 而是一件【已经确定】的事 —— 这条规则上没有 UDP。
+                 只跑 TCP 的规则完全不受影响,所以用中性的提示样式。 --}}
+            @if ($udpOff->isNotEmpty())
+              <div class="hint mt-1">
+                <i class="fas fa-ban"></i>
+                本规则不承载 UDP（出站发 PROXY 头，节点会关掉 UDP）
               </div>
             @endif
             {{-- `[!!]` 上面那条是**预演**（我们算出来节点会拒绝），

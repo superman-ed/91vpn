@@ -117,3 +117,44 @@ it('同一地址上有中转记录时，配对校验仍认落地那条', functio
     // 规则发头、落地没收 → 必须仍然报 broken
     expect(pairingTexts(ruleSending(2), 'broken'))->not->toBeEmpty();
 });
+
+// ── 发 PROXY 头的裸端口转发会关掉 UDP ──────────────────────────────────
+//
+// `[!!]` [D] sogacore lab/udp-through-relay-probe.sh 实测：freedom 出站的
+// proxyProtocol 对 UDP 也生效，且把 PROXY 头当成【一个独立的数据报】先发出去,
+// 载荷在下一个包里 —— 接收端整条 UDP 流错位一个包。落地的 acceptProxyProtocol
+// 是 TCP sockopt，剥不掉，两端"正确配对"也一样脏。
+// 节点因此主动关掉 UDP；面板要在【保存时】就说出来，否则运维只会在
+// "某个 UDP 服务不通"时才发现，而那时他会先去查应用、网络和防火墙。
+
+it('裸端口转发发 PROXY 头时,提示 UDP 会被关掉', function () {
+    landingWith(reported: true);
+    $texts = pairingTexts(ruleSending(2), 'warn');
+
+    expect(implode('', $texts))->toContain('UDP 关掉')->toContain('错位');
+});
+
+it('不发 PROXY 头时不提示', function () {
+    landingWith(reported: false, expected: false);
+
+    expect(implode('', pairingTexts(ruleSending(0), 'warn')))->not->toContain('UDP 关掉');
+});
+
+// `[!]` 解协议的入站(vmess/vless/…)里 UDP 走 XUDP、封在 TCP 连接内，
+// 中转只看见 TCP —— 不受影响，不该跟着报。
+it('解协议的入站不提示', function () {
+    landingWith(reported: true);
+    $r = ruleSending(2);
+    $r->update(['inbound_type' => 'vmess', 'inbound_cred' => ['uuid' => (string) Str::uuid()]]);
+
+    expect(implode('', pairingTexts($r->fresh('outbounds'), 'warn')))->not->toContain('UDP 关掉');
+});
+
+// 停用的出站不算数。
+it('停用的出站不提示', function () {
+    landingWith(reported: true);
+    $r = ruleSending(2);
+    $r->outbounds()->update(['enabled' => false]);
+
+    expect(implode('', pairingTexts($r->fresh('outbounds'), 'warn')))->not->toContain('UDP 关掉');
+});

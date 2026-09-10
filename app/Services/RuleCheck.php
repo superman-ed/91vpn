@@ -129,6 +129,9 @@ class RuleCheck
         // ---- 配对：中转发 PROXY 头 ↔ 落地收 PROXY 头 ----
         $p = array_merge($p, self::proxyPairing($rule));
 
+        // ---- 发 PROXY 头的裸端口转发：UDP 会被节点关掉 ----
+        $p = array_merge($p, self::proxyProtocolKillsUdp($rule));
+
         // ---- 运行时才会显现的 ----
         if (! $rule->hc_enabled && $primary->count() > 1) {
             $p[] = self::x('warn', '多个出站却关了健康检查 —— 死掉的上游仍会被轮到');
@@ -247,6 +250,44 @@ class RuleCheck
         $pos = strrpos($dial, ':');
 
         return $pos === false ? $dial : substr($dial, 0, $pos);
+    }
+
+    /**
+     * `[!!]` 裸端口转发（direct 入站）一旦有出站发 PROXY 头，节点会把这条规则的
+     * **UDP 关掉**。这里要在保存时就说出来，否则运维只会在"某个 UDP 服务不通"
+     * 时才发现，而那时他会先去查应用、网络和防火墙。
+     *
+     * 为什么节点要关：[D] 实测（sogacore `lab/udp-through-relay-probe.sh`）
+     * freedom 出站的 proxyProtocol 对 UDP 也生效，而且它把 PROXY 头当成
+     * **一个独立的数据报**先发出去，载荷在下一个包里 —— 接收端的整条 UDP 流
+     * **错位一个包**。而落地的 acceptProxyProtocol 是个 **TCP sockopt**，
+     * UDP 路径上没有它，所以两端"正确配对"也剥不掉。
+     *
+     * 关掉是取舍：UDP 不通是能被发现的故障，静默错位不是。
+     *
+     * `[!]` 级别用 warn 不用 broken：这条规则如果本来只跑 TCP（vless 落地挂在
+     * 中转后面就是这种），关掉 UDP 没有任何影响。面板判不出运维的意图，
+     * 所以只陈述事实与代价，不替他判定"坏了"。
+     *
+     * @return array<int,array{level:string,text:string}>
+     */
+    private static function proxyProtocolKillsUdp(ForwardRule $rule): array
+    {
+        if ($rule->inbound_type !== 'direct') {
+            return [];   // 解协议的入站（vmess/vless/…）里 UDP 走 XUDP，封在 TCP 连接内，不受影响
+        }
+
+        foreach ($rule->outbounds as $o) {
+            if ($o->enabled && (int) $o->send_proxy_protocol > 0) {
+                return [self::x('warn', '这条是裸端口转发，且出站发 PROXY 头（v'
+                    .(int) $o->send_proxy_protocol.'）—— 节点会把本规则的 **UDP 关掉**。'
+                    .'PROXY 头在 UDP 上会单独占一个数据报，使接收端的整条流错位一个包，'
+                    .'而落地的「收 PROXY 头」是 TCP 选项、剥不掉。'
+                    .'要承载 UDP 服务就关掉 send_proxy_protocol（代价是落地看不到真实客户端 IP）')];
+            }
+        }
+
+        return [];
     }
 
     /** 只要有一条 reject，这条规则就会让【整个节点】的中转停摆。 */

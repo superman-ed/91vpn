@@ -288,3 +288,25 @@ it('没有引用也没有流量的节点可以删', function () {
     $this->actingAs(relayAdminUser())->delete("/admin/nodes/{$n->id}")->assertRedirect();
     expect(Node::find($n->id))->toBeNull();
 });
+
+// `[!!]` 判据 29：搬了检查就渲染一次。这条提示在列表页有它自己的一档 ——
+// 它的文案里也含"PROXY 头"，会被原来那个 $unsure 过滤器顺手抓走、
+// 渲染成带问号的"未知"样式，而它不是未知，是确定会发生的事。
+it('列表页把"本规则不承载 UDP"单独标出来', function () {
+    $relay = pageRelayNode();
+    $r = pageRule($relay);        // 出站 send_proxy_protocol = 2、裸端口转发
+
+    $this->actingAs(relayAdminUser())->get('/admin/rules')
+        ->assertOk()
+        ->assertSee('本规则不承载 UDP');
+});
+
+it('不发 PROXY 头的规则不显示那条', function () {
+    $relay = pageRelayNode();
+    $r = pageRule($relay);
+    $r->outbounds()->update(['send_proxy_protocol' => 0]);
+
+    $this->actingAs(relayAdminUser())->get('/admin/rules')
+        ->assertOk()
+        ->assertDontSee('本规则不承载 UDP');
+});
