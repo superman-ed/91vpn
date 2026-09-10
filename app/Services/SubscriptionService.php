@@ -45,7 +45,10 @@ class SubscriptionService
     {
         $this->assertUsable($user);
 
-        $lines = $this->accessibleNodes($user)->map(function (Node $n) use ($user) {
+        // 每个落地按【可达路径】展开：直连一条、每个中转入口各一条。
+        $lines = $this->accessibleNodes($user)->flatMap(function (Node $n) use ($user) {
+            return collect($this->entrypoints($n))->map(function (array $e) use ($n, $user) {
+                $name = $e['label'] === '' ? $n->name : $n->name.' · '.$e['label'];
             // vless(reality / tls / none)出 vless:// 链接;只带公开参数,私钥绝不进订阅
             if ($n->usesReality() || $n->type === 'vless') {
                 $p = ['encryption' => 'none', 'type' => $n->net ?: 'tcp'];
@@ -72,14 +75,15 @@ class SubscriptionService
                     }
                 }
                 $p = array_filter($p, fn ($v) => $v !== '' && $v !== null);
-                return 'vless://'.$user->uuid.'@'.$n->server.':'.$n->port.'?'.http_build_query($p).'#'.rawurlencode($n->name);
+                return 'vless://'.$user->uuid.'@'.$e['server'].':'.$e['port'].'?'.http_build_query($p).'#'.rawurlencode($name);
             }
             $conf = [
-                'v' => '2', 'ps' => $n->name, 'add' => $n->server, 'port' => (string) $n->port,
+                'v' => '2', 'ps' => $name, 'add' => $e['server'], 'port' => (string) $e['port'],
                 'id' => $user->uuid, 'aid' => '0', 'scy' => 'auto', 'net' => $n->net,
                 'type' => 'none', 'host' => $n->host, 'path' => $n->path, 'tls' => $n->tls ? 'tls' : '',
             ];
-            return 'vmess://'.base64_encode(json_encode($conf, JSON_UNESCAPED_UNICODE));
+                return 'vmess://'.base64_encode(json_encode($conf, JSON_UNESCAPED_UNICODE));
+            });
         })->implode("\n");
 
         return base64_encode($lines);
@@ -105,7 +109,10 @@ class SubscriptionService
         }
 
         $nodes = $this->accessibleNodes($user);
-        $proxies = $nodes->map(fn (Node $n) => $this->nodeToProxy($n, $user))->all();
+        // 每个落地按【可达路径】展开：直连一条、每个中转入口各一条。
+        $proxies = $nodes->flatMap(fn (Node $n) => array_map(
+            fn (array $e) => $this->nodeToProxy($n, $user, $e), $this->entrypoints($n)
+        ))->all();
         $nodeNames = array_column($proxies, 'name');
 
         $template = $this->loadTemplate();
@@ -153,17 +160,104 @@ class SubscriptionService
             ->get();
     }
 
-    /** 单个节点转 Clash vmess 条目（注入用户 uuid） */
-    private function nodeToProxy(Node $node, User $user): array
+    /**
+     * 把一个落地节点展开成【用户实际能连的入口】列表。
+     *
+     * [!!] 订阅里必须发"客户端要连的那一跳"，而不是落地自己的地址。
+     * 落地挂在中转后面时，客户端连的是【中转的 IP + 转发规则的监听端口】；
+     * 落地那个端口往往还被防火墙锁成只收中转（accept_proxy 姿态）——
+     * 把落地地址发出去，用户会得到一个连不上且【没有任何报错】的条目。
+     *
+     * 之前没暴露，纯粹是因为测试时中转和落地是同一台机器、只差端口号。
+     *
+     * [!] 从转发规则推导而不是在节点上手填对外地址：手填的那份数据会和规则
+     * 各自演化 —— 改了规则的监听端口而忘了回来改节点，订阅就静默失效。
+     *
+     * 返回 [['server'=>…, 'port'=>…, 'label'=>…], …]，label 是给这条路径的
+     * 名字后缀（直连为空）。
+     */
+    public function entrypoints(Node $landing): array
     {
+        $out = [];
+
+        // 直连：accept_proxy 的落地【不能】直连 —— 那个端口上每个连接都必须
+        // 带 PROXY 头，直连客户端会被全部拒绝。所以这类节点不发直连条目。
+        if ((int) $landing->port > 0 && $landing->accept_proxy_protocol !== true) {
+            $out[] = ['server' => $landing->server, 'port' => (int) $landing->port, 'label' => ''];
+        }
+
+        // 经中转：找出把本落地当作出站目标的规则，取它的入站节点(中转)地址 + 监听端口。
+        foreach (\App\Models\ForwardRule::with('outbounds')->where('enabled', true)->get() as $rule) {
+            if (! $this->ruleTargets($rule, $landing)) {
+                continue;
+            }
+            $port = $this->firstPort($rule->listen_port);
+            if ($port === null) {
+                continue;
+            }
+            foreach ((array) ($rule->inbound_node_set ?? []) as $relayId) {
+                $relay = Node::find($relayId);
+                if (! $relay || ! $relay->enabled) {
+                    continue;
+                }
+                $out[] = ['server' => $relay->server, 'port' => $port, 'label' => $relay->name];
+            }
+        }
+
+        return $out;
+    }
+
+    /** 这条规则的出站里有没有指向该落地的（按节点集或按地址+端口两种写法）。 */
+    private function ruleTargets(\App\Models\ForwardRule $rule, Node $landing): bool
+    {
+        foreach ($rule->outbounds as $ob) {
+            if (! $ob->enabled) {
+                continue;
+            }
+            if (in_array($landing->id, (array) ($ob->target_node_set ?? []), false)) {
+                return true;
+            }
+            // 出站也可以直接写地址。端口用宽松比较：表里是字符串，节点上是 int。
+            if ($ob->target_addr === $landing->server
+                && (string) $ob->target_port === (string) $landing->port) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 规则的监听端口可能是单个、范围（`30001-30010`）或逗号列表，取第一个。
+     *
+     * [!] 订阅里只能给一个端口 —— 范围是给中转自己用的（一条规则占一段口），
+     * 客户端连哪个都一样。
+     */
+    private function firstPort(?string $spec): ?int
+    {
+        $first = trim(explode(',', (string) $spec)[0]);
+        $first = trim(explode('-', $first)[0]);
+
+        return ctype_digit($first) && (int) $first > 0 ? (int) $first : null;
+    }
+
+    /** 单个节点转 Clash vmess 条目（注入用户 uuid） */
+    /**
+     * @param  array{server:string,port:int,label:string}|null  $entry
+     *   客户端实际要连的那一跳。为 null 时退回节点自身地址（仅供旧调用方/测试）。
+     */
+    private function nodeToProxy(Node $node, User $user, ?array $entry = null): array
+    {
+        $entry ??= ['server' => $node->server, 'port' => (int) $node->port, 'label' => ''];
+        $name = $entry['label'] === '' ? $node->name : $node->name.' · '.$entry['label'];
         // REALITY 节点:出 vless + reality + vision(mihomo 格式)。
         // [!!] 只带公开子集(public-key/short-id/servername/flow),【私钥绝不进订阅】。
         if ($node->usesReality()) {
             return [
-                'name' => $node->name,
+                'name' => $name,
                 'type' => 'vless',
-                'server' => $node->server,
-                'port' => $node->port,
+                'server' => $entry['server'],
+                'port' => $entry['port'],
                 'uuid' => $user->uuid,
                 'network' => $node->net ?: 'tcp',
                 'udp' => true,
@@ -181,10 +275,10 @@ class SubscriptionService
         // vless + tls(可带 vision flow);非 reality 的现代 vless
         if ($node->type === 'vless') {
             $proxy = [
-                'name' => $node->name,
+                'name' => $name,
                 'type' => 'vless',
-                'server' => $node->server,
-                'port' => $node->port,
+                'server' => $entry['server'],
+                'port' => $entry['port'],
                 'uuid' => $user->uuid,
                 'network' => $node->net ?: 'tcp',
                 'udp' => true,
@@ -211,10 +305,10 @@ class SubscriptionService
 
         // 默认 vmess(现有节点,行为不变)
         $proxy = [
-            'name' => $node->name,
+            'name' => $name,
             'type' => 'vmess',
-            'server' => $node->server,
-            'port' => $node->port,
+            'server' => $entry['server'],
+            'port' => $entry['port'],
             'uuid' => $user->uuid,
             'alterId' => 0,
             'cipher' => 'auto',
