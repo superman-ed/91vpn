@@ -151,6 +151,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('admins/create', [App\Http\Controllers\Admin\AdminController::class, 'create']);
     Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);
     Route::delete('admins/{user}', [App\Http\Controllers\Admin\AdminController::class, 'destroy']);
+    // 管理员自助改密
+    Route::get('account', [App\Http\Controllers\Admin\AccountController::class, 'edit'])->name('admin.account');
+    Route::post('account/password', [App\Http\Controllers\Admin\AccountController::class, 'updatePassword'])->name('admin.account.password');
     Route::get('finance/export', [App\Http\Controllers\Admin\FinanceController::class, 'export'])->name('admin.finance.export');
     Route::get('finance', [App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
     Route::get('rebates', [App\Http\Controllers\Admin\RebateController::class, 'index'])->name('admin.rebates.index');

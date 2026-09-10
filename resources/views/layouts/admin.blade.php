@@ -60,6 +60,7 @@
             </form>
             <ul class="navbar-nav navbar-right">
                 <li class="dropdown"><a href="#" class="nav-link nav-link-lg"><span class="badge badge-primary">管理员</span></a></li>
+                <li><a href="/admin/account" class="nav-link nav-link-lg" title="修改密码"><i class="fas fa-key"></i></a></li>
                 <li><form method="POST" action="/logout" class="ml-2">@csrf<button class="btn btn-outline-primary btn-sm">退出</button></form></li>
             </ul>
         </nav>
