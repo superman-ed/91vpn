@@ -27,3 +27,8 @@ yarn-error.log
 tmp_laravel/
 .gitignore.laravel
 /storage/app/ip2region/*.xdb
+
+# 一键部署的分发产物：目标机自己 curl 走。
+# [!!] 别提交二进制 —— 每发一版仓库就胖 24M，而它本来就是构建产物。
+# install.sh 的源在 sogacore/deploy/install.sh，这里只是发布副本。
+/public/agent/

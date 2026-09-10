@@ -13,11 +13,21 @@ services:
     depends_on: [db, redis]
   web:
     image: nginx:alpine
-    ports: ["8088:80"]
+    # 8088 公网(无后台);18088 仅回环,走 SSH 隧道进后台(ADR-008 / P0)
+    ports: ["8088:80", "127.0.0.1:18088:8080"]
     volumes:
       - ".:/var/www/html"
       - "./docker/nginx.conf:/etc/nginx/conf.d/default.conf"
     depends_on: [app]
+  # 后台隧道(ADR-008 / P0)。token 模式:域名/路由/Access 全在 CF 面板配,这里只跑。
+  # cloudflared 在本 compose 网内,面板里 service 指 http://web:8080(仅回环的后台口)。
+  # [!] 光有隧道≠安全:必须在 CF 面板给这个 hostname 加 Access 身份门,否则等于把后台放公网。
+  # token 留空则该服务起不来 —— 不影响其余服务;填好 .env 再 `docker compose up -d cloudflared`。
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on: [web]
   db:
     image: mysql:8
     environment:

@@ -67,3 +67,50 @@ it('部署日志端点只给本节点的记录', function () {
         ->getJson("/admin/nodes/{$a->id}/deploy/{$run->id}")
         ->assertStatus(404);
 });
+
+// `[!!]` phpseclib 的 exec 回调:返回 true = 【中止】(close_channel 后立刻返回)。
+// Deployer 原来 return true,于是每次部署都在远端第一行输出后被掐断,
+// 日志停在 "==> 目标机架构 x86_64",退出码拿不到 —— 一键部署从来没成过一次。
+// 这条守的就是那个返回值。
+it('输出回调把每一行喂出去,并且不中止读取', function () {
+    $lines = [];
+    $ret = app(\App\Services\Deployer::class)
+        ->emitLines("==> 一\r\n==> 二\n\n==> 三\n", function ($l) use (&$lines) {
+            $lines[] = $l;
+        });
+
+    expect($lines)->toBe(['==> 一', '==> 二', '==> 三']);
+    expect($ret)->toBeFalse();   // true 会让 phpseclib 掐断通道
+});
+
+// `[!!]` 归 ufw 管的机器上,往 INPUT 链尾 -A 一条 DROP 是【无效】的:
+// ufw 的跳转排在前面,包在那里就被 ACCEPT 了。实测目标机 ufw 放行了
+// 39000:40000/tcp,追加的 DROP 形同虚设 —— 而面板日志照样打印
+// "其余 DROP",看起来配好了,其实端口对全世界敞着。
+// 对 accept_proxy 节点这最危险:PROXY 头无认证,能连上就能伪造客户端 IP。
+it('防火墙片段在 ufw 机器上走 ufw,且 allow 排在 deny 之前', function () {
+    $m = new ReflectionMethod(\App\Services\Deployer::class, 'firewallSnippet');
+    $m->setAccessible(true);
+    $fw = $m->invoke(app(\App\Services\Deployer::class), [
+        'accept_proxy' => true, 'proxy_port' => 39500,
+        'allow_src' => ['1.2.3.4', '127.0.0.1'],
+    ], '');
+
+    expect($fw)->toContain('ufw status')                       // 先判断有没有 ufw
+        ->toContain('ufw --force insert 1 deny')               // 用 insert,不是追加
+        ->toContain('ufw --force insert 1 allow');
+    // deny 必须先插,allow 后插才会排在它前面 —— 顺序反了等于全放行。
+    expect(strpos($fw, 'insert 1 deny'))->toBeLessThan(strpos($fw, 'insert 1 allow'));
+    // 裸 iptables 分支同理:先 DROP 后 ACCEPT(-I 是往前插)。
+    expect(strpos($fw, '--dport 39500 -j DROP'))->toBeLessThan(strpos($fw, '--dport 39500 -s "$ip" -j ACCEPT'));
+});
+
+// 开了 accept_proxy 却没给端口/源:必须显眼告警,不能静默什么都不做。
+it('accept_proxy 缺端口或源 IP 时告警', function () {
+    $m = new ReflectionMethod(\App\Services\Deployer::class, 'firewallSnippet');
+    $m->setAccessible(true);
+    $fw = $m->invoke(app(\App\Services\Deployer::class),
+        ['accept_proxy' => true, 'proxy_port' => 0, 'allow_src' => []], '');
+
+    expect($fw)->toContain('未配防火墙');
+});

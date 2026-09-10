@@ -41,7 +41,7 @@ class Deployer
         $port = (int) ($creds['port'] ?? 22);
         $user = $creds['user'] ?? 'root';
 
-        $onLine("==> [relaypanel] 连接 {$user}@{$host}:{$port}");
+        $onLine("==> 连接 {$user}@{$host}:{$port}");
 
         $ssh = new \phpseclib3\Net\SSH2($host, $port, $this->connectTimeout);
         // [!] 关掉库对 exec 的行长限制,长命令不被截断。
@@ -106,16 +106,7 @@ class Deployer
         // ---- 2. 跑装机脚本,输出实时回流 ----
         $script = $this->buildScript($spec, $user);
         try {
-            $ssh->exec($script, function ($chunk) use ($onLine) {
-                // 对端一段可能含多行;按行切,保留 install.sh 的分行观感。
-                foreach (preg_split("/\r\n|\r|\n/", rtrim($chunk, "\r\n")) as $l) {
-                    if ($l !== '') {
-                        $onLine($l);
-                    }
-                }
-
-                return true;
-            });
+            $ssh->exec($script, fn ($chunk) => $this->emitLines($chunk, $onLine));
         } catch (\Throwable $e) {
             return $this->fail($hostKey, "执行装机脚本异常: {$e->getMessage()}");
         }
@@ -136,6 +127,32 @@ class Deployer
      * install.sh 用 --binary-url + (relay: --relay-mode/--forward-file |
      * panel: --panel/--api-url/--node-id/--api-key-file/--server-type) 契约。
      */
+    /**
+     * 把远端一段输出按行喂给 $onLine,并告诉 phpseclib【继续读】。
+     *
+     * [!!] 返回值不是"成功与否",而是"要不要中止":phpseclib 的 exec 回调
+     * 返回 true 会让它 close_channel 并立刻返回(见 Net/SSH2.php 的
+     * `if ($callback($temp) === true) { $this->close_channel(...); return true; }`)。
+     *
+     * 这里原来 `return true`,于是每次部署都在远端吐出【第一行】之后就被掐断:
+     * 日志停在 "==> 目标机架构 x86_64",退出码拿不到(getExitStatus() 返回 false),
+     * 报成"装机脚本退出码 (空)"。也就是说一键部署【从来没有成功过一次】——
+     * 而 deploy_runs 一直是空表,没人发现。
+     *
+     * 返回 false/null = 继续读。别改成 true。
+     */
+    public function emitLines(string $chunk, callable $onLine): bool
+    {
+        // 对端一段可能含多行;按行切,保留 install.sh 的分行观感。
+        foreach (preg_split("/\r\n|\r|\n/", rtrim($chunk, "\r\n")) as $l) {
+            if ($l !== '') {
+                $onLine($l);
+            }
+        }
+
+        return false;
+    }
+
     public function buildScript(array $spec, string $user = 'root'): string
     {
         $base = rtrim((string) $spec['base_url'], '/');
@@ -213,11 +230,30 @@ BASH;
 
         return <<<FW
 echo "==> 配置防火墙:仅放行中转源 IP 连入站 {$port}/tcp,其余 DROP"
-for ip in {$ipList}; do
-  {$sudo}iptables -C INPUT -p tcp --dport {$port} -s "\$ip" -j ACCEPT 2>/dev/null || {$sudo}iptables -I INPUT -p tcp --dport {$port} -s "\$ip" -j ACCEPT
-done
-{$sudo}iptables -C INPUT -p tcp --dport {$port} -j DROP 2>/dev/null || {$sudo}iptables -A INPUT -p tcp --dport {$port} -j DROP
-command -v netfilter-persistent >/dev/null 2>&1 && {$sudo}netfilter-persistent save >/dev/null 2>&1 || echo "==> 提示:iptables 规则未持久化,重启会失效。装 iptables-persistent 后 netfilter-persistent save。"
+if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | head -1 | grep -qi active; then
+  # [!!] 机器归 ufw 管时【必须走 ufw】。直接往 INPUT 链尾 -A 一条 DROP 是无效的:
+  #   ufw 的 ufw-before-input 等跳转排在前面,包在那里就被 ACCEPT 了,永远走不到链尾。
+  #   实测:目标机 ufw 放行了 39000:40000/tcp,追加的 DROP 形同虚设 ——
+  #   而面板日志照样打印"其余 DROP",看起来配好了,其实端口对全世界敞着。
+  # [!] 用 insert 1 而不是追加:ufw 按顺序匹配,已有的宽松放行(如 39000:40000)
+  #   排在前面就会先命中。先插 deny,再把 allow 插到它前面,得到
+  #   [allow 中转源...] [deny 全部] [原有宽松规则...]。
+  {$sudo}ufw --force delete deny proto tcp from any to any port {$port} >/dev/null 2>&1 || true
+  {$sudo}ufw --force insert 1 deny proto tcp from any to any port {$port} >/dev/null
+  for ip in {$ipList}; do
+    {$sudo}ufw --force delete allow proto tcp from "\$ip" to any port {$port} >/dev/null 2>&1 || true
+    {$sudo}ufw --force insert 1 allow proto tcp from "\$ip" to any port {$port} >/dev/null
+  done
+  echo "==> ufw 规则(前 6 条):"
+  {$sudo}ufw status numbered 2>/dev/null | sed -n '4,9p'
+else
+  # 裸 iptables:同样要注意顺序 —— 先插 DROP,再把 ACCEPT 插到它【前面】。
+  {$sudo}iptables -C INPUT -p tcp --dport {$port} -j DROP 2>/dev/null || {$sudo}iptables -I INPUT -p tcp --dport {$port} -j DROP
+  for ip in {$ipList}; do
+    {$sudo}iptables -C INPUT -p tcp --dport {$port} -s "\$ip" -j ACCEPT 2>/dev/null || {$sudo}iptables -I INPUT -p tcp --dport {$port} -s "\$ip" -j ACCEPT
+  done
+  command -v netfilter-persistent >/dev/null 2>&1 && {$sudo}netfilter-persistent save >/dev/null 2>&1 || echo "==> 提示:iptables 规则未持久化,重启会失效。装 iptables-persistent 后 netfilter-persistent save。"
+fi
 
 FW;
     }
