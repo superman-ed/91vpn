@@ -13,8 +13,18 @@ services:
     depends_on: [db, redis]
   web:
     image: nginx:alpine
-    # 8088 公网(无后台);18088 仅回环,走 SSH 隧道进后台(ADR-008 / P0)
-    ports: ["8088:80", "127.0.0.1:18088:8080"]
+    # [!!] 两个口都【只绑回环】——对外一律经 Cloudflare Tunnel。
+    # cloudflared 跑在本 compose 网内,用服务名直接到 web:80 / web:8080,
+    # 根本不需要宿主机端口映射。
+    #
+    # 原来 8088 绑的是 0.0.0.0,实测【在 IPv6 上对外可连】:
+    # 直接 http://[<本机IPv6>]:8088/login 就能打开面板,绕过 Cloudflare
+    # (/admin 有 nginx 与 AdminHost 两道挡着没漏,但用户面和 mod_mu 是敞的)。
+    # 源站 IP 暴露对一个订阅服务是实打实的风险 —— 它是用户客户端天天要拉的
+    # 那个域名背后的机器,而这台机上还跑着别的东西。
+    #
+    # 18088 保留:出了隧道故障时,ssh -L 18088:127.0.0.1:18088 <server> 仍能进后台。
+    ports: ["127.0.0.1:8088:80", "127.0.0.1:18088:8080"]
     volumes:
       - ".:/var/www/html"
       - "./docker/nginx.conf:/etc/nginx/conf.d/default.conf"
