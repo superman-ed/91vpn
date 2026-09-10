@@ -109,6 +109,29 @@ it('停用的规则与停用的中转不出条目', function () {
     expect(app(SubscriptionService::class)->entrypoints($landing->fresh()))->toBeEmpty();
 });
 
+// `[!!]` 与直连落地口径一致:失联(online=false,心跳停)的中转不能进订阅,
+// 否则用户拿到一条指向死中转、连不上又无报错的条目。
+it('失联的中转不出条目', function () {
+    $landing = subLanding(['accept_proxy_protocol' => true]);
+    $relay = subRelay();
+    subRule($relay, $landing);
+
+    $relay->update(['online' => false]);
+    expect(app(SubscriptionService::class)->entrypoints($landing->fresh()))->toBeEmpty();
+});
+
+// 同一中转、同一监听端口被多条规则引用时,只发一条(按 server:port 去重)。
+it('重复入口去重', function () {
+    $landing = subLanding(['accept_proxy_protocol' => true]);
+    $relay = subRelay();
+    subRule($relay, $landing, '30001');
+    subRule($relay, $landing, '30001');   // 第二条规则,同中转同端口 → 应被去重
+
+    $eps = app(SubscriptionService::class)->entrypoints($landing);
+    expect($eps)->toHaveCount(1);
+    expect($eps[0])->toMatchArray(['server' => '1.1.1.1', 'port' => 30001]);
+});
+
 it('端口范围取第一个', function () {
     $landing = subLanding(['accept_proxy_protocol' => true]);
     subRule(subRelay(), $landing, '30010-30020');

@@ -179,11 +179,20 @@ class SubscriptionService
     public function entrypoints(Node $landing): array
     {
         $out = [];
+        $seen = [];   // 按 server:port 去重：同一可达端点只发一条
+        $push = function (string $server, int $port, string $label) use (&$out, &$seen) {
+            $key = $server.':'.$port;
+            if (isset($seen[$key])) {
+                return;                       // 已有(保留先入的 label),不重复发
+            }
+            $seen[$key] = true;
+            $out[] = ['server' => $server, 'port' => $port, 'label' => $label];
+        };
 
         // 直连：accept_proxy 的落地【不能】直连 —— 那个端口上每个连接都必须
         // 带 PROXY 头，直连客户端会被全部拒绝。所以这类节点不发直连条目。
         if ((int) $landing->port > 0 && $landing->accept_proxy_protocol !== true) {
-            $out[] = ['server' => $landing->server, 'port' => (int) $landing->port, 'label' => ''];
+            $push($landing->server, (int) $landing->port, '');
         }
 
         // 经中转：找出把本落地当作出站目标的规则，取它的入站节点(中转)地址 + 监听端口。
@@ -197,10 +206,12 @@ class SubscriptionService
             }
             foreach ((array) ($rule->inbound_node_set ?? []) as $relayId) {
                 $relay = Node::find($relayId);
-                if (! $relay || ! $relay->enabled) {
+                // [!] 与直连落地口径一致:enabled 之外还要 online —— 否则失联(心跳停)的
+                // 中转仍会被合成进订阅,用户拿到一条连不上且无报错的死条目。
+                if (! $relay || ! $relay->enabled || ! $relay->online) {
                     continue;
                 }
-                $out[] = ['server' => $relay->server, 'port' => $port, 'label' => $relay->name];
+                $push($relay->server, $port, $relay->name);
             }
         }
 
