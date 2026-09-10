@@ -4,12 +4,16 @@ namespace App\Console\Commands;
 
 use App\Models\AuditLog;
 use App\Models\CrashLog;
+use App\Models\Device;
+use App\Models\EmailLog;
 use App\Models\DeployRun;
 use App\Models\DailyTraffic;
 use App\Models\LoginLog;
 use App\Models\NodeDailyTraffic;
 use App\Models\NodeNetTraffic;
+use App\Models\SubscribeLog;
 use App\Models\RuleTraffic;
+use App\Models\UserNotification;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -22,7 +26,11 @@ class PruneLogs extends Command
         {--crash-days=180 : 崩溃日志保留天数}
         {--traffic-days=365 : 日流量/节点日流量保留天数}
         {--deploy-days=90 : 部署日志正文保留天数(行本身永久保留,见下)}
-        {--audit-days=180 : 操作日志保留天数(登录失败保留 2 倍,见下)}';
+        {--audit-days=180 : 操作日志保留天数(登录失败保留 2 倍,见下)}
+        {--sub-days=90 : 订阅拉取记录保留天数}
+        {--notice-days=90 : 【已读】站内通知保留天数(未读永不删)}
+        {--mail-days=180 : 邮件发送记录保留天数}
+        {--device-days=180 : 长期未出现的设备记录保留天数}';
 
     protected $description = '按保留天数清理日志/统计表(登录/崩溃/日流量),防磁盘无限增长';
 
@@ -66,6 +74,29 @@ class PruneLogs extends Command
         $g = DeployRun::whereNotNull('log')
             ->where('created_at', '<', now()->subDays((int) $this->option('deploy-days')))
             ->update(['log' => null]);
+
+        // ---- 只增不减的几张流水表 ----
+        // [!] 这几张此前【没有任何保留策略】。单看行数都不大,但它们的共同点是
+        // 每次用户动作都写一行、永不回收 —— subscribe_logs 尤其:客户端每次
+        // 刷新订阅就是一行,真实用户几小时刷一次,涨得比日志还快。
+        $sub = $this->pruneBatched(SubscribeLog::where('created_at', '<',
+            now()->subDays((int) $this->option('sub-days'))));
+
+        // [!!] 站内通知【只清已读的】。未读的是用户还没看见的东西,
+        // 按时间删掉等于替他把信扔了 —— 哪怕它已经很旧。
+        $notice = $this->pruneBatched(UserNotification::whereNotNull('read_at')
+            ->where('created_at', '<', now()->subDays((int) $this->option('notice-days'))));
+
+        $mail = $this->pruneBatched(EmailLog::where('created_at', '<',
+            now()->subDays((int) $this->option('mail-days'))));
+
+        // [!] 设备记录按 last_seen 而不是 created_at:一台天天在用的老设备
+        // 不该因为注册得早就被删。删掉也不影响用户 —— 下次连上会重新登记,
+        // 连接数限制走的是 alive_ips,与这张表无关。
+        $dev = $this->pruneBatched(Device::where('last_seen', '<',
+            now()->subDays((int) $this->option('device-days'))));
+
+        $this->info("已清理:订阅记录 {$sub}、已读通知 {$notice}、邮件记录 {$mail}、陈旧设备 {$dev}");
 
         $this->info("已清理:登录日志 {$a}、崩溃日志 {$b}、日流量 {$c}、节点日流量 {$d}、规则流量 {$e}、整机流量 {$f}、操作日志 {$h}(登录失败 {$i});清空部署日志正文 {$g} 条(行保留)");
 
