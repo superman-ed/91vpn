@@ -310,3 +310,69 @@ it('不发 PROXY 头的规则不显示那条', function () {
         ->assertOk()
         ->assertDontSee('本规则不承载 UDP');
 });
+
+// ── 带数据渲染 ──────────────────────────────────────────────────────────
+//
+// `[!!]` 上面那组用的是空数据，于是"有数据才走到"的分支从没被执行过 ——
+// App\Support\Fmt 整个类没跟着搬过来，两个页面在真实环境里一有流量就
+// Class not found 500，而这组用例一直全绿。
+// 判据 34 的具体形态：**渲染一个空页面，不算渲染过这个页面。**
+
+function relayTrafficRow(ForwardRule $rule, Node $node): void
+{
+    \App\Models\RuleTraffic::create([
+        'rule_id' => $rule->id, 'node_id' => $node->id, 'date' => today()->toDateString(),
+        'up' => 1536, 'down' => 5 * 1024 * 1024,
+    ]);
+}
+
+it('规则列表页在有流量数据时能渲染', function () {
+    $n = pageRelayNode();
+    $r = pageRule($n);
+    relayTrafficRow($r, $n);
+
+    $this->actingAs(relayAdminUser())->get('/admin/rules')
+        ->assertOk()
+        ->assertSee('5 MB');          // Fmt::bytes 真的被调用了
+});
+
+it('中转监控页在有整机流量时能渲染', function () {
+    $n = pageRelayNode();
+    \App\Models\NodeNetTraffic::create([
+        'node_id' => $n->id, 'date' => today()->toDateString(),
+        'up' => 2 * 1024 * 1024 * 1024, 'down' => 3 * 1024 * 1024 * 1024,
+    ]);
+
+    $this->actingAs(relayAdminUser())->get('/admin/relay/monitor')
+        ->assertOk()
+        ->assertSee('GB');
+});
+
+it('中转在线 IP 页在有记录时能渲染', function () {
+    $n = pageRelayNode();
+    $r = pageRule($n);
+    \App\Models\RuleAliveIp::create([
+        'rule_id' => $r->id, 'node_id' => $n->id, 'ip' => '203.0.113.7', 'last_seen' => now(),
+    ]);
+
+    $admin = relayAdminUser();
+
+    // 汇总页：只出"哪条规则有多少来源"，不列 IP（agent 侧每条规则上限 4096，
+    // 几条规则就是上万行，一次全加载没有意义）。
+    $this->actingAs($admin)->get('/admin/relay/online-ip')
+        ->assertOk()
+        ->assertSee($r->name)
+        ->assertDontSee('203.0.113.7');
+
+    // 点进某一组才拉明细 —— IP 在这里。
+    $this->actingAs($admin)->get("/admin/relay/online-ip?rule={$r->id}&node={$n->id}")
+        ->assertOk()
+        ->assertSee('203.0.113.7');
+});
+
+// Fmt 本身：进位与小数位的约定（1024 进制，字节数不带小数）
+it('Fmt::bytes 的格式约定', function () {
+    expect(\App\Support\Fmt::bytes(512))->toBe('512 B');        // 字节不带小数
+    expect(\App\Support\Fmt::bytes(1536, 1))->toBe('1.5 KB');
+    expect(\App\Support\Fmt::bytes(5 * 1024 * 1024))->toBe('5 MB');  // 尾随零去掉
+});
