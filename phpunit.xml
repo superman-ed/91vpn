@@ -19,6 +19,11 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- [!!] 测试里必须清空 ADMIN_HOST。它一旦有值,AdminHost 中间件就要求
+             请求的 Host 等于它,而测试默认用 localhost —— 结果是【所有后台用例】
+             一起 404。踩过一次:.env 里刚配上 summer.91app.shop,131 个用例当场变红。
+             需要验主机名保护的用例自己 config(['app.admin_host' => ...]) 就行。 -->
+        <env name="ADMIN_HOST" value=""/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
