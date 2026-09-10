@@ -9,14 +9,32 @@
 一次意外重启就等于全网断联。
 
 `[!!]` 与中转面板最大的不同：**这个面板同时服务用户、节点和管理员**。
-中转面板可以整站套 Cloudflare Access，这里不行：
+中转面板是纯后台，可以整站套 Cloudflare Access；这里不行 —— 226 个真实
+用户要访问 `/login`、`/user/*` 拿订阅，节点要打 `/mod_mu/*`。整站套 Access
+会把他们全挡在门外。
 
-| 路径 | 谁在调 | Access |
+## [decided] 方案 A：两个主机名，一条隧道
+
+| 主机名 | Access | 给谁用 |
 |---|---|---|
-| `/admin/*` | 管理员 | ✅ 要保护 |
-| `/mod_mu/*` | 节点心跳、流量上报 | ❌ 套上节点全部失联 |
-| `/sub/*` | 用户订阅 | ❌ 套上用户拉不到配置 |
-| `/api/*` | 客户端 App | ❌ 同上 |
+| `admin.91app.shop` | ✅ 整站保护（只有你的邮箱） | 管理后台 |
+| `app.91app.shop` | ❌ 不套 | 用户网页、客户端 API、节点心跳 |
+
+两条 Public Hostname 挂在**同一条隧道**上，都指向 `127.0.0.1:8088`。
+
+选它而不是"单主机名 + 一堆 Bypass 路径"，是因为后者要逐条列出
+`mod_mu` `sub` `api` `login` `register` `user` `css` `js`… 漏一条用户就报
+"打不开"，而且以后每加一个用户页都要记得回来补。两个主机名的边界是清楚的。
+
+`[!!]` 方案 A 有个必须堵的洞：**两个主机名指向同一个应用**，所以
+`app.91app.shop/admin/*` 本来是可达的 —— 那条路径上没有 Access，
+后台等于从侧门敞着。已在应用侧补了一道
+（`Middleware\AdminHost` + `ADMIN_HOST` 环境变量，走错主机名一律 404
+而不是 403/302 —— 后两者等于告诉探测者"这里确实有后台"）。
+
+不靠 Cloudflare 的 WAF 规则来挡，是因为那是一条**改错就静默失效**的外部
+配置。本轮已经踩过一次同类的：追加到 INPUT 链尾的 iptables DROP 形同虚设，
+而部署日志照样打印"其余 DROP"。
 
 ---
 
@@ -35,8 +53,13 @@
 旧隧道虽然删了，**Access 应用和 DNS 记录还在**（`relay.91app.shop` 目前仍会
 302 跳到 `mute-hill-84ea.cloudflareaccess.com`）。
 
-- Zero Trust → Access → Applications → 删掉 `relay.91app.shop` 那个应用
+- Zero Trust → Access → Applications → 删掉 **`relaypanel-agent-api`** 和
+  **`relaypanel-admin`** 这两个（都绑在 `relay.91app.shop` 上）
 - DNS → Records → 删掉 `relay` 那条记录
+
+`[!]` 那两个应用是中转面板的"Bypass 节点端点 + 保护其余"结构。方案 A 不
+沿用它：91vpn 的公开面比中转面板大得多（用户网页 + 客户端 API + 节点），
+靠列 Bypass 路径迟早漏一条。这里改成用主机名切分。
 
 ### 1.2 建隧道
 
@@ -45,30 +68,40 @@ Zero Trust → Networks → Tunnels → **Create a tunnel** → **Cloudflared**
 - 名字：`91vpn`
 - 建完给出的安装命令里，`eyJ` 开头的长串就是**连接器 token**（先别贴聊天里）
 
-### 1.3 配 Public Hostname
+### 1.3 配两条 Public Hostname
+
+同一条隧道下加两条（Tunnel → Public Hostname → Add a public hostname）：
+
+| Subdomain | Domain | Service Type | URL |
+|---|---|---|---|
+| `admin` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
+| `app` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
+
+`[!]` Service 选 **HTTP** 不是 HTTPS：容器里跑的是明文 nginx，TLS 由
+Cloudflare 到浏览器那一段负责。选 HTTPS 会让 cloudflared 用 TLS 去连一个
+没有 TLS 的端口。
+
+DNS 记录 Cloudflare 会自动建，不用手动加。
+
+### 1.4 Access 应用（只给 admin 那个主机名）
+
+Zero Trust → Access → Applications → Add an application → **Self-hosted**
 
 | 字段 | 值 |
 |---|---|
-| Subdomain | `admin` |
-| Domain | `91app.shop` |
-| Service Type | **HTTP**（不是 HTTPS） |
-| URL | `127.0.0.1:8088` |
-
-`[!]` Service 选 **HTTP**：容器里跑的是明文 nginx，TLS 由 Cloudflare 到浏览器
-那一段负责。选 HTTPS 会让 cloudflared 用 TLS 连一个没有 TLS 的端口。
-
-### 1.4 Access 应用（只保护 /admin）
-
-Zero Trust → Access → Applications → Add an application → Self-hosted
-
-| 字段 | 值 |
-|---|---|
+| Application name | `91vpn-admin` |
 | Application domain | `admin.91app.shop` |
-| **Path** | `admin` |
+| Path | **留空**（整站） |
 
-`[!!]` **Path 必须填**。留空就是保护整个主机名，节点和用户会一起被挡在门外
-——而且症状很迷惑：你从浏览器看面板一切正常，只有节点那边"面板挂了"。
-同时确认账号里没有 `*.91app.shop` 之类的通配应用会顺手罩住这个新主机名。
+策略：Action = **Allow**，Include = **Emails** → 你的邮箱。
+登录方式用 Cloudflare 自带的 **One-time PIN**，不需要额外 IdP。
+
+`[!!]` **不要**给 `app.91app.shop` 建任何 Access 应用，也不要建
+`*.91app.shop` 的通配应用 —— 那会把用户和节点一起挡掉，而症状很迷惑：
+你从浏览器（已通过 Access）看一切正常，只有用户和节点那边"面板挂了"。
+
+`[!]` 旧的 `relaypanel-agent-api` / `relaypanel-admin` 两个应用直接删掉：
+它们绑的 `relay.91app.shop` 隧道已经不存在了。
 
 ### 1.5 放行机器人检测
 
@@ -112,7 +145,8 @@ token 拿到后，在 Claude Code 里用 `!` 开头执行（这样只经过你�
 
 ```
 systemctl status cloudflared-91vpn        # active
-curl -sI https://admin.91app.shop/login   # 200
+curl -sI https://app.91app.shop/login     # 200（用户面）
+curl -sI https://admin.91app.shop/        # 302 → Cloudflare Access 登录页
 ```
 
 ---
@@ -122,32 +156,44 @@ curl -sI https://admin.91app.shop/login   # 200
 `[!!]` **这一步不要停 quick tunnel**。新旧地址同时可用，验证完再撤。
 
 ```
-curl -sI https://admin.91app.shop/login                  # 面板 200
-curl -s  https://admin.91app.shop/mod_mu/nodes/60/info   # 节点接口(带 key 才有数据,这里看是否被 Access/WAF 拦)
+curl -sI https://app.91app.shop/login                  # 用户面 200
+curl -s  https://app.91app.shop/mod_mu/nodes/60/info   # 节点接口(带 key 才有数据,这里看是否被 Access/WAF 拦)
+curl -sI https://admin.91app.shop/                     # 302 → Access 登录页,说明后台确实被保护
 ```
 
 要看到的是面板自己的响应，**不是** Access 登录页的 302、也不是 403。
 
 ---
 
-## 阶段 4：切 APP_URL
+## 阶段 4：切 APP_URL 与 ADMIN_HOST
 
 ```
-sed -i 's|^APP_URL=.*|APP_URL=https://admin.91app.shop|' /home/dev/web/91vpn/.env
+sed -i 's|^APP_URL=.*|APP_URL=https://app.91app.shop|' /home/dev/web/91vpn/.env
+grep -q '^ADMIN_HOST=' /home/dev/web/91vpn/.env \
+  || echo 'ADMIN_HOST=admin.91app.shop' >> /home/dev/web/91vpn/.env
 docker exec 91vpn-app-1 php artisan config:clear
 ```
 
-影响面：用户订阅链接 `url('/sub/'.$token)`、一键部署的 `base_url`
-（`config('app.url')`）都会跟着走。
+`[!!]` `APP_URL` 填的是**用户面那个主机名**（`app.`），不是 admin：
+用户订阅链接 `url('/sub/'.$token)` 和节点的 `webapi_url` 都由它派生，
+填成 admin 的话每个用户和节点都会撞上 Access 登录页。
 
----
+`ADMIN_HOST` 是应用侧那道补挡（见上面方案 A 的说明）。配上之后
+从 `app.91app.shop/admin` 进后台会得到 404。
+
+验证：
+
+```
+curl -sI https://app.91app.shop/admin/nodes | head -1      # 404
+curl -sI https://app.91app.shop/login | head -1            # 200
+```
 
 ## 阶段 5：逐台更新节点（顺序：先测试机，后生产）
 
 每台都是同一个动作：改 `webapi_url`，重启 agent，确认心跳恢复。
 
 ```
-sed -i 's|^webapi_url=.*|webapi_url=https://admin.91app.shop|' /etc/agent/agent.conf
+sed -i 's|^webapi_url=.*|webapi_url=https://app.91app.shop|' /etc/agent/agent.conf
 systemctl restart agent
 journalctl -u agent -n 20 --no-pager | grep -iE "panel|sync|error"
 ```

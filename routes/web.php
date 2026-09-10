@@ -115,6 +115,8 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
 });
 
 // 管理后台
+// [!] 后台还受 Middleware\AdminHost 保护(挂在 web 组最前面,不在这里):
+// 配了 ADMIN_HOST 后,只有管理专用主机名能进 /admin/*,其余一律 404。
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');

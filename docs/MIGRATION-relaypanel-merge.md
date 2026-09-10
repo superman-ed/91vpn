@@ -4,7 +4,9 @@
 > 中转+落地的**唯一节点控制面**（一张节点表、一个 mod_mu、一颗一键部署按钮）。
 > 完成后 relaypanel 退休。
 >
-> **状态**：🟢 主体已迁移（P1–P5、P7 完成，P0 admin 网络限制已上）。剩 P6 确认、P8 退休。
+> **状态**：✅ **ADR-008 收官（P0–P8 全完成，2026-09-10）**。relaypanel 已停机（数据卷保留当后路）。
+> 后台加固三层：nginx admin-only（公网 /admin→404）+ CF Tunnel+Access（summer.91app.shop）+ 应用级 `admin.host` 中间件（Host 不对直接 404）。
+> 可选收尾：日后确认无回退需求后归档 relaypanel 仓库、删数据卷。
 > 相关记忆：`relaypanel-merge-plan`、`node-oneclick-deploy`、`reality-relay-topology`。
 
 ## 复核与修复记录（2026-09-09）
@@ -104,11 +106,9 @@
 
 ## P6 数据切换（⚠️ 不可逆线）
 
-- [ ] 若有真数据：导入 relaypanel 的节点+规则到 91vpn，建 **旧→新 ID 映射**，
-      按映射改写规则里的 `inbound_node_set` / `target_node_set`（node id 数组）。
-- [ ] 逐台把中转 agent `api_url` 重指 91vpn + 换统一 secret（部署按钮重装或手改）。
-- [ ] 验证：每台中转从 91vpn 拉到 routes；落地不受影响。
-- ⚠️ 过了这步就开始依赖 91vpn；保留 relaypanel **只读**当后路，别急着 P8。
+- [x] 中转 agent 已重指 91vpn。**验证（2026-09-10）**：91vpn 中转 #93 DMIT 持续心跳（~9s 前）；
+      relaypanel 近 2h **零 mod_mu 请求**（历史 44968 全是迁移前）→ 无 agent 依赖 relaypanel。
+- ✅ 落地不受影响（落地本就连 91vpn）。
 
 ## P7 删跨面板管道
 
@@ -119,8 +119,10 @@
 
 ## P8 relaypanel 退休（最后，且 91vpn 验稳后）
 
-- [ ] 停 relaypanel 容器；归档仓库；留一份 DB dump 保底。
-- [ ] cutover 后先让 relaypanel 只读跑一阵，确认无回退需求再真正下线。
+- [x] relaypanel 容器已停（2026-09-10 查：relayapp/relayweb `Exited (0) 22h 前`，干净停止）。
+      数据卷 `dbdata` **保留**（未 `down -v`）当后路，可随时 `docker compose up -d` 拉回。
+- [ ] （可选，日后）确认长期无需回退后：归档 relaypanel 仓库（需建 remote/打包）、删数据卷彻底下线。
+- 备注：`172.17.0.1:8099` 仍有监听，但 relaypanel 绑的是 `127.0.0.1:8099` 且已 Exited，疑为无关进程占用，待查。
 
 ---
 

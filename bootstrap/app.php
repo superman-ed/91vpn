@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // 信任 Cloudflare 隧道/反代转发的头，使 HTTPS/host 识别正确
         $middleware->web(append: [App\Http\Middleware\TurboRedirects::class, App\Http\Middleware\CaptureUtm::class]);
+        // [!] 必须 prepend:它要排在 Authenticate 前面,否则走错主机名的请求
+        // 会先被跳到登录页。见 Middleware\AdminHost 的说明。
+        $middleware->web(prepend: [App\Http\Middleware\AdminHost::class]);
         $middleware->alias([
             'node.secret' => App\Http\Middleware\NodeSecret::class,
             'admin' => App\Http\Middleware\AdminOnly::class,
