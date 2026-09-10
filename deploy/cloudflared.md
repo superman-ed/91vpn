@@ -70,16 +70,29 @@ Zero Trust → Networks → Tunnels → **Create a tunnel** → **Cloudflared**
 
 ### 1.3 配两条 Public Hostname
 
-同一条隧道下加两条（Tunnel → Public Hostname → Add a public hostname）：
+`[!!]` Service URL 填的是 **compose 服务名**，不是 `127.0.0.1:8088` ——
+连接器就在 compose 网内。而且 nginx 里**两个 server 块分工不同**
+（ADR-008/P0 做的网络隔离，见 `docker/nginx.conf` 开头）：
+
+| nginx server | 放什么 | `/admin` |
+|---|---|---|
+| `:80` | 客户端 API / `mod_mu` / 公开页 | **一律 404** |
+| `:8080` | 后台专用入口（只放 `/login` `/logout` `/admin` + 后台静态） | 放行 |
+
+所以两条 Public Hostname 要指**不同的端口**：
 
 | Subdomain | Domain | Service Type | URL |
 |---|---|---|---|
-| `summer` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
-| `app` | `91app.shop` | **HTTP** | `127.0.0.1:8088` |
+| `summer` | `91app.shop` | **HTTP** | `http://web:8080` |
+| `app` | `91app.shop` | **HTTP** | `http://web:80` |
 
 `[!]` Service 选 **HTTP** 不是 HTTPS：容器里跑的是明文 nginx，TLS 由
 Cloudflare 到浏览器那一段负责。选 HTTPS 会让 cloudflared 用 TLS 去连一个
 没有 TLS 的端口。
+
+`[!]` 指错端口的症状：summer 指了 `web:80` → 过了 Access 也只看到 404
+（那个 server 块把 `/admin` 挡了）；app 指了 `web:8080` → 用户打不开
+`/user/*`、节点打不到 `/mod_mu`（那个 server 块把它们挡了）。
 
 DNS 记录 Cloudflare 会自动建，不用手动加。
 
@@ -93,8 +106,15 @@ Zero Trust → Access → Applications → Add an application → **Self-hosted*
 | Application domain | `summer.91app.shop` |
 | Path | **留空**（整站） |
 
-策略：Action = **Allow**，Include = **Emails** → 你的邮箱。
+策略：Action = **Allow**，Include = **Emails** → **两个管理员的邮箱都填上**。
 登录方式用 Cloudflare 自带的 **One-time PIN**，不需要额外 IdP。
+
+`[!]` Access 与面板的 `is_admin` 是**两层独立的门**，缺一个人就进不去：
+Access 放行但面板不是管理员 → 403；面板是管理员但邮箱不在 Access 名单 →
+连登录页都看不到。两边都要加。
+
+`[!]` Zero Trust 免费版 50 seats，只统计走 Access 登录的人。两个管理员
+= 2 seats。用户和节点走 `app.` 那条，不占 seat。
 
 `[!!]` **不要**给 `app.91app.shop` 建任何 Access 应用，也不要建
 `*.91app.shop` 的通配应用 —— 那会把用户和节点一起挡掉，而症状很迷惑：
@@ -124,32 +144,24 @@ UA 自称浏览器、TLS 指纹不是——这正是 Cloudflare 机器人检测�
 
 ---
 
-## 阶段 2：机器上装隧道
+## 阶段 2：隧道已由 docker compose 管理（不用装 systemd）
 
-token 拿到后，在 Claude Code 里用 `!` 开头执行（这样只经过你的 shell）：
+`[!!]` **不要**装 systemd 版的 cloudflared。本项目的 `docker-compose.yml` 里
+本来就有 `cloudflared` 服务，用 `.env` 的 `CLOUDFLARE_TUNNEL_TOKEN` 跑
+`tunnel run --token`，`restart: unless-stopped`。再装一个 systemd 服务
+等于给同一条隧道起第二个连接器 —— 两个连接器会各自注册，流量在它们之间
+随机分配，排查时"有时好有时坏"，非常难查。
 
-```
-! umask 077 && printf '%s' '<粘贴 token>' > ~/cf-91vpn-token && echo 已写入
-! sudo bash /home/dev/web/91vpn/deploy/install-tunnel.sh ~/cf-91vpn-token
-! shred -u ~/cf-91vpn-token
-```
-
-脚本做的事：建专用系统用户 `cfpanel`、token 存成 `root:cfpanel 0640`、
-用 `--token-file` 写 systemd 单元、开机自启、**以 cfpanel 身份实测一次能否
-读到 token**，最后清理旧的 `cloudflared-relaypanel` 服务与作废 token。
-
-`[!]` 用 `--token-file` 而不是 `--token`：后者会让 token 出现在进程命令行里，
-本机任何用户 `ps` 一下就拿到了这条隧道的控制权。
-
-验证：
+token 填进 `.env` 后：
 
 ```
-systemctl status cloudflared-91vpn        # active
-curl -sI https://app.91app.shop/login     # 200（用户面）
-curl -sI https://summer.91app.shop/        # 302 → Cloudflare Access 登录页
+docker compose up -d cloudflared
+docker logs 91vpn-cloudflared-1 --tail 20     # 看到 Registered tunnel connection 即可
 ```
 
----
+`[!]` 连接器跑在 **compose 网内**，所以 Public Hostname 的 Service URL 直接
+用**服务名**（`http://web:80`），不需要宿主机端口映射 —— 这也是阶段 6 能把
+`8088:80` 收掉的原因。
 
 ## 阶段 3：两个地址并存，先验证
 
