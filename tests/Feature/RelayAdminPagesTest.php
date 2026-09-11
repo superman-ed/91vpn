@@ -462,3 +462,44 @@ it('节点编辑页显示 dest 筛查结果', function () {
         ->assertSee('no_h2')          // 不通过的也要列出来,不能只显示合格的
         ->assertSee('32');
 });
+
+// ── 节点表单的减负 ──────────────────────────────────────────────────────
+//
+// `[!!]` 新建节点时最难的不是填哪个框,是【知道哪几个框要一起动】:
+// 协议/传输/TLS/flow/REALITY 是一组互相约束的选择,而选错组合【不会当场报错】——
+// 要等装完、客户端连不上才知道。预设按钮把已验证的组合一次填好,
+// 组合校验在选的时候就说出来。
+it('新建节点页有预设按钮', function () {
+    $this->actingAs(relayAdminUser())->get('/admin/nodes/create')
+        ->assertOk()
+        ->assertSee('简单节点')
+        ->assertSee('抗封锁节点')
+        ->assertSee('中转节点');
+});
+
+it('编辑已有节点时不显示预设(避免误点改掉在跑的配置)', function () {
+    $n = visibleLandingNode();
+
+    $this->actingAs(relayAdminUser())->get("/admin/nodes/{$n->id}/edit")
+        ->assertOk()->assertDontSee('先选一种，再改细节');
+});
+
+// `[!]` 筛查结果就在同一页上,还要人肉抄一遍域名是多余的一步,而手抄正是打错字的地方。
+it('有筛查结果时给出"用最优"按钮,挑的是合格且最快的那个', function () {
+    $n = Node::create([
+        'name' => 'd', 'server' => '9.9.9.9', 'port' => 443, 'type' => 'vless',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'D',
+        'role' => 'landing', 'dest_scan_at' => now(),
+        'dest_scan_result' => ['results' => [
+            ['host' => 'slow.example.edu', 'verdict' => 'pass', 'latency_ms' => 180],
+            ['host' => 'fast.example.edu', 'verdict' => 'pass', 'latency_ms' => 25],
+            ['host' => 'fastest-but-bad.example', 'verdict' => 'no_h2', 'latency_ms' => 5],
+        ]],
+    ]);
+
+    $this->actingAs(relayAdminUser())->get("/admin/nodes/{$n->id}/edit")
+        ->assertOk()
+        ->assertSee('fast.example.edu')          // 合格里最快的
+        ->assertDontSee('用最优（slow.example.edu');   // 不是最慢的
+    // 也不该挑那个更快但不合格的 —— 按钮文案里只会出现被选中的那个
+});

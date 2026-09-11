@@ -11,6 +11,29 @@
         <div class="card-header"><span class="ic"><i class="fas fa-sliders-h"></i></span><h4>基本信息</h4></div>
         <div class="card-body">
             <div class="row">
+            {{-- `[!!]` 预设:新建节点时最难的不是填哪个框,是【知道哪几个框要一起动】。
+                 协议/传输/TLS/flow/REALITY 是一组互相约束的选择 —— 选错组合不会
+                 当场报错,而是装完之后客户端连不上。这里把两种已验证的组合做成按钮。 --}}
+            @if(! $node->exists)
+            <div class="alert alert-light border mb-3" style="background:#f8f9fc">
+                <strong style="color:#34395e"><i class="fas fa-magic text-primary mr-1"></i>先选一种，再改细节</strong>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm mr-2 js-preset"
+                            data-p='{"type":"vmess","net":"tcp","tls":"0","flow":"","reality_enabled":"0"}'>
+                        简单节点<small class="d-block text-muted">VMess + TCP · 先跑通用这个</small>
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm mr-2 js-preset"
+                            data-p='{"type":"vless","net":"tcp","tls":"1","flow":"xtls-rprx-vision","reality_enabled":"1"}'>
+                        抗封锁节点<small class="d-block text-muted">VLESS + REALITY + vision · 还需填 dest</small>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm js-preset"
+                            data-p='{"port":"0","role":"relay"}'>
+                        中转节点<small class="d-block text-muted">端口 0 · 监听来自转发规则</small>
+                    </button>
+                </div>
+            </div>
+            @endif
+
                 <div class="form-group col-md-6"><label>节点名称</label><input name="name" value="{{ old('name', $node->name) }}" class="form-control" placeholder="如：香港01" required></div>
                 <div class="form-group col-md-6"><label>连接地址（中转入口域名/IP）</label><input name="server" value="{{ old('server', $node->server) }}" class="form-control" required></div>
                 <div class="form-group col-md-3"><label>端口</label><input name="port" type="number" value="{{ old('port', $node->port) }}" class="form-control" required></div>
@@ -27,7 +50,25 @@
             <div class="row">
                 <div class="form-group col-md-3"><label>Flow（VLESS）</label><select name="flow" class="form-control"><option value="" @selected(! old('flow', $node->flow))>无</option><option value="xtls-rprx-vision" @selected(old('flow', $node->flow) == 'xtls-rprx-vision')>xtls-rprx-vision</option></select></div>
                 <div class="form-group col-md-3"><label>REALITY</label><select name="reality_enabled" class="form-control"><option value="0" @selected(! old('reality_enabled', $node->usesReality()))>关闭</option><option value="1" @selected(old('reality_enabled', $node->usesReality()))>启用</option></select><small class="text-muted">仅 VLESS;启用后填 dest,密钥自动生成</small></div>
-                <div class="form-group col-md-6"><label>REALITY dest（借用真站）</label><input name="reality_dest" value="{{ old('reality_dest', $node->reality_dest) }}" class="form-control" placeholder="www.apple.com:443"></div>
+                <div class="form-group col-md-6"><label>REALITY dest（借用真站）</label>
+                    <div class="input-group">
+                        <input name="reality_dest" id="destInput" value="{{ old('reality_dest', $node->reality_dest) }}" class="form-control" placeholder="www.apple.com:443">
+                        {{-- `[!]` 筛查结果就在同一页上，还要人肉抄一遍域名是多余的一步，
+                             而手抄正是打错字的地方。挑"合格且最快"的那个填进去。 --}}
+                        @php
+                            $best = collect($node->dest_scan_result['results'] ?? [])
+                                ->where('verdict', 'pass')->sortBy('latency_ms')->first();
+                        @endphp
+                        @if($best)
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-success" id="useBest"
+                                    data-host="{{ $best['host'] }}" title="用筛查结果里合格且最快的那个">
+                                用最优（{{ $best['host'] }} {{ $best['latency_ms'] }}ms）
+                            </button>
+                        </div>
+                        @endif
+                    </div>
+                </div>
             </div>
             <div class="row">
                 <div class="form-group col-md-6"><label>REALITY server_names（SNI，逗号/换行分隔）</label><textarea name="reality_server_names" rows="2" class="form-control" placeholder="www.apple.com">{{ old('reality_server_names', is_array($node->reality_server_names) ? implode(', ', $node->reality_server_names) : '') }}</textarea></div>
@@ -143,6 +184,73 @@
     var sel = document.getElementById('netSel'), ws = document.getElementById('wsRow');
     function sync() { if (ws) ws.style.display = (sel && sel.value === 'ws') ? '' : 'none'; }
     if (sel) { sel.addEventListener('change', sync); sync(); }
+
+    var f = document.querySelector('form');
+    var get = function (n) { return f ? f.querySelector('[name="' + n + '"]') : null; };
+
+    // 预设：一次把一组互相约束的选择填好
+    document.querySelectorAll('.js-preset').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var p = JSON.parse(b.dataset.p);
+            Object.keys(p).forEach(function (k) {
+                var el = get(k);
+                if (el) { el.value = p[k]; el.dispatchEvent(new Event('change')); }
+            });
+            check();
+        });
+    });
+
+    // 一键用筛查结果里最优的那个
+    var best = document.getElementById('useBest');
+    if (best) {
+        best.addEventListener('click', function () {
+            var h = best.dataset.host;
+            get('reality_dest').value = h + ':443';
+            var sn = get('reality_server_names');
+            if (sn && !sn.value.trim()) { sn.value = h; }   // SNI 通常就是 dest 的域名
+            check();
+        });
+    }
+
+    // `[!!]` 组合校验:协议/传输/TLS/flow/REALITY 互相约束,而选错【不会当场报错】——
+    // 要等装完、客户端连不上才知道。在这里当场说出来。
+    // 规则来源:compatibility/vision-matrix.md（vision 只在 vless + tcp + tls/reality 上成立）
+    var warn = document.createElement('div');
+    warn.className = 'alert alert-warning py-2 mt-2';
+    warn.style.display = 'none';
+    if (f) { f.insertBefore(warn, f.firstChild); }
+
+    function check() {
+        var msgs = [];
+        var type = get('type'), net = get('net'), flow = get('flow'),
+            rea = get('reality_enabled'), tls = get('tls'), dest = get('reality_dest');
+        if (!type) { return; }
+        var isVless = type.value === 'vless',
+            hasFlow = flow && flow.value === 'xtls-rprx-vision',
+            hasReality = rea && rea.value === '1';
+
+        if (hasReality && !isVless) { msgs.push('REALITY 只能用在 VLESS 上'); }
+        if (hasFlow && !isVless) { msgs.push('vision 流控只能用在 VLESS 上'); }
+        if (hasFlow && net && net.value !== 'tcp') { msgs.push('vision 只在 TCP 传输上成立（ws/grpc 都不行）'); }
+        if (hasFlow && !hasReality && tls && tls.value !== '1') {
+            msgs.push('vision 需要 TLS 或 REALITY —— 两个都没开的话客户端连不上');
+        }
+        if (hasReality && dest && !dest.value.trim()) { msgs.push('启用了 REALITY 但没填 dest'); }
+        if (hasReality && tls && tls.value === '1') {
+            msgs.push('REALITY 与 TLS 是两种安全层，同时开会以 REALITY 为准 —— TLS 那项可以关掉');
+        }
+
+        warn.style.display = msgs.length ? '' : 'none';
+        warn.innerHTML = msgs.length
+            ? '<strong>这样配装完会连不上：</strong><ul class="mb-0 mt-1"><li>' + msgs.join('</li><li>') + '</li></ul>'
+            : '';
+    }
+
+    ['type', 'net', 'tls', 'flow', 'reality_enabled', 'reality_dest'].forEach(function (n) {
+        var el = get(n);
+        if (el) { el.addEventListener('change', check); el.addEventListener('input', check); }
+    });
+    check();
 })();
 </script>
 @endsection
