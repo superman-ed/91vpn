@@ -1,0 +1,99 @@
+# 06 · REALITY 上线
+
+REALITY 让节点**借用一个真实网站的 TLS 握手**：探测者主动连过来时，
+看到的是那个网站的证书与响应，而不是一个可疑的自签服务。
+
+前提：协议 `vless` + 传输 `tcp`。流控用 `xtls-rprx-vision`。
+
+## 1. 选 dest —— 这一步决定成败
+
+dest 是被借用的那个站。选错的话 REALITY 提供的伪装就是假的。
+
+### 硬判三关
+
+| 关 | 为什么 |
+|---|---|
+| TLS 1.3 | REALITY 只能借 TLS 1.3 的握手 |
+| **X25519 可协商** | 客户端普遍只提供 X25519；dest 只认 P-256 之类的话握不上 |
+| HTTP/2 | 现代站点的常态，没有 h2 反而显眼 |
+| 非 CDN | CDN 的 SNI↔IP 映射不稳定，且同一 IP 后面什么都有，反而可疑 |
+
+### 用扫描器
+
+`[!!]` **必须在目标节点上跑**：可达性与延迟是"这台机器到那个站"的关系，
+而 REALITY 握手时是落地去连 dest。在开发机上跑只能验工具本身。
+
+```bash
+bash lab/scan-real.sh --build                 # 编出静态二进制
+scp dist/destscan-linux-amd64 <节点>:/tmp/destscan
+ssh <节点> '/tmp/destscan www.a.example www.b.example ...'
+```
+
+输出会给每个候选一个判定（`pass` / `no_tls13` / `no_x25519` / `cdn` / `no_h2` / `error`）
+与延迟。
+
+`[!]` 四关全过只是**及格线**。选谁还要看：够不够冷门（用烂的站本身就是特征）、
+以及这个 SNI 出现在**客户端实际连的那一跳**的 IP 上自不自然 ——
+有中转时那一跳是中转，工具判不了这个。
+
+`[!!]` 别用 `www.samsung.com`、`www.apple.com` 这类 —— 它们是 REALITY 教程里的
+默认值，用的人太多，本身就成了特征。
+
+面板也集成了扫描：节点编辑页填候选清单，节点会在下一个周期跑一轮并回报结果。
+
+## 2. 在面板上开启
+
+节点编辑页：
+
+| 字段 | 说明 |
+|---|---|
+| 协议 | `vless` |
+| 流控 | `xtls-rprx-vision` |
+| 启用 REALITY | 勾上 |
+| dest | `mirrors.example.com:443` |
+| server_names | 通常就是 dest 的域名 |
+| 重新生成密钥 | `[!]` 勾上会换密钥对，**所有老客户端立刻连不上**，直到订阅更新 |
+
+私钥由面板生成并保存，**只下发给节点、绝不进订阅**。订阅里只有公开子集
+（public-key / short-id / servername / flow）。
+
+## 3. 节点侧
+
+不需要改 `agent.conf` —— REALITY 的权威通道是 nodeInfo 的 `custom_config`
+（见 [07](07-api-node.md)）。节点拉到新配置后会发现监听形态变了，重启内核。
+
+日志里会看到：
+
+```
+node listen config changed, restarting core  from=... to=...
+core started  port=39500 protocol=vless transport=tcp security=reality
+```
+
+`[!]` 日志里的 REALITY 私钥是**哈希后**的指纹，不是明文。
+
+## 4. 验证
+
+**面板侧**：节点列表的状态列会显示 dest 健康。
+`dest 不可达` 是个单独的标记 —— 因为：
+
+`[!!]` dest 挂掉是**静默的**：端口照常监听、节点照常显示"在线"、
+`/health` 照常 200，而没有任何客户端能完成握手。
+
+**节点侧**：
+
+```bash
+curl -s 127.0.0.1:9090/ready     # dest 连续失败到阈值时会失败
+curl -s 127.0.0.1:9090/metrics | grep reality_dest
+```
+
+**客户端侧**：拿订阅导入 Mihomo/v2rayN 连一次。连不上时先看客户端日志的
+`[Info]` 级别 —— `[!]` 很多客户端默认 `warning`，会把真正的原因藏起来。
+
+## 5. 常见失败
+
+| 现象 | 多半是 |
+|---|---|
+| 客户端握手超时 | dest 不可达，或节点端口被防火墙挡 |
+| `TLS: internal error` | 公钥/short-id 与节点不匹配（订阅没更新？刚重新生成过密钥？） |
+| 连上但立刻断 | 客户端开了 Mux/smux —— `[!!]` 对接 xray 内核的节点**一律不要开** |
+| 客户端报 flow 不匹配 | 两端 flow 必须一致，空 flow 会被拒 |

@@ -170,6 +170,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('system/crashes', [App\Http\Controllers\Admin\CrashLogController::class, 'index'])->name('admin.system.crashes');
     Route::get('system/crashes/{fingerprint}', [App\Http\Controllers\Admin\CrashLogController::class, 'show'])->name('admin.system.crashes.show');
     Route::get('system/acquisition', [App\Http\Controllers\Admin\AcquisitionController::class, 'index'])->name('admin.system.acquisition');
+    // 技术文档（sogacore/docs/guide 的副本，php artisan docs:sync 同步）
+    Route::get('docs/{slug?}', [\App\Http\Controllers\Admin\DocsController::class, 'index'])
+        ->name('admin.docs');
     Route::get('system/audit', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('admin.system.audit');
     Route::get('system/emails', [App\Http\Controllers\Admin\EmailLogController::class, 'index'])->name('admin.system.emails');
     Route::get('system/health', [App\Http\Controllers\Admin\HealthController::class, 'index'])->name('admin.system.health');
