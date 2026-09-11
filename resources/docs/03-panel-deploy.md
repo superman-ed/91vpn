@@ -28,36 +28,195 @@
 
 ## 2. Cloudflare Tunnel
 
-完整步骤见 `91vpn/deploy/cloudflared.md`。要点：
+`[!]` 本节的界面路径与每条验证命令，都是照着一次**真实迁移**记下来的
+（2026-09），并在写完后逐条重跑确认过。Cloudflare 的界面改版较勤，
+名字对不上时按"它是干什么的"去找，不要死抠字面。
 
-**两个主机名，一条隧道**：
+面板容器只绑回环，外面进不来。Cloudflare Tunnel 在这台机器和 Cloudflare
+之间建一条出站长连接，用户访问域名时由 Cloudflare 把请求从这条隧道送进来。
 
-| 主机名 | Service URL | Access |
+**好处**：不用开任何入站端口、源站 IP 不暴露、证书由 Cloudflare 管。
+
+### 2.0 前提：域名的 NS 要托管在 Cloudflare
+
+绕不开的一步。
+
+1. Cloudflare 主面板 → **Add a site** → 填你的域名 → 选 **Free**
+2. Cloudflare 给你两个 NS 地址（形如 `xxx.ns.cloudflare.com`）
+3. 到**域名注册商**（买域名的地方）把 NS 改成这两个
+4. 等生效，几分钟到几小时。验证：
+
+```bash
+dig +short NS 你的域名
+# 返回 Cloudflare 给的那两个即为生效
+```
+
+`[!]` 没生效之前，后面每一步都会以各种形式失败，先把这步坐实。
+
+### 2.1 建隧道
+
+**Zero Trust 面板**（`one.dash.cloudflare.com`，和主面板是两个地方）
+→ 左侧 **Networks** → **Tunnels** → **Create a tunnel** → 选 **Cloudflared**。
+
+- 名字随便，比如 `panel`
+- 建完会给你一条安装命令，里面 **`eyJ` 开头的那串很长的**就是**连接器 token**
+
+`[!!]` 那串 token 等于这条隧道的控制权。**别贴进聊天、工单、截图。**
+下一步直接写进 `.env`。
+
+### 2.2 把 token 交给面板
+
+```bash
+# 在面板机上
+nano .env      # 找到 CLOUDFLARE_TUNNEL_TOKEN= 这一行，粘在等号后面
+docker compose up -d cloudflared
+docker compose logs cloudflared | tail -20
+```
+
+**应该看到**：`Registered tunnel connection` 之类的行，而且容器状态是
+`running` 不再是 `restarting`。
+
+Zero Trust 的隧道列表里，那条隧道应当显示 **HEALTHY**。
+
+### 2.3 `[!!]` 找到"发布主机名"那个页面
+
+点进你那条隧道，会看到几个标签页。新版界面里它们叫：
+
+```
+Overview | CIDR routes | Hostname routes | Published application routes | Live logs
+```
+
+要点的是 **Published application routes** —— 它就是老版本里的
+**Public Hostname**，Cloudflare 改了名。
+
+`[!]` 另外两个 routes 是**私有网络**用的（给装了 WARP 客户端的设备访问内网），
+和我们要做的事无关。名字很像，很容易点错。
+
+`[!]` **Live logs** 这个标签页记一下：切换完之后如果节点或用户有问题，
+在那里能直接看到请求有没有打进来、返回什么码，比翻日志快。
+
+### 2.4 加两条路由
+
+点 **Add**（或 **Create**），加**两条**：
+
+| Subdomain | Domain | Type | URL |
+|---|---|---|---|
+| `admin` | 你的域名 | **HTTP** | `http://web:8080` |
+| `app` | 你的域名 | **HTTP** | `http://web:80` |
+
+Path 那栏填 `*` 或留空（两者等价）。
+
+**三个容易错的地方：**
+
+`[!!]` **Type 选 HTTP 不是 HTTPS。** 容器里跑的是明文 nginx，
+TLS 由 Cloudflare 到浏览器那一段负责。选 HTTPS 会让 cloudflared 用 TLS
+去连一个没有 TLS 的端口，结果是 502。
+
+`[!!]` **URL 填 compose 服务名，不是 `127.0.0.1:8088`。** 连接器跑在
+compose 网络里，`127.0.0.1` 对它来说是它自己那个容器 —— 那里什么都没有。
+用 `web:80` / `web:8080` 它才找得到。
+
+`[!!]` **两条路由指向不同端口。** nginx 的两个 server 块分工不同：
+`:8080` 是后台专用入口，`:80` 是用户面（`/admin` 在这个口上一律 404）。
+指反了的症状是：后台过了 Access 也只看到 404，或者用户打不开 `/user/*`。
+
+`[!]` **别点第二次 "Create a tunnel"。** 两条路由挂在**同一条隧道**上，
+第二条隧道意味着第二个 token、第二个连接器，纯属多余。
+
+DNS 记录 Cloudflare 会自动建，不用手动加。
+
+验证：
+
+```bash
+curl -sI https://app.你的域名/login      # 200
+curl -sI https://admin.你的域名/         # 302（下一步配了 Access 之后）
+```
+
+### 2.5 `[!!]` Access：只保护后台那个主机名
+
+Zero Trust → **Access** → **Applications** → **Add an application** → **Self-hosted**
+
+| 字段 | 填什么 |
+|---|---|
+| Application name | `panel-admin` |
+| Application domain | `admin.你的域名` |
+| Path | 留空（保护整站） |
+
+策略：**Action = Allow**，**Include = Emails** → 填管理员邮箱（**多个管理员就填多个**）。
+登录方式用 Cloudflare 自带的 **One-time PIN** 即可，不需要额外身份提供商。
+
+**绝对不要做的事：**
+
+`[!!]` **不要给 `app.你的域名` 建任何 Access 应用**，也不要建
+`*.你的域名` 这种通配应用。这个面板同时服务三类调用方：
+
+| 路径 | 谁在调 | 被 Access 挡住的后果 |
 |---|---|---|
-| `summer.<域名>`（后台） | `http://web:8080` | ✅ 整站保护 |
-| `app.<域名>`（用户+节点） | `http://web:80` | ❌ 不套 |
-
-`[!!]` **Access 绝不能套在用户面那个主机名上**。这个面板同时服务三类调用方：
-
-| 路径 | 谁在调 | 套 Access 的后果 |
-|---|---|---|
-| `/admin/*` | 管理员 | 正确 |
+| `/admin/*` | 管理员 | 正确，就该挡 |
 | `/mod_mu/*` | 节点心跳 | **所有节点失联** |
 | `/sub/*` `/api/*` | 用户与客户端 | **所有用户拉不到配置** |
 
-症状很迷惑：你从浏览器（已通过 Access）看一切正常，只有节点和用户那边"面板挂了"。
+症状非常迷惑：**你从浏览器看一切正常**（因为你已经通过了 Access），
+只有节点和用户那边"面板挂了"。
 
-`[!]` Service URL 填 **compose 服务名**（`http://web:80`），不是 `127.0.0.1:8088` ——
-连接器跑在 compose 网内，`127.0.0.1` 对它来说是它自己那个容器。
+`[!]` 如果账号里以前建过通配的 Access 应用，去 Applications 列表里确认一下
+它不会顺手罩住新主机名。
 
-### 机器人检测
+### 2.6 `[!!]` 放行机器人检测
 
-`[!!]` Agent 发的是**伪装的浏览器 UA**（复刻 soga 的行为），底下却是 Go 的 TLS 栈。
-UA 与 TLS 指纹不一致正是 Cloudflare 机器人检测抓的特征 —— 被拦的话节点收到 403，
-而你从浏览器访问一切正常。
+agent 发的是**伪装成浏览器的 User-Agent**（复刻 soga 的行为），
+底下却是 Go 的 TLS 栈。UA 说自己是 Chrome、TLS 指纹却不是 ——
+这正是 Cloudflare 机器人检测最爱抓的特征。
 
-二选一：关掉 Bot Fight Mode，或加一条 WAF Custom Rule 对
-`/mod_mu/` `/sub/` `/api/` 选 **Skip**。
+被拦的话节点收到 **403**，而你从浏览器访问一切正常。
+
+二选一：
+
+**简单做法**：主面板 → **Security** → **Bots** → 关掉 **Bot Fight Mode**。
+
+**精细做法**：主面板 → **Security** → **WAF** → **Custom rules** → 新建一条：
+
+- 表达式（用 Edit expression 粘进去）：
+
+```
+starts_with(http.request.uri.path, "/mod_mu/")
+or starts_with(http.request.uri.path, "/sub/")
+or starts_with(http.request.uri.path, "/api/")
+```
+
+- Action 选 **Skip**，勾上 Managed Rules / Bot 检测 / Rate limiting
+
+### 2.7 顺手检查
+
+| 在哪 | 看什么 |
+|---|---|
+| 主面板 → Caching → Cache Rules | 确认没有规则命中 `/sub/*` —— 订阅必须每次取新的 |
+| 主面板 → Speed → Optimization | **Rocket Loader 关掉** —— 后台的一键部署页靠 JS 轮询日志，它改写脚本加载顺序有可能弄坏 |
+| 主面板 → DNS → Records | 有废弃的旧记录就删掉（删了隧道但 DNS 还在的话，访问会返回 **530**） |
+
+### 2.8 每一步的验证命令（汇总）
+
+```bash
+dig +short NS 你的域名                          # 返回 Cloudflare 的两个 NS
+docker compose ps cloudflared                   # running（不是 restarting）
+docker logs <项目>-cloudflared-1 | grep -i registered   # 有 Registered tunnel connection
+curl -sI https://app.你的域名/login              # 200
+curl -sI https://app.你的域名/admin              # 404（公网口不放后台）
+curl -sI https://admin.你的域名/                 # 302 → cloudflareaccess.com
+curl -s https://app.你的域名/mod_mu/users?node_id=1&key=错的   # 401,不是 403
+```
+
+`[!]` 最后一条是用来区分**面板拒绝**与**Cloudflare 拒绝**的：
+401 说明请求打到了面板（只是密钥不对），403 多半是被机器人检测拦在外面了。
+
+### 2.9 换/重建隧道时
+
+删掉一条隧道**不会**自动删掉它的 DNS 记录和 Access 应用，那两样会变成悬空配置：
+
+- 悬空 DNS 记录 → 访问返回 **530**
+- 悬空 Access 应用 → 仍然会把你重定向到 `xxx.cloudflareaccess.com` 登录页
+
+重建时记得一并清理。
 
 ## 3. `.env` 关键项
 
