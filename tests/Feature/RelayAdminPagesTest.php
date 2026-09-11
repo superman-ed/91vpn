@@ -433,3 +433,32 @@ it('额度用量不随节点数增加查询次数', function () {
 
     expect($n)->toBeLessThan(15);   // 常数级；逐行查的话 8 个节点就 ~20+
 });
+
+// ── dest 筛查结果要在节点编辑页显示 ────────────────────────────────────
+//
+// `[!]` 面板集成的筛查链路:表单填候选 → 下发 scan_id → 节点跑一轮 → 回报 →
+// 存进 dest_scan_result。整条链路实测通过(06 §1),这条守的是最后一环:
+// 结果真的渲染出来。存了但页面上看不见,等于没做。
+it('节点编辑页显示 dest 筛查结果', function () {
+    $n = Node::create([
+        'name' => 'r', 'server' => '9.9.9.9', 'port' => 443, 'type' => 'vless',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'X',
+        'role' => 'landing',
+        'dest_scan_id' => 'abc-123',
+        'dest_scan_at' => now(),
+        'dest_scan_result' => ['scan_id' => 'abc-123', 'results' => [
+            ['host' => 'mirrors.example.edu', 'verdict' => 'pass', 'tls13' => true,
+             'x25519' => true, 'h2' => true, 'cdn' => false, 'key_group' => 'X25519',
+             'latency_ms' => 32],
+            ['host' => 'slow.example.org', 'verdict' => 'no_h2', 'tls13' => true,
+             'x25519' => true, 'h2' => false, 'cdn' => false, 'latency_ms' => 210],
+        ]],
+    ]);
+
+    $this->actingAs(relayAdminUser())->get("/admin/nodes/{$n->id}/edit")
+        ->assertOk()
+        ->assertSee('mirrors.example.edu')
+        ->assertSee('pass')
+        ->assertSee('no_h2')          // 不通过的也要列出来,不能只显示合格的
+        ->assertSee('32');
+});
