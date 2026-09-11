@@ -182,12 +182,41 @@ ssh -L 8088:127.0.0.1:8088 -L 18088:127.0.0.1:18088 <面板机>
 
 ## 8. 装节点
 
+### 先决条件：把 agent 二进制发布到面板
+
+不论哪种装法，节点都要从面板下载 agent。**在 sogacore 仓库所在的机器上**执行：
+
+```bash
+bash tools/publish-agent.sh /path/to/91vpn
+```
+
+**应该看到**：
+
+```
+==> 编译 linux/amd64
+==> 编译 linux/arm64
+已发布到 .../public/agent/v1：
+    agent-linux-amd64        25M
+    agent-linux-arm64        23M
+    install.sh               11K
+```
+
+`[!]` 用的是 Docker 里的 Go，**你不需要装 Go** —— 第一次会拉 `golang` 镜像，
+几分钟。
+
+验证能下载（面板起着的话）：
+
+```bash
+curl -sI <面板地址>/agent/v1/install.sh    # 应当 200
+```
+
+`[!]` 这个目录在面板仓库的 `.gitignore` 里 —— 构建产物不进版本库。
+换句话说**换台机器部署面板后要重新发布一次**。
+
 ### 方式一：后台一键部署（推荐）
 
 节点列表 →「部署」按钮 → 填 SSH 主机/端口/用户 + 私钥正文或密码。
-
-前提：面板要能提供 agent 二进制供目标机下载。把编好的二进制和 `install.sh`
-放到面板的 `public/agent/v1/`（详见 [04](04-node-deploy.md) §1）。
+面板会 SSH 进去，让目标机自己下载并安装。
 
 ### 方式二：手工
 
