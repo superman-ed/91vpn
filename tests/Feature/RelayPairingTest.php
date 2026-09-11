@@ -158,3 +158,57 @@ it('停用的出站不提示', function () {
 
     expect(implode('', pairingTexts($r->fresh('outbounds'), 'warn')))->not->toContain('UDP 关掉');
 });
+
+// ── 同一个地址上有多台落地 ──────────────────────────────────────────────
+//
+// `[!!]` 实测撞到过：一台机器上同时挂着生产落地(39500)与验证用的临时落地(39700),
+// 而查找用的是 keyBy('server') —— 后一条覆盖前一条,校验读到的是【另一台】的
+// 收头状态,报出一条与本规则无关的告警。又一个"看起来正常的错误答案"。
+// 现在按 地址:端口 精确挑。
+
+function landingAt(string $ip, int $port, ?bool $reported, bool $expected = true): Node
+{
+    return Node::create([
+        'name' => "landing-{$port}", 'server' => $ip, 'port' => $port, 'type' => 'vless',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => "L{$port}",
+        'role' => 'landing', 'accept_proxy_protocol' => $expected,
+        'reported_accept_proxy' => $reported,
+        'accept_proxy_reported_at' => $reported === null ? now()->subHour() : now(),
+    ]);
+}
+
+it('同地址多台落地时,按目标端口挑对那一台', function () {
+    // 39500 这台配对正常;39700 那台上报过期(按未知处理)
+    landingAt('9.9.9.9', 39500, reported: true);
+    landingAt('9.9.9.9', 39700, reported: null);
+
+    $r = ruleSending(2, '9.9.9.9');
+    $r->outbounds()->update(['target_port' => '39500']);
+
+    // 挑对了 39500 那台 → 配对正常 → 不该有任何 PROXY 相关告警
+    $texts = implode('', array_merge(pairingTexts($r->fresh('outbounds'), 'warn'),
+                                      pairingTexts($r->fresh('outbounds'), 'broken')));
+    expect($texts)->not->toContain('上报已过期')->not->toContain('没有**在收');
+});
+
+it('同地址多台落地但端口对不上任何一台时,说不知道而不是猜', function () {
+    landingAt('9.9.9.9', 39500, reported: true);
+    landingAt('9.9.9.9', 39700, reported: true);
+
+    $r = ruleSending(2, '9.9.9.9');
+    $r->outbounds()->update(['target_port' => '12345']);   // 谁都不是
+
+    expect(implode('', pairingTexts($r->fresh('outbounds'), 'warn')))
+        ->toContain('多台落地节点')->toContain('无法校验');
+});
+
+it('同地址只有一台时,端口对不上也按那台算', function () {
+    landingAt('9.9.9.9', 39500, reported: false);   // 落地没在收头
+
+    $r = ruleSending(2, '9.9.9.9');
+    $r->outbounds()->update(['target_port' => '39999']);
+
+    // 仍应报出"发头而落地没收"这条 broken —— 不因为端口对不上就放过
+    expect(implode('', pairingTexts($r->fresh('outbounds'), 'broken')))
+        ->toContain('没有**在收');
+});

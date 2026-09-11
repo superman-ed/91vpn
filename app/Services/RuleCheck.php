@@ -175,7 +175,9 @@ class RuleCheck
             foreach ($svc->targetsFor($o) as $dial) {
                 $host = self::hostOf($dial);
                 if ($host !== '') {
-                    $pairs[] = [$o, $host, (int) $o->send_proxy_protocol];
+                    // 端口也带上：同一个 IP 上可能有多台落地（不同端口），
+                    // 只按地址找会挑错节点。见下面的 pickLanding()。
+                    $pairs[] = [$o, $host, (int) $o->send_proxy_protocol, self::portOf($dial)];
                 }
             }
         }
@@ -189,9 +191,14 @@ class RuleCheck
         // [!!] 只认【落地角色】：中转与落地可能是同一台机器（同一个 server 地址
         // 两条节点记录）。不过滤的话 keyBy('server') 会让中转那条覆盖落地那条，
         // 于是配对校验查的是中转自己的收头状态 —— 一个看起来正常的错误答案。
-        $nodes = \App\Models\Node::whereIn('server', array_column($pairs, 1))
+        // [!!] 不能 keyBy('server')：同一个地址上可能有【多台落地】（不同端口），
+        // keyBy 会让后一条覆盖前一条，于是校验读到的是另一台的收头状态 ——
+        // 又一个"看起来正常的错误答案"。实测撞到过：一台机器上同时挂着
+        // 生产落地与验证用的临时落地，校验报的是临时那台已经过期的上报。
+        // 改为按地址分组，再用出站的目标端口去挑。
+        $byHost = \App\Models\Node::whereIn('server', array_column($pairs, 1))
             ->whereIn('role', ['landing', 'both'])
-            ->get()->keyBy('server');
+            ->get()->groupBy('server');
 
         $p = [];
         $said = [];   // 同一个 (host,问题) 只说一次
@@ -202,9 +209,18 @@ class RuleCheck
             }
         };
 
-        foreach ($pairs as [$o, $host, $send]) {
+        foreach ($pairs as [$o, $host, $send, $port]) {
             $where = ($o->pool === 'backup' ? '备池' : '主池')."出站 → {$host}";
-            $n = $nodes[$host] ?? null;
+            [$n, $ambiguous] = self::pickLanding($byHost[$host] ?? null, $port);
+
+            if ($ambiguous) {
+                // [!] 挑不出唯一一台时【说不知道】,不猜。猜错的后果是把"配对正常"
+                // 或"配对错开"这种确定性结论安在一台无关的节点上。
+                $once("ambig:{$host}", 'warn', "{$where}：这个地址上有多台落地节点，"
+                    .'而出站的目标端口对不上其中任何一台 —— 无法校验 PROXY 头配对。'
+                    .'把出站目标端口写成落地实际监听的端口即可');
+                continue;
+            }
 
             if (! $n) {
                 $once("miss:{$host}", 'warn', "{$where}：库里找不到这个地址的节点，无法校验 PROXY 头配对。"
@@ -240,6 +256,44 @@ class RuleCheck
     }
 
     /** 从 host:port 取 host（兼容 [::1]:443 这种写法）。 */
+    /**
+     * 从同地址的若干落地里挑出出站真正指向的那一台。
+     *
+     * 返回 [节点或 null, 是否歧义]。端口对得上就用那台；对不上但只有一台，
+     * 按那台算（地址写法可能与端口无关地对得上）；对不上且有多台 —— 说不知道。
+     *
+     * @param  \Illuminate\Support\Collection<int,\App\Models\Node>|null  $candidates
+     */
+    private static function pickLanding($candidates, ?int $port): array
+    {
+        if ($candidates === null || $candidates->isEmpty()) {
+            return [null, false];
+        }
+        if ($port !== null) {
+            $hit = $candidates->firstWhere('port', $port);
+            if ($hit) {
+                return [$hit, false];
+            }
+        }
+        if ($candidates->count() === 1) {
+            return [$candidates->first(), false];
+        }
+
+        return [null, true];
+    }
+
+    /** 从 dial 串里取端口，取不到返回 null。 */
+    private static function portOf(string $dial): ?int
+    {
+        $pos = str_starts_with($dial, '[') ? strpos($dial, ']:') : strrpos($dial, ':');
+        if ($pos === false) {
+            return null;
+        }
+        $p = substr($dial, $pos + (str_starts_with($dial, '[') ? 2 : 1));
+
+        return ctype_digit($p) ? (int) $p : null;
+    }
+
     private static function hostOf(string $dial): string
     {
         if (str_starts_with($dial, '[')) {
