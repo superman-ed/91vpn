@@ -9,7 +9,9 @@
              placeholder="按名称或端口搜索" style="min-width:200px">
       @if ($kw)<a href="/admin/rules" class="btn btn-sm btn-light">清除</a>@endif
     </form>
-    <a href="/admin/rules/create" class="btn adm-btn"><i class="fas fa-plus mr-1"></i>新建规则</a>
+    {{-- 向导排在前面:常见形态走它,而且它会把"落地收 PROXY 头"那一步一并做掉。 --}}
+    <a href="/admin/rules/wizard" class="btn btn-success mr-2"><i class="fas fa-magic mr-1"></i>中转链路向导</a>
+    <a href="/admin/rules/create" class="btn adm-btn"><i class="fas fa-plus mr-1"></i>新建规则（完整表单）</a>
   </div>
 </div>
 
@@ -165,7 +167,8 @@
           @elseif ($kw)
             没有匹配「{{ $kw }}」的规则。<a href="/admin/rules">清除搜索</a>
           @else
-            还没有转发规则。<a href="/admin/rules/create">新建一条</a>
+            还没有转发规则。推荐用<a href="/admin/rules/wizard">中转链路向导</a>，
+            它会把"落地收 PROXY 头"那一步一并配好 —— 那一步漏了两端都不报错。
           @endif
         </td></tr>
       @endforelse

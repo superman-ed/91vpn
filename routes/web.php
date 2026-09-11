@@ -123,6 +123,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('nodes/{node}/regenerate-secret', [AdminNodeController::class, 'regenerateSecret'])->name('admin.nodes.regenerate-secret');
     // 中转（ADR-008：从 relaypanel 并入）
     Route::get('rules', [\App\Http\Controllers\Admin\RelayRuleController::class, 'index'])->name('admin.rules.index');
+    // 中转链路向导：常见形态一次配好，并自动让落地收 PROXY 头（成对的那一步）
+    Route::get('rules/wizard', [\App\Http\Controllers\Admin\RelayWizardController::class, 'create'])->name('admin.rules.wizard');
+    Route::post('rules/wizard', [\App\Http\Controllers\Admin\RelayWizardController::class, 'store']);
     Route::get('rules/create', [\App\Http\Controllers\Admin\RelayRuleController::class, 'create'])->name('admin.rules.create');
     Route::post('rules', [\App\Http\Controllers\Admin\RelayRuleController::class, 'store'])->name('admin.rules.store');
     Route::get('rules/{rule}/edit', [\App\Http\Controllers\Admin\RelayRuleController::class, 'edit'])->name('admin.rules.edit');
