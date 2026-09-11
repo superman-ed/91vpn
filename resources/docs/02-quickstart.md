@@ -223,17 +223,24 @@ curl -sI <面板地址>/agent/v1/install.sh    # 应当 200
 在**节点机**上：
 
 ```bash
-# 把面板节点页的 secret 写进文件（不要用 --api-key，那会进 ps）
+# 把面板节点页的 secret 写进文件（不要用 --api-key，那会进 ps，同机任何用户都看得到）
 umask 077 && printf '%s' '<粘贴 secret>' > /root/node.secret
 
 curl -fsSL <面板地址>/agent/v1/install.sh -o /tmp/install.sh
 bash /tmp/install.sh \
+  --base-url <面板地址>/agent/v1 \
   --panel sspanel-uim \
   --api-url <面板地址> \
   --node-id <节点ID> \
   --api-key-file /root/node.secret \
   --server-type vmess
 ```
+
+`[!]` `--base-url` 不能省 —— 脚本靠它按本机架构（amd64/arm64）拼出下载地址。
+少了它会直接报 `缺 --binary / --binary-url / --base-url`。
+
+`[!]` 重装同一台时加 `--force-conf`，否则脚本会保留已有配置不动
+（那是刻意的:升级 agent 不该顺手改掉运维改过的配置）。
 
 **应该看到**：
 
@@ -253,11 +260,16 @@ bash /tmp/install.sh \
 
 ```bash
 systemctl is-active agent          # active
-curl -s 127.0.0.1:9090/ready       # 200（可服务）
+curl -s 127.0.0.1:9090/ready       # {"ready":true}
 journalctl -u agent -n 20 --no-pager
 ```
 
-日志里应该有 `agent started` 和 `core started`。
+日志里应该有 `agent started` 和 `core started`（后者会带上端口与协议，
+核对一下和你在面板里填的是否一致）。
+
+`[!]` 刚重启的头十几秒 `/ready` 可能返回 **503**，这是正常的 ——
+REALITY 节点要先探一次 dest 才算"可服务"。等一个周期再看；
+一直 503 才是问题（见 [09](09-ops.md)）。
 
 **在面板上**：节点列表里那台显示**在线**，心跳 60 秒内。
 
@@ -276,7 +288,7 @@ curl -sI "<面板地址>/mod_mu/nodes/<节点ID>/info?key=<secret>"
 | 返回 | 意思 |
 |---|---|
 | `200` | 通了，问题在 agent 侧，回看第 1 步 |
-| `404` | secret 不对，或 node_id 不对 |
+| `401` | secret 不对，**或** node_id 不对 —— 两种情况返回的东西一样，逐个核对 |
 | `403` | 多半是 Cloudflare 的机器人检测拦了（见 [03](03-panel-deploy.md)） |
 | 连不上 | 面板地址填错，或节点出口被墙/防火墙 |
 
