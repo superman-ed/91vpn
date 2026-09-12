@@ -97,23 +97,68 @@
     </div>
   </div>
 
+  {{-- `[!!]` 凭据按协议类型显隐。direct 出站【不需要任何凭据】——
+       它是裸端口转发，不解协议；把三个凭据框摆在那里，人会以为该填。
+       哪个类型用哪个字段，依据是 agent 的校验器
+       (domain/relay/forward.go 的 Outbound.validate)，不是猜的。 --}}
   <div class="form-row">
-    <div class="form-group col-md-3">
-      <label>凭据 UUID</label>
-      <input name="outbounds[{{ $i }}][cred_uuid]" class="form-control"
-             value="{{ $cred['uuid'] ?? '' }}">
+    <div class="out-opt col-md-3 p-0" data-when="type:vmess">
+      <div class="form-group px-2">
+        <label>凭据 UUID</label>
+        <input name="outbounds[{{ $i }}][cred_uuid]" class="form-control"
+               value="{{ $cred['uuid'] ?? '' }}">
+      </div>
     </div>
-    <div class="form-group col-md-3">
-      <label>凭据口令</label>
-      <input name="outbounds[{{ $i }}][cred_password]" class="form-control"
-             value="{{ $cred['password'] ?? '' }}">
+    <div class="out-opt col-md-3 p-0" data-when="type:trojan">
+      <div class="form-group px-2">
+        <label>凭据口令</label>
+        <input name="outbounds[{{ $i }}][cred_password]" class="form-control"
+               value="{{ $cred['password'] ?? '' }}">
+      </div>
     </div>
-    <div class="form-group col-md-2">
-      <label>ss 加密</label>
-      <input name="outbounds[{{ $i }}][cred_cipher]" class="form-control"
-             value="{{ $cred['cipher'] ?? '' }}" placeholder="aes-128-gcm">
+    <div class="out-opt col-md-5 p-0" data-when="type:ss">
+      <div class="form-row px-2">
+        <div class="form-group col-md-7">
+          <label>ss 口令</label>
+          <input name="outbounds[{{ $i }}][cred_password]" class="form-control"
+                 value="{{ $cred['password'] ?? '' }}">
+        </div>
+        <div class="form-group col-md-5">
+          <label>ss 加密</label>
+          <input name="outbounds[{{ $i }}][cred_cipher]" class="form-control"
+                 value="{{ $cred['cipher'] ?? '' }}" placeholder="aes-128-gcm">
+        </div>
+      </div>
     </div>
-    <div class="form-group col-md-4 d-flex align-items-end">
+    <div class="out-opt col-md-5 p-0" data-when="type:socks">
+      <div class="form-row px-2">
+        <div class="form-group col-md-6">
+          <label>socks 用户名（选填）</label>
+          <input name="outbounds[{{ $i }}][cred_username]" class="form-control"
+                 value="{{ $cred['username'] ?? '' }}">
+        </div>
+        <div class="form-group col-md-6">
+          <label>socks 口令（选填）</label>
+          <input name="outbounds[{{ $i }}][cred_password]" class="form-control"
+                 value="{{ $cred['password'] ?? '' }}">
+        </div>
+      </div>
+    </div>
+    <div class="out-opt col-md-5 p-0" data-when="type:http">
+      <div class="form-row px-2">
+        <div class="form-group col-md-6">
+          <label>http 用户名（选填）</label>
+          <input name="outbounds[{{ $i }}][cred_username]" class="form-control"
+                 value="{{ $cred['username'] ?? '' }}">
+        </div>
+        <div class="form-group col-md-6">
+          <label>http 口令（选填）</label>
+          <input name="outbounds[{{ $i }}][cred_password]" class="form-control"
+                 value="{{ $cred['password'] ?? '' }}">
+        </div>
+      </div>
+    </div>
+    <div class="form-group col-md-4 ml-auto d-flex align-items-end">
       <button type="button" class="btn btn-outline-danger rm-out mb-3">删除这一行</button>
     </div>
   </div>

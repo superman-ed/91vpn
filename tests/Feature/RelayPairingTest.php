@@ -212,3 +212,38 @@ it('同地址只有一台时,端口对不上也按那台算', function () {
     expect(implode('', pairingTexts($r->fresh('outbounds'), 'broken')))
         ->toContain('没有**在收');
 });
+
+// ── 出站凭据 ────────────────────────────────────────────────────────────
+//
+// `[!!]` socks5 的认证是【用户名/口令成对】的,只有口令没法认证。
+// agent 侧 Credential.Username 一直支持,而面板控制器漏读了 ——
+// 表单填了会被静默丢掉,人会以为配上了。加字段显隐时发现的。
+it('出站凭据保留 socks 的用户名', function () {
+    $relay = Node::create([
+        'name' => 'r', 'server' => '1.2.3.4', 'port' => 0, 'type' => 'vmess', 'net' => 'tcp',
+        'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'R', 'role' => 'relay',
+    ]);
+    $admin = \App\Models\User::factory()->create(['is_admin' => true]);
+    $r = ForwardRule::create([
+        'name' => 'socks 出站', 'enabled' => true, 'listen_port' => '30001',
+        'inbound_node_set' => [$relay->id], 'inbound_type' => 'direct',
+        'balance' => 'roundrobin', 'backup_balance' => 'fallback', 'hc_enabled' => false,
+    ]);
+
+    $this->actingAs($admin)->put("/admin/rules/{$r->id}", [
+        'name' => 'socks 出站', 'enabled' => 1, 'speed_limit' => 0,
+        'inbound_type' => 'direct', 'inbound_node_set' => [$relay->id],
+        'listen_port' => '30001', 'balance' => 'roundrobin', 'backup_balance' => 'fallback',
+        'hc_enabled' => 0, 'hc_interval_sec' => 30, 'hc_max_fail' => 3, 'hc_max_success' => 2,
+        'outbounds' => [[
+            'pool' => 'primary', 'enabled' => 1, 'weight' => 1, 'out_type' => 'socks',
+            'target_addr' => '9.9.9.9', 'target_port' => '1080',
+            'cred_username' => 'alice', 'cred_password' => 'secret',
+            'trusted_transit' => 1,
+        ]],
+    ]);
+
+    $cred = $r->fresh('outbounds')->outbounds->first()->out_cred;
+    expect($cred['username'] ?? null)->toBe('alice');
+    expect($cred['password'] ?? null)->toBe('secret');
+});

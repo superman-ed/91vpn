@@ -503,3 +503,25 @@ it('有筛查结果时给出"用最优"按钮,挑的是合格且最快的那个'
         ->assertDontSee('用最优（slow.example.edu');   // 不是最慢的
     // 也不该挑那个更快但不合格的 —— 按钮文案里只会出现被选中的那个
 });
+
+// ── 出站表单按协议类型精简 ──────────────────────────────────────────────
+//
+// `[!!]` 出站表单 22 个字段【全部同时显示】,而 direct 出站(最常用)真正需要的
+// 只有 4 个。把三个凭据框摆在那里,人会以为该填 —— 而 direct 是裸端口转发,
+// 不解协议,一个凭据都不需要。
+// 显隐的依据是 agent 的校验器(domain/relay/forward.go 的 Outbound.validate),
+// 不是猜的。
+it('出站的凭据字段带类型标记,前端据此显隐', function () {
+    $n = pageRelayNode();
+    $r = pageRule($n);
+
+    $html = $this->actingAs(relayAdminUser())->get("/admin/rules/{$r->id}/edit")
+        ->assertOk()->getContent();
+
+    // 每种协议的凭据块都标了自己属于哪个类型
+    foreach (['type:vmess', 'type:trojan', 'type:ss', 'type:socks', 'type:http'] as $marker) {
+        expect($html)->toContain('data-when="'.$marker.'"');
+    }
+    // 而 direct 【没有】任何凭据块 —— 它不解协议
+    expect($html)->not->toContain('data-when="type:direct"');
+});

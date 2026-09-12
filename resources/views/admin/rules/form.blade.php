@@ -395,15 +395,20 @@ document.addEventListener('click', e => {
 // [!] 只是显示与否，【不清空值】—— 从 reality 切走再切回来，填过的
 // dest / server_names 还在。真正决定下发内容的是服务端：控制器只把
 // 当前形态用得上的块写进库，多余的块不会跟着下发。
-function syncOpts(scope, transportSel, securitySel, boxSel) {
+// `[!]` 第三个维度 type：出站的凭据字段按协议类型显隐（direct 一个都不要）。
+// 入站那边没有 typeSel，传 null 即可。
+function syncOpts(scope, transportSel, securitySel, boxSel, typeSel) {
   const t = scope.querySelector(transportSel), s = scope.querySelector(securitySel);
+  const y = typeSel ? scope.querySelector(typeSel) : null;
   const tv = t ? t.value || 'tcp' : 'tcp', sv = s ? s.value || 'none' : 'none';
+  const yv = y ? y.value || 'direct' : '';
   let shown = 0;
   scope.querySelectorAll(boxSel).forEach(box => {
     const [kind, want] = box.dataset.when.split(':');
-    const on = (kind === 'transport' ? tv : sv) === want;
+    const cur = kind === 'transport' ? tv : (kind === 'security' ? sv : yv);
+    const on = cur === want;
     box.style.display = on ? '' : 'none';
-    if (on) shown++;
+    if (on && kind !== 'type') shown++;   // type 块不计入"传输/安全层有没有参数要填"
   });
   return shown;
 }
@@ -416,7 +421,7 @@ function syncInbound() {
 }
 
 function syncOutbound(row) {
-  syncOpts(row, '[name$="[out_transport]"]', '[name$="[out_security]"]', '.out-opt');
+  syncOpts(row, '[name$="[out_transport]"]', '[name$="[out_security]"]', '.out-opt', '[name$="[out_type]"]');
 }
 
 function syncAll() {
@@ -427,7 +432,7 @@ function syncAll() {
 document.addEventListener('change', e => {
   if (e.target.matches('[name=inbound_transport],[name=inbound_security]')) syncInbound();
   const row = e.target.closest('.out-row');
-  if (row && e.target.matches('[name$="[out_transport]"],[name$="[out_security]"]')) syncOutbound(row);
+  if (row && e.target.matches('[name$="[out_transport]"],[name$="[out_security]"],[name$="[out_type]"]')) syncOutbound(row);
 });
 document.getElementById('addOut').addEventListener('click', () => setTimeout(syncAll, 0));
 syncAll();

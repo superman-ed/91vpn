@@ -455,6 +455,10 @@ class RelayRuleController extends \App\Http\Controllers\Controller
     {
         $c = array_filter([
             'uuid' => $row['cred_uuid'] ?? null,
+            // [!] username:socks5 的认证是【用户名/口令成对】的,只有口令没法认证。
+            // agent 侧 Credential.Username 一直支持,而这里漏读了 —— 表单填了也会
+            // 被静默丢掉,比不给这个框更糟(人会以为配上了)。
+            'username' => $row['cred_username'] ?? null,
             'password' => $row['cred_password'] ?? null,
             'cipher' => $row['cred_cipher'] ?? null,
         ], fn ($v) => $v !== null && $v !== '');
