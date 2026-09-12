@@ -525,3 +525,26 @@ it('出站的凭据字段带类型标记,前端据此显隐', function () {
     // 而 direct 【没有】任何凭据块 —— 它不解协议
     expect($html)->not->toContain('data-when="type:direct"');
 });
+
+// `[!!]` 中转监控页曾整页 500：`"规则 #$rid（已删除）"` 里变量后面紧跟全角括号，
+// 而 PHP 的变量名规则允许 \x80-\xff，于是 `$rid（已删除）` 被整个当成变量名。
+// 触发条件是**流量记录指向一条已删除的规则** —— 正常路径下不会走到那个分支，
+// 所以之前"带数据渲染"的用例也没抓到。
+it('中转监控页在流量指向已删除规则时仍能渲染', function () {
+    $n = pageRelayNode();
+    \App\Models\NodeNetTraffic::create([
+        'node_id' => $n->id, 'date' => today()->toDateString(),
+        'up' => 1024 ** 3, 'down' => 2 * 1024 ** 3,
+    ]);
+    // `[!]` 触发那一支的是【上游状态】表,不是流量表 —— 监控页的规则名循环
+    // 来自 rule_outbound_status。第一版造错了表,页面照常 200 而断言落空。
+    \App\Models\RuleOutboundStatus::create([
+        'rule_id' => 99999, 'node_id' => $n->id, 'tag' => 'out-0',
+        'dial' => '9.9.9.9:443', 'backup' => false, 'alive' => true, 'live' => 3,
+        'reported_at' => now(),
+    ]);
+
+    $this->actingAs(relayAdminUser())->get('/admin/relay/monitor')
+        ->assertOk()
+        ->assertSee('已删除');     // 兜底文案真的渲染出来了
+});

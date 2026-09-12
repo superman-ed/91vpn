@@ -34,7 +34,12 @@
   <div class="card adm-panel mb-3">
     <div class="card-header px-4 py-3 border-0">
       <h4 class="mb-0" style="font-size:15px;font-weight:700;color:#34395e">
-        {{ $ruleNames[$rid] ?? "规则 #$rid（已删除）" }}
+        {{-- `[!!]` 变量后面紧跟全角标点时必须用 {$var} 界定。
+             PHP 的变量名规则允许 \x80-\xff，所以 "#$rid（已删除）" 里的
+             `$rid（已删除）` 会被【整个】当成变量名 —— 结果是
+             Undefined variable $rid（已删除），整页 500。
+             同一个坑 RuleCheck.php 顶部记过一次，没传到这里。 --}}
+        {{ $ruleNames[$rid] ?? "规则 #{$rid}（已删除）" }}
         <span class="hint" style="font-weight:400">@ {{ $nodeNames[$nid] ?? "#$nid" }}</span>
         @if ($src)
           <span class="adm-pill info ml-2">{{ $src->n }} 个在线来源</span>
