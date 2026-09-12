@@ -132,12 +132,35 @@ class SubscriptionService
             'proxies' => $proxies,
         ];
 
-        // 处理 proxy-groups：把 __inject_all_nodes 的组填上全部节点名
+        // 处理 proxy-groups。两种占位：
+        //   __inject_all_nodes  → 填全部节点名
+        //   __inject_auto_first → 填 [自动选择, 故障转移, ...全部节点名]
+        //
+        // `[!!]` 没有节点时,url-test / fallback 这两个【自动组必须整个去掉】——
+        // Clash 里一个 proxies 为空的 url-test 组会让整份配置加载失败,
+        // 而用户看到的只是"订阅导入失败",查不到原因。
+        // 这种情况真实存在:新用户等级 0 而所有节点都设了门槛。
+        $hasNodes = $nodeNames !== [];
+        $autoNames = [];
         $groups = [];
         foreach ($template['proxy-groups'] as $group) {
+            $isAuto = ($group['__inject_all_nodes'] ?? false) === true
+                && in_array($group['type'] ?? '', ['url-test', 'fallback'], true);
+            if ($isAuto && ! $hasNodes) {
+                continue;   // 无节点：整组丢弃，不是填 DIRECT
+            }
             if (($group['__inject_all_nodes'] ?? false) === true) {
                 unset($group['__inject_all_nodes']);
                 $group['proxies'] = $nodeNames ?: ['DIRECT'];
+                if ($isAuto) {
+                    $autoNames[] = $group['name'];
+                }
+            }
+            if (($group['__inject_auto_first'] ?? false) === true) {
+                unset($group['__inject_auto_first']);
+                // `[!]` 自动组排在最前 = 客户端默认选中它。
+                // 什么都不做的用户得到的是会自愈的那条；想钉住某个节点的照样能选。
+                $group['proxies'] = array_merge($autoNames, $nodeNames ?: ['DIRECT']);
             }
             $groups[] = $group;
         }

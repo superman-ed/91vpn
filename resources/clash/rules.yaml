@@ -1,9 +1,35 @@
 # Clash 分流规则模板(SubscriptionService 注入 proxies 后拼接)
 # 7 策略组 + 完整规则库,整理自 socloud 真站现网 Clash 订阅(2026-08-27),结构与真站一致。
 proxy-groups:
+  # `[!!]` 「自动选择」排在第一位,且是 Proxy 组的默认项 —— 这是为了【恢复速度】,
+  # 不是为了测速好看。
+  #
+  # 中转是用户直连的那一跳,它挂了【没有任何服务端组件能替用户改道】:
+  # 面板能做的只是"不再发给下次拉订阅的人",而客户端默认 24 小时才更新订阅。
+  # 所以中转的"自动摘除"最终只能靠客户端 —— url-test 把恢复从【小时级】
+  # 变成【秒级】,而且不依赖用户做任何事。
+  #
+  # `[!]` 它【不改变被封概率】,只缩短恢复时间。这两件事要分开说。
+  - name: 自动选择
+    type: url-test
+    url: http://cp.cloudflare.com/generate_204
+    interval: 300          # 5 分钟一轮;太频繁会给节点添无谓的探测流量
+    tolerance: 50          # 差距 50ms 以内不切,免得在两个相近节点间来回抖
+    lazy: true             # 没有流量时不测,省掉空转
+    __inject_all_nodes: true
+  # `[!]` 故障转移:按顺序取第一个可用的,不看速度。
+  # 与 url-test 的区别是"稳"优先于"快" —— 留给愿意固定走某条线的人。
+  - name: 故障转移
+    type: fallback
+    url: http://cp.cloudflare.com/generate_204
+    interval: 300
+    lazy: true
+    __inject_all_nodes: true
+  # `[!]` Proxy 仍是 select,但默认项是「自动选择」——
+  # 想手动钉住某个节点的人照样可以选,而什么都不做的人得到的是会自愈的那条。
   - name: Proxy
     type: select
-    __inject_all_nodes: true   # 占位:SubscriptionService 替换为全部节点名
+    __inject_auto_first: true   # 占位:自动选择 / 故障转移 / 全部节点名
   - name: 国际流媒体
     type: select
     proxies: [Proxy]
