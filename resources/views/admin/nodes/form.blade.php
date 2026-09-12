@@ -27,7 +27,7 @@
                         抗封锁节点<small class="d-block text-muted">VLESS + REALITY + vision · 还需填 dest</small>
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm js-preset"
-                            data-p='{"port":"0","role":"relay"}'>
+                            data-p='{"port":"0","role":"relay","type":"vmess","net":"tcp","tls":"0","flow":"","reality_enabled":"0"}'>
                         中转节点<small class="d-block text-muted">端口 0 · 监听来自转发规则</small>
                     </button>
                 </div>
