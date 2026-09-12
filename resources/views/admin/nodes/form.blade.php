@@ -48,9 +48,9 @@
 
             {{-- VLESS 现代抗封:flow(vision) + REALITY + PROXY 头。仅 VLESS 有意义;VMess 忽略。 --}}
             <div class="row">
-                <div class="form-group col-md-3"><label>Flow（VLESS）</label><select name="flow" class="form-control"><option value="" @selected(! old('flow', $node->flow))>无</option><option value="xtls-rprx-vision" @selected(old('flow', $node->flow) == 'xtls-rprx-vision')>xtls-rprx-vision</option></select></div>
-                <div class="form-group col-md-3"><label>REALITY</label><select name="reality_enabled" class="form-control"><option value="0" @selected(! old('reality_enabled', $node->usesReality()))>关闭</option><option value="1" @selected(old('reality_enabled', $node->usesReality()))>启用</option></select><small class="text-muted">仅 VLESS;启用后填 dest,密钥自动生成</small></div>
-                <div class="form-group col-md-6"><label>REALITY dest（借用真站）</label>
+                <div class="form-group col-md-3" data-when="vless"><label>Flow（VLESS）</label><select name="flow" class="form-control"><option value="" @selected(! old('flow', $node->flow))>无</option><option value="xtls-rprx-vision" @selected(old('flow', $node->flow) == 'xtls-rprx-vision')>xtls-rprx-vision</option></select></div>
+                <div class="form-group col-md-3" data-when="vless"><label>REALITY</label><select name="reality_enabled" class="form-control"><option value="0" @selected(! old('reality_enabled', $node->usesReality()))>关闭</option><option value="1" @selected(old('reality_enabled', $node->usesReality()))>启用</option></select><small class="text-muted">仅 VLESS;启用后填 dest,密钥自动生成</small></div>
+                <div class="form-group col-md-6" data-when="reality"><label>REALITY dest（借用真站）</label>
                     <div class="input-group">
                         <input name="reality_dest" id="destInput" value="{{ old('reality_dest', $node->reality_dest) }}" class="form-control" placeholder="www.apple.com:443">
                         {{-- `[!]` 筛查结果就在同一页上，还要人肉抄一遍域名是多余的一步，
@@ -71,8 +71,8 @@
                 </div>
             </div>
             <div class="row">
-                <div class="form-group col-md-6"><label>REALITY server_names（SNI，逗号/换行分隔）</label><textarea name="reality_server_names" rows="2" class="form-control" placeholder="www.apple.com">{{ old('reality_server_names', is_array($node->reality_server_names) ? implode(', ', $node->reality_server_names) : '') }}</textarea></div>
-                <div class="form-group col-md-3"><label>重新生成密钥</label><select name="reality_regen" class="form-control"><option value="0">否（保留现有）</option><option value="1">是（换新密钥对）</option></select><small class="text-danger">换新后旧订阅立即失效,客户端报 x509 证书错(非证书问题),须公告全员刷新订阅</small></div>
+                <div class="form-group col-md-6" data-when="reality"><label>REALITY server_names（SNI，逗号/换行分隔）</label><textarea name="reality_server_names" rows="2" class="form-control" placeholder="www.apple.com">{{ old('reality_server_names', is_array($node->reality_server_names) ? implode(', ', $node->reality_server_names) : '') }}</textarea></div>
+                <div class="form-group col-md-3" data-when="reality"><label>重新生成密钥</label><select name="reality_regen" class="form-control"><option value="0">否（保留现有）</option><option value="1">是（换新密钥对）</option></select><small class="text-danger">换新后旧订阅立即失效,客户端报 x509 证书错(非证书问题),须公告全员刷新订阅</small></div>
                 <div class="form-group col-md-3"><label>接受 PROXY 头</label><select name="accept_proxy_protocol" class="form-control"><option value="0" @selected(! old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>关闭</option><option value="1" @selected(old('accept_proxy_protocol', $node->accept_proxy_protocol ?? false))>开启（落地在中转后面时）</option></select><small class="text-muted">开了必须防火墙只放行中转 IP</small></div>
             </div>
             {{-- 角色与额度（ADR-008：中转并入后，这两项必须能在后台设置。
@@ -94,10 +94,10 @@
             </div>
 
             <div class="row">
-                <div class="form-group col-md-8"><label>dest 候选清单（换行/逗号分隔，节点上筛查）</label>
+                <div class="form-group col-md-8" data-when="reality"><label>dest 候选清单（换行/逗号分隔，节点上筛查）</label>
                     <textarea name="dest_scan_candidates" rows="3" class="form-control" placeholder="www.a.example&#10;www.b.example">{{ old('dest_scan_candidates', $node->dest_scan_candidates) }}</textarea>
                     <small class="text-muted">保存后由【该节点】去扫（可达与延迟是节点到那个站的关系，面板扫没有意义）。内容不变不会重扫。</small></div>
-                <div class="form-group col-md-4"><label>强制重扫（清单没变时）</label>
+                <div class="form-group col-md-4" data-when="reality"><label>强制重扫（清单没变时）</label>
                     <select name="dest_scan_rerun" class="form-control"><option value="0">否</option><option value="1">是</option></select>
                     <small class="text-muted">节点两轮之间最少间隔 15 分钟。</small></div>
             </div>
@@ -201,6 +201,7 @@
                 if (el) { el.value = p[k]; el.dispatchEvent(new Event('change')); }
             });
             check();
+            toggle();
         });
     });
 
@@ -250,11 +251,30 @@
             : '';
     }
 
+    // 渐进显示:不相关的字段藏起来,只看这次配置真正用得上的。
+    // data-when="vless"  → type=vless 才显示(Flow / REALITY 开关)
+    // data-when="reality"→ 启用了 REALITY 才显示(dest / server_names / 重新生成密钥 / dest 扫描候选)
+    // accept_proxy 不带 data-when —— 它协议无关(vmess 落地挂中转也要收头),始终显示。
+    function toggle() {
+        var type = get('type'), rea = get('reality_enabled');
+        var isVless = type && type.value === 'vless';
+        var reaOn = isVless && rea && rea.value === '1';
+        (f || document).querySelectorAll('[data-when]').forEach(function (el) {
+            var w = el.getAttribute('data-when');
+            var show = (w === 'vless' && isVless) || (w === 'reality' && reaOn);
+            el.style.display = show ? '' : 'none';
+        });
+    }
+
     ['type', 'net', 'tls', 'flow', 'reality_enabled', 'reality_dest'].forEach(function (n) {
         var el = get(n);
-        if (el) { el.addEventListener('change', check); el.addEventListener('input', check); }
+        if (el) {
+            el.addEventListener('change', function () { check(); toggle(); });
+            el.addEventListener('input', function () { check(); toggle(); });
+        }
     });
     check();
+    toggle();
 })();
 </script>
 @endsection

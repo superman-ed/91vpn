@@ -72,3 +72,13 @@ it('允许 vless+vision+tcp+tls 的合法组合', function () {
     ])->assertRedirect('/admin/nodes');
     expect(Node::where('name', 'ok-vision')->first()?->flow)->toBe('xtls-rprx-vision');
 });
+
+// #2 渐进显示:表单按类型/协议隐藏不相关字段(实际显隐是前端 JS,这里守
+// 标记与脚本没在改动里掉队 —— 标记没了,字段就永远藏着或永远露着)。
+it('节点表单带渐进显示的标记和脚本', function () {
+    $html = $this->actingAs($this->admin)->get('/admin/nodes/create')->assertOk()->getContent();
+    // vless 专属(Flow / REALITY 开关)与 reality 专属(dest / 扫描候选)两组标记都在
+    expect($html)->toContain('data-when="vless"')->toContain('data-when="reality"');
+    // 显隐函数与"加载即先算一次"都在,否则打开页面时初始状态是错的
+    expect($html)->toContain('function toggle()');
+});
