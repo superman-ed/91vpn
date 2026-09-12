@@ -200,6 +200,39 @@ class Node extends Model
     }
 
     /**
+     * 与本节点共用同一个 REALITY dest 的其它节点。
+     *
+     * `[!!]` dest 共用有【两重】后果，它们相互独立、后果也不同：
+     *
+     * **① 关联风险（更要紧）**：我们要求 dest 非 CDN，而一个非 CDN 的站
+     * 正常只有一两个 IP。若十台落地都声称自己是 `mirrors.example.edu`，
+     * 那本身就是异常模式 —— 识别或封禁其中一个，就顺藤摸到全部。
+     * **一次识别全灭。**
+     *
+     * **② 负载叠加**：REALITY 每条用户新连接都要连一次 dest
+     * （`compatibility/dest-latency.md`，严格 1:1）。L 台落地共用一个 dest 时，
+     * 它承受的是 `Σ C_i` 而不是单台的 C。所以 dest 的容量评价有两个维度：
+     * **单落地** 与 **总量** —— 而扫描器只能从一台落地的视角看。
+     *
+     * `[!]` 只算落地类角色：中转不跑 REALITY，它的 reality_dest 没有意义。
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int,Node>
+     */
+    public function sharingDest()
+    {
+        if (! $this->usesReality() || (string) $this->reality_dest === '') {
+            return new \Illuminate\Database\Eloquent\Collection;
+        }
+
+        return static::query()
+            ->where('reality_dest', $this->reality_dest)
+            ->whereIn('role', ['landing', 'both'])
+            ->where('id', '!=', $this->id)
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
      * 能出现在【用户面前】的节点 —— 订阅、节点列表页、客户端 API 都走这个。
      *
      * [decided] D-1 的展示面：中转/跳板/入口不认证用户，用户也【连不上它们】——

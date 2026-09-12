@@ -131,12 +131,21 @@
                     是<strong>及格线不是推荐</strong>：还要挑够冷门、且对<strong>客户端实际连的那一跳</strong>（有中转时是中转）自然的。
                     ⚠️ error 表示<strong>节点连不上</strong>，不等于该站不合格。</small>
             </div></div>
-            @php $same = \App\Models\Node::where('reality_dest', $node->reality_dest)
-                    ->where('id', '!=', $node->id)->where('reality_dest', '!=', '')->pluck('name'); @endphp
-            @if($node->reality_dest && $same->isNotEmpty())
+            {{-- `[!]` 复用 Node::sharingDest()，与诊断页同一份逻辑 ——
+                 原来这里是就地写的查询，和别处各自漂移只是时间问题。 --}}
+            @php $same = $node->exists ? $node->sharingDest() : collect(); @endphp
+            @if($same->isNotEmpty())
             <div class="row"><div class="form-group col-md-12">
-                <div class="alert alert-warning mb-0">这个 dest 还被 <strong>{{ $same->count() }}</strong> 个节点用着（{{ $same->take(5)->implode('、') }}）——
-                    dest 撞车意味着<strong>一次识别全灭</strong>，建议各节点用不同的。</div>
+                <div class="alert alert-warning mb-0">
+                    这个 dest 还被 <strong>{{ $same->count() }}</strong> 台落地用着（{{ $same->take(5)->pluck('name')->implode('、') }}）：
+                    <ul class="mb-0 mt-1" style="font-size:13px">
+                        <li><strong>一次识别全灭</strong> —— 我们要求 dest 非 CDN，而非 CDN 的站正常只有一两个 IP；
+                            多台落地都声称是同一个站，本身就是异常模式</li>
+                        <li><strong>负载叠加</strong> —— 每条用户新连接都要连一次 dest，
+                            共用时它承受的是这几台之和</li>
+                    </ul>
+                    建议各节点用不同的 dest。
+                </div>
             </div></div>
             @endif
             @endif

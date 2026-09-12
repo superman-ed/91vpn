@@ -53,6 +53,11 @@
                 <td>@if($n->online)<span class="adm-pill ok">在线</span>@else<span class="adm-pill danger">离线</span>@endif
                     {{-- `[!!]` dest 失效是【静默】的:端口照常监听、这里照常显示"在线",
                          而没有任何客户端能完成握手。所以 dest 挂了必须单独标出来。 --}}
+                    {{-- `[!]` dest 共用要在列表上看得见:逐个点进去才发现"撞车"
+                         的话,撞了也不会有人发现。 --}}
+                    @if(($destShared[$n->reality_dest] ?? 0) > 1)
+                        <span class="adm-pill warn" title="{{ $n->reality_dest }} 被 {{ $destShared[$n->reality_dest] }} 台落地共用 —— 一次识别全灭，且负载叠加">dest 撞车 ×{{ $destShared[$n->reality_dest] }}</span>
+                    @endif
                     @if($n->destHealth() === 'ok' && $n->reported_dest_degraded)
                         {{-- `[!]` 劣化:每一项检查都绿,而每条用户新连接都在多付时间。 --}}
                         <span class="adm-pill warn" title="{{ $n->reported_dest }} 探测时延中位 {{ $n->reported_dest_latency_ms }}ms —— 加在每条用户新连接上">dest 变慢 {{ $n->reported_dest_latency_ms }}ms</span>

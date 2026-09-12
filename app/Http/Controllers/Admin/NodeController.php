@@ -24,6 +24,9 @@ class NodeController extends Controller
             // 那个方法自己查一次库，视图里再显示一次用量又是一次 —— 12 个设了
             // 额度的节点就多 24 次查询（实测 5 → 29）。节点表本来只要 5 次。
             'periodBytes' => $this->periodBytesFor($nodes),
+            // [!] 一次算完哪些 dest 被多台落地共用。视图里逐行 sharingDest()
+            // 会变成 O(节点数) 次查询 —— 与额度那一列同一个教训。
+            'destShared' => $this->sharedDests($nodes),
             'nodes' => $nodes,
             'todayByNode' => $todayByNode,
             'totalByNode' => $totalByNode,
@@ -37,6 +40,32 @@ class NodeController extends Controller
      * @param  \Illuminate\Support\Collection<int,Node>  $nodes
      * @return array<int,array<int,string>>  landing node id => [中转 server IP...]
      */
+    /**
+     * 哪些 dest 被多于一台落地用着 —— 返回 dest => 用它的落地数。
+     *
+     * `[!!]` 共用有两重后果：① 关联风险（非 CDN 的站正常只有一两个 IP，
+     * 多台落地都声称是同一个站本身就异常，识别一台就摸到全部）；
+     * ② 负载叠加（每条用户新连接都要连一次 dest，共用时承受的是几台之和）。
+     *
+     * @param  \Illuminate\Support\Collection<int,Node>  $nodes
+     * @return array<string,int>
+     */
+    private function sharedDests($nodes): array
+    {
+        $counts = [];
+        foreach ($nodes as $n) {
+            if (! $n->usesReality() || (string) $n->reality_dest === '') {
+                continue;
+            }
+            if (! in_array($n->role, ['landing', 'both'], true)) {
+                continue;   // 中转不跑 REALITY，它的 reality_dest 没有意义
+            }
+            $counts[$n->reality_dest] = ($counts[$n->reality_dest] ?? 0) + 1;
+        }
+
+        return array_filter($counts, fn ($c) => $c > 1);
+    }
+
     /**
      * 每台节点在【它自己的计费周期内】的整机网卡用量，一次查完。
      *

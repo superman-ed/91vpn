@@ -33,6 +33,7 @@ class NodeDiagnosis
             [$this->port($node)],
             [$this->dest($node)],
             [$this->pairing($node)],
+            [$this->sharedDest($node)],
             [$this->visibility($node)],
         )));
     }
@@ -174,6 +175,35 @@ class NodeDiagnosis
                 ? '面板配了收头，而节点【实际没在收】 —— 中转发来的连接会全断，'
                     .'且两侧都不报错。节点可能还没拉到新配置，或内核没重启'
                 : '面板没配收头，而节点【实际在收】 —— 直连客户端会被全部拒绝');
+    }
+
+    /**
+     * dest 是不是被多台落地共用。
+     *
+     * `[!!]` 两重后果，独立且不同：
+     * ① 关联风险 —— 非 CDN 的站正常只有一两个 IP，多台落地都声称是同一个站
+     *    本身就是异常模式，识别一个就顺藤摸到全部
+     * ② 负载叠加 —— 每条用户新连接都要连一次 dest（严格 1:1），
+     *    共用时那个 dest 承受的是几台之和
+     */
+    private function sharedDest(Node $node): ?array
+    {
+        if (! $node->usesReality()) {
+            return null;
+        }
+        $others = $node->sharingDest();
+        if ($others->isEmpty()) {
+            return $this->x('ok', 'dest 独占', "{$node->reality_dest} 只有本节点在用");
+        }
+        $names = $others->take(4)->pluck('name')->implode('、')
+            .($others->count() > 4 ? " 等 {$others->count()} 个" : '');
+
+        return $this->x('warn', 'dest 共用',
+            "{$node->reality_dest} 还被 {$others->count()} 台落地用着（{$names}）—— "
+            .'两重后果：① 我们要求 dest 非 CDN，而非 CDN 的站正常只有一两个 IP，'
+            .'多台落地都声称是同一个站本身就异常，**识别一台就顺藤摸到全部**；'
+            .'② 每条用户新连接都要连一次 dest，共用时它承受的是几台之和。'
+            .'建议各节点用不同的 dest');
     }
 
     /** 用户能不能看到它、经由哪条路。 */
