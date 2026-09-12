@@ -247,3 +247,47 @@ it('出站凭据保留 socks 的用户名', function () {
     expect($cred['username'] ?? null)->toBe('alice');
     expect($cred['password'] ?? null)->toBe('secret');
 });
+
+// ── 中转不该承担 REALITY 的 dest 连接 ──────────────────────────────────
+//
+// `[decided]` dest 归【落地】。这不是架构洁癖 —— 我们整套 dest 可观测性
+// (节点探针 / 劣化告警 / CPS 计量 / 面板的健康与共用检测 / 一键诊断)
+// 【全部只看 nodes.reality_dest】,不看转发规则里的那份。
+// 于是中转上的 REALITY dest 会照常每条连接连一次、照常会挂,
+// 而没有任何一处看得见它 —— 挂掉时表现只是"这条中转莫名其妙不通了"。
+it('中转入站配 REALITY 时警告 dest 监控覆盖不到', function () {
+    $relay = Node::create([
+        'name' => 'r', 'server' => '1.2.3.4', 'port' => 0, 'type' => 'vmess', 'net' => 'tcp',
+        'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'RR', 'role' => 'relay',
+    ]);
+    $r = ForwardRule::create([
+        'name' => 'reality 入站', 'enabled' => true, 'listen_port' => '30001',
+        'inbound_node_set' => [$relay->id], 'inbound_type' => 'vless',
+        'inbound_security' => 'reality', 'inbound_transport' => 'tcp',
+        'inbound_cred' => ['uuid' => (string) Str::uuid()],
+        'inbound_opts' => ['reality' => [
+            'dest' => 'x.example:443', 'server_names' => ['x.example'], 'private_key' => 'k',
+        ]],
+        'balance' => 'roundrobin', 'backup_balance' => 'fallback', 'hc_enabled' => false,
+    ]);
+
+    $texts = implode('', pairingTexts($r->fresh('outbounds'), 'warn'));
+    expect($texts)->toContain('只覆盖落地节点自己的 dest');
+    expect($texts)->toContain('不会有任何告警');
+});
+
+// `[!]` 只对 reality 入站警告 —— tls / none 的中转入站不连 dest，不该被打扰。
+it('非 REALITY 的中转入站不警告', function () {
+    $relay = Node::create([
+        'name' => 'r2', 'server' => '5.6.7.8', 'port' => 0, 'type' => 'vmess', 'net' => 'tcp',
+        'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'RR2', 'role' => 'relay',
+    ]);
+    $r = ForwardRule::create([
+        'name' => '普通入站', 'enabled' => true, 'listen_port' => '30002',
+        'inbound_node_set' => [$relay->id], 'inbound_type' => 'direct',
+        'balance' => 'roundrobin', 'backup_balance' => 'fallback', 'hc_enabled' => false,
+    ]);
+
+    expect(implode('', pairingTexts($r->fresh('outbounds'), 'warn')))
+        ->not->toContain('只覆盖落地节点自己的 dest');
+});

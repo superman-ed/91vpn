@@ -70,6 +70,25 @@ class RuleCheck
                 $p[] = self::x('reject', '入站 reality 需要 dest / server_names / private_key —— '
                     .'密钥用编辑页的「生成密钥对」');
             }
+
+            // [decided] dest 归【落地】,中转不承担 REALITY 的 dest 连接。
+            //
+            // [!!] 这不是架构洁癖,是因为我们【整套 dest 可观测性都建立在
+            // "dest 只属于落地"这个前提上】——而它此前只是默认假设、不是约束:
+            //   · 节点侧的 dest 探针只看 nodes.reality_dest,不看转发规则里的
+            //   · 劣化告警、CPS 计量同样只覆盖节点自己那份
+            //   · 面板的 dest 健康 / 共用检测 / 一键诊断全都读 nodes.reality_dest
+            // 于是中转上的 REALITY dest 会【照常每条连接连一次、照常会挂,
+            // 而没有任何一处看得见它】—— 挂掉时的表现是"这条中转莫名其妙不通了",
+            // 而每一项检查都是绿的。
+            //
+            // [!] 真要让中转跑 REALITY,得先把上面那三处都改成按规则维度采集。
+            // 在那之前,挡住比放行安全。
+            $p[] = self::x('warn', '中转入站配了 REALITY —— dest 连接会由【中转】发起，'
+                .'而我们的 dest 监控（探活 / 劣化 / 连接速率 / 共用检测 / 一键诊断）'
+                .'【只覆盖落地节点自己的 dest】。这条规则的 dest 挂掉时不会有任何告警，'
+                .'表现只是"这条中转莫名其妙不通了"。'
+                .'建议让落地承担 REALITY，中转只做 L4 透传');
         }
         if ($rule->inbound_transport === 'grpc' && empty($opts['grpc']['service_name'])) {
             $p[] = self::x('reject', 'grpc 传输需要 serviceName，否则建不了链');
