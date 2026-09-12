@@ -275,6 +275,25 @@ class NodeController extends Controller
 
         // REALITY:type=vless 且勾了启用才配置;否则清空(切回 vmess/普通 vless 不残留旧密钥)
         $realityOn = $data['type'] === 'vless' && $request->boolean('reality_enabled') && ! empty($data['reality_dest']);
+
+        // [!!] vision 组合校验(与前端 check() 同一口径,做服务端硬拦)。
+        // 前端只是"选的时候提醒",绕过表单直接 POST 仍能存下坏组合,而
+        // vision 选错组合是"装完才连不上"那种难查的失败(agent 拒整节点)。
+        // 依据 compatibility/vision-matrix.md:vision 只在 vless + tcp + (tls|reality) 上成立。
+        // (flow 上面已保证只有 vless 才非空,故这里不必再判 vless。)
+        if ($data['flow'] === 'xtls-rprx-vision') {
+            if (($data['net'] ?? 'tcp') !== 'tcp') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'flow' => 'vision 流控只能用在 TCP 传输上（ws/grpc 都不行）',
+                ]);
+            }
+            if (! $data['tls'] && ! $realityOn) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'flow' => 'vision 流控需要 TLS 或 REALITY —— 两个都没开，客户端会连不上',
+                ]);
+            }
+        }
+
         if ($realityOn) {
             // B 修:dest 必须 host:port —— 手滑漏端口(如 www.apple.com)会让 agent
             // "reality dest unreachable" 全员连不上而面板无提示。漏端口自动补 :443 再强校验。
