@@ -37,6 +37,7 @@ dest 是被借用的那个站。选错的话 REALITY 提供的伪装就是假的
 | 关 | 为什么 |
 |---|---|
 | TLS 1.3 | REALITY 只能借 TLS 1.3 的握手 |
+| **握手时延 ≤ 150ms** | `[D]` **dest 的握手时延加在每一条用户连接上** —— REALITY 服务端每条连接都要新建一个到 dest 的连接并让它全程参与握手。实测换一个慢 293ms 的 dest，客户端每个新连接就多花 303ms（`compatibility/dest-latency.md`） |
 | **X25519 可协商** | 客户端普遍只提供 X25519；dest 只认 P-256 之类的话握不上 |
 | HTTP/2 | 现代站点的常态，没有 h2 反而显眼 |
 | 非 CDN | CDN 的 SNI↔IP 映射不稳定，且同一 IP 后面什么都有，反而可疑 |
@@ -52,8 +53,8 @@ scp dist/destscan-linux-amd64 <节点>:/tmp/destscan
 ssh <节点> '/tmp/destscan www.a.example www.b.example ...'
 ```
 
-输出会给每个候选一个判定（`pass` / `no_tls13` / `no_x25519` / `cdn` / `no_h2` / `error`）
-与延迟。
+输出会给每个候选一个判定（`pass` / `no_tls13` / `no_x25519` / `cdn` / `no_h2` /
+`slow` / `error`）与延迟。
 
 `[!]` 四关全过只是**及格线**。选谁还要看：够不够冷门（用烂的站本身就是特征）、
 以及这个 SNI 出现在**客户端实际连的那一跳**的 IP 上自不自然 ——
