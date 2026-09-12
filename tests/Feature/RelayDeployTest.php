@@ -114,3 +114,25 @@ it('accept_proxy 缺端口或源 IP 时告警', function () {
 
     expect($fw)->toContain('未配防火墙');
 });
+
+// #1:落地部署的 91vpn 身份自动带入 —— 面板即 91vpn,节点身份(id/协议/secret)
+// 它全知道,api_url 由 APP_URL 派生。省掉手粘,也消掉"粘错 secret 部署失败"的坑。
+it('身份端点给出该节点的 91vpn 身份', function () {
+    $n = deployNode();   // secret 'S', type vmess
+    $this->actingAs(deployAdmin())
+        ->getJson("/admin/nodes/{$n->id}/deploy-identity")
+        ->assertOk()
+        ->assertJson([
+            'node_id' => $n->id,
+            'server_type' => 'vmess',
+            'secret' => 'S',
+            'api_url' => config('app.url'),
+        ]);
+});
+
+// `[!!]` 这端点会吐 secret —— 必须只给管理员。
+it('身份端点要管理员', function () {
+    $n = deployNode();
+    $this->actingAs(User::factory()->create(['is_admin' => false]))
+        ->getJson("/admin/nodes/{$n->id}/deploy-identity")->assertForbidden();
+});

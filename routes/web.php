@@ -138,6 +138,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('rules/{rule}/reality-keypair', [\App\Http\Controllers\Admin\RelayRuleController::class, 'realityKeypair']);
     Route::post('nodes/{node}/deploy', [\App\Http\Controllers\Admin\RelayDeployController::class, 'start']);
     Route::get('nodes/{node}/deploy/{run}', [\App\Http\Controllers\Admin\RelayDeployController::class, 'log']);
+    // 落地部署的 91vpn 身份(面板即 91vpn,自动带入;secret 按需取不洒进列表页)
+    Route::get('nodes/{node}/deploy-identity', [\App\Http\Controllers\Admin\RelayDeployController::class, 'identity']);
     Route::get('relay/monitor', [\App\Http\Controllers\Admin\RelayMonitorController::class, 'index'])->name('admin.relay.monitor');
     Route::get('relay/online-ip', [\App\Http\Controllers\Admin\RelayOnlineIpController::class, 'index'])->name('admin.relay.online-ip');
 

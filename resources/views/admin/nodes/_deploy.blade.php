@@ -45,7 +45,7 @@
         <div id="dpLandingFields" class="d-none">
           <div class="alert alert-info py-2 px-3" style="font-size:.83rem">
             落地走 <strong>面板模式</strong>：连 91vpn 拉 REALITY / 协议 / accept_proxy 配置。
-            下面三项从 <strong>91vpn 后台该节点</strong>复制过来。
+            下面几项<strong>已自动带入</strong>（面板本身就是 91vpn），一般不用改。
           </div>
           <div class="form-row">
             <div class="form-group col-md-7">
@@ -156,6 +156,18 @@
         $('dpServerType').value = 'vless';
         $('dpProxyPort').value = btn.dataset.port && btn.dataset.port !== '0' ? btn.dataset.port : '';
         $('dpAllowSrc').value = btn.dataset.src || '';
+        // #1:面板就是 91vpn,身份自动带入 —— 按需拉这一台的(secret 不洒进列表页)。
+        // 拉取失败就留空、可手填(优雅降级)。
+        fetch('/admin/nodes/' + node.id + '/deploy-identity', {headers: {'Accept': 'application/json'}})
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d) { return; }
+            $('dpApiUrl').value = d.api_url || '';
+            $('dpNodeId').value = d.node_id || '';
+            $('dpServerType').value = d.server_type || 'vless';
+            $('dpApiKey').value = d.secret || '';
+          })
+          .catch(function () {/* 留空,手填 */});
       }
       // accept_proxy 默认：落地(B 拓扑)勾上，中转不勾。
       $('dpAcceptProxy').checked = landing;

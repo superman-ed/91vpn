@@ -88,6 +88,22 @@ class RelayDeployController extends \App\Http\Controllers\Controller
     }
 
     /**
+     * 落地部署要填的 91vpn 身份 —— 面板本身就是 91vpn,这几项它全知道,不必手粘。
+     *
+     * [!] secret 按需拉取(点开部署弹窗时才取这一台的),不把所有节点的 secret
+     *   洒进节点列表页的 DOM —— 和"secret 不乱放"一贯做法一致。仅 admin 组可达。
+     */
+    public function identity(Node $node)
+    {
+        return response()->json([
+            'api_url' => (string) config('app.url'),   // 用户面/mod_mu 的对外地址,节点身份无关机器
+            'node_id' => $node->id,
+            'server_type' => $node->type,
+            'secret' => $node->secret,
+        ]);
+    }
+
+    /**
      * spawn 一个【脱离本请求】的后台进程跑 deploy:run,凭据经 stdin 喂进去。
      *
      * [!] setsid 让子进程进新会话:php-fpm 请求结束后它继续活着,不被回收。
