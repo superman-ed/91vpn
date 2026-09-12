@@ -27,5 +27,21 @@ docker compose exec app php artisan migrate:fresh --seed
 docker compose exec app ./vendor/bin/pest
 ```
 
+## 一次性脚本（复现 / 造数 / 核对）
+
+**不要直接 `php artisan tinker 脚本.php`** —— 它连的是**真实库 `vpn`**，
+不是 `vpn_test`。造出来的节点和用户会进真实订阅，而且**没有任何提示**：
+脚本正常跑完，数据静静地写进去了。
+
+用包装器：
+
+```bash
+tools/repro 脚本.php          # 跑在 vpn_test（默认）
+tools/repro --real 脚本.php   # 真实库，需要输入 yes 确认
+```
+
+它把连接切到 `vpn_test`，并拼上 `tools/repro-guard.php` 兜底 ——
+万一 env 覆盖没生效，守卫会在脚本的第一行之前就退出。
+
 ## 文档
 设计文档与实现计划见 `docs/superpowers/`。

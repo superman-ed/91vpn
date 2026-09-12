@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# 在【测试库】里跑一个一次性脚本（复现、造数、核对）。
+#
+#   tools/repro 脚本.php              # 跑在 vpn_test（默认）
+#   tools/repro --real 脚本.php       # 跑在真实库 vpn，需要二次确认
+#   tools/repro --real -y 脚本.php    # 真实库、跳过确认（给自动化用）
+#
+# `[!!]` 直接 `php artisan tinker 脚本.php` 会连【真实库】—— .env 里
+# DB_DATABASE=vpn。本包装器做两件事：把连接切到 vpn_test，
+# 并拼上 tools/repro-guard.php 兜底（万一 env 覆盖没生效，守卫会拦下）。
+set -euo pipefail
+
+CONTAINER=${REPRO_CONTAINER:-91vpn-app-1}
+REAL=0; YES=0
+while [[ ${1:-} == -* ]]; do
+  case "$1" in
+    --real) REAL=1; shift ;;
+    -y|--yes) YES=1; shift ;;
+    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    *) echo "未知参数: $1" >&2; exit 2 ;;
+  esac
+done
+
+SCRIPT=${1:-}
+[[ -n $SCRIPT && -f $SCRIPT ]] || { echo "用法: tools/repro [--real] 脚本.php" >&2; exit 2; }
+
+if [[ $REAL == 1 && $YES == 0 ]]; then
+  echo "⚠️  这会在【真实库 vpn】上执行 $SCRIPT。"
+  read -r -p "    确定？输入 yes 继续: " a
+  [[ $a == yes ]] || { echo "已取消"; exit 1; }
+fi
+
+DIR=$(cd "$(dirname "$0")/.." && pwd)
+TMP=$(mktemp /tmp/repro-XXXXXX.php)
+trap 'rm -f "$TMP"' EXIT
+# 守卫在前，脚本在后。守卫里的 exit(1) 会让后面的代码根本不执行。
+cat "$DIR/tools/repro-guard.php" > "$TMP"
+# `[!]` 去掉被拼进来的脚本自己的 <?php，否则 PHP 会把它当字面量输出。
+sed '1{/^<?php[[:space:]]*$/d;}' "$SCRIPT" >> "$TMP"
+
+docker cp "$TMP" "$CONTAINER:/tmp/repro.php" >/dev/null
+ENVS=(-e XDG_CONFIG_HOME=/tmp -e HOME=/tmp)
+if [[ $REAL == 1 ]]; then
+  ENVS+=(-e REPRO_ALLOW_REAL=1)
+else
+  ENVS+=(-e DB_DATABASE=vpn_test)
+fi
+docker exec "${ENVS[@]}" "$CONTAINER" php artisan tinker /tmp/repro.php
