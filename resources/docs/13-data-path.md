@@ -8,6 +8,41 @@
 
 ---
 
+## 0. 架构六层与各层的归属
+
+`[!!]` 这是**本项目的架构分层**，不是 soga 的分层。分层本身也带归属信息 ——
+第 2 层完全是我们自研的，soga 有没有对应机制**我们不知道**。
+
+| 层 | 做什么 | Owner |
+|---|---|---|
+| **1 · 客户端 / 协议** | VLESS + REALITY + vision | `CLIENT` + `XRAY` |
+| **2 · 中转调度** | 选路：roundrobin / random / leastconn / leastload、主池→备池 | `CUSTOM_RELAY` |
+| **3 · L4 转发** | dokodemo-door、TCP 透传、DestinationOverride | `XRAY` |
+| **4 · 中转→落地 元数据** | PROXY protocol v1/v2（可选） | `XRAY` |
+| **5 · 落地 / REALITY** | acceptProxyProtocol、target/dest、REALITY 鉴权 | `XRAY` |
+| **6 · 落地出站** | freedom / 实际出网 | `XRAY` |
+
+`[!!]` **第 2 层是我们自己设计的**（`agent/internal/domain/relay/`）。
+在 soga 二进制里看到 `load` / `balance` / `pool` 之类的串，**不足以**推出
+"soga 也有 leastconn" —— 那只能记成 `[?]`。
+详见 `docs/SOGA-BEHAVIOR-SPEC.md` 的「关于归属」。
+
+分层的实用价值在排障：一条流量出问题时，先定位它死在哪一层，
+六层的日志与判据完全不同 ——
+
+| 层 | 出问题时去哪看 |
+|---|---|
+| 1 | 客户端日志（调到 info） |
+| 2 | 面板规则页的校验、`/admin/relay/monitor` |
+| 3 | 中转机 `journalctl -u agent`、`ss -tlnp` |
+| 4 | **两端都不报错** —— 只能靠面板的配对校验，见 §1 的 ④ |
+| 5 | 落地机 `journalctl -u agent`（REALITY 拒绝的理由在这里） |
+| 6 | 落地机的出网连通性 |
+
+`[!]` 第 4 层单独列出来，是因为它是唯一**两端都不报错**的一层。
+
+---
+
 ## 1. TCP：最常见的那条路
 
 ```
