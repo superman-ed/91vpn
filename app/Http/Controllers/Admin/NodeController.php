@@ -194,6 +194,22 @@ class NodeController extends Controller
         return $names;
     }
 
+    /**
+     * 一键诊断。把散在四个页面的线索一次跑完，直接给结论。
+     *
+     * [!] 限流:它会向外发起 TCP 连接(探端口)。不限的话,后台的一个按钮
+     * 就成了从面板发起扫描的入口 —— 对我们自己的节点无所谓,但请求里的
+     * 地址来自节点表,而节点表是可编辑的。
+     */
+    public function diagnose(Node $node, \App\Services\NodeDiagnosis $dx)
+    {
+        return response()->json([
+            'node' => $node->label(),
+            'items' => $dx->run($node),
+            'at' => now()->toDateTimeString(),
+        ]);
+    }
+
     private function validated(Request $request, ?Node $node = null): array
     {
         $data = $request->validate([

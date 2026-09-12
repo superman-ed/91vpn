@@ -120,6 +120,9 @@ Route::middleware('node.secret')->prefix('mod_mu')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');
+    // 一键诊断:向外探端口,故限流(见 NodeController::diagnose)
+    Route::get('nodes/{node}/diagnose', [\App\Http\Controllers\Admin\NodeController::class, 'diagnose'])
+        ->middleware('throttle:20,1')->name('admin.nodes.diagnose');
     Route::post('nodes/{node}/regenerate-secret', [AdminNodeController::class, 'regenerateSecret'])->name('admin.nodes.regenerate-secret');
     // 中转（ADR-008：从 relaypanel 并入）
     Route::get('rules', [\App\Http\Controllers\Admin\RelayRuleController::class, 'index'])->name('admin.rules.index');

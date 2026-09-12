@@ -60,6 +60,14 @@
                     @endif</td>
                 <td>
                     <a href="/admin/nodes/{{ $n->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>
+                    {{-- `[!!]` 一键诊断:这些线索本来就查得到,但分别在节点列表、规则列表、
+                         订阅和节点机的 journalctl 里 —— 而故障往往是"某一项绿着,
+                         另一项才是真因"。最典型的是端口没放行:心跳正常、面板显示在线,
+                         只有客户端连不上。 --}}
+                    <button type="button" class="btn btn-sm btn-outline-info js-dx"
+                            data-node="{{ $n->id }}" data-name="{{ $n->name }}">
+                        <i class="fas fa-stethoscope"></i> 诊断
+                    </button>
                     {{-- 一键部署（ADR-008 P4b）--}}
               <button type="button" class="btn btn-sm btn-outline-success js-deploy"
                       data-node="{{ $n->id }}" data-name="{{ $n->name }}"
@@ -79,3 +87,72 @@
 @endsection
 
 @include('admin.nodes._deploy')
+
+{{-- 诊断结果弹窗 --}}
+<div class="modal fade" id="dxModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">诊断 <span id="dxName" class="text-muted"></span></h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body" id="dxBody">
+        <div class="text-center text-muted py-4">
+          <i class="fas fa-spinner fa-spin fa-2x"></i>
+          <div class="mt-2" style="font-size:13px">正在检查（探端口最多几秒）…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var LV = {
+    ok:      { cls: 'success', icon: 'check-circle',        txt: '正常' },
+    warn:    { cls: 'warning', icon: 'exclamation-circle',  txt: '注意' },
+    bad:     { cls: 'danger',  icon: 'times-circle',        txt: '有问题' },
+    unknown: { cls: 'secondary', icon: 'question-circle',   txt: '查不了' }
+  };
+
+  document.querySelectorAll('.js-dx').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.getElementById('dxName').textContent = b.dataset.name;
+      document.getElementById('dxBody').innerHTML =
+        '<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-2x"></i>' +
+        '<div class="mt-2" style="font-size:13px">正在检查（探端口最多几秒）…</div></div>';
+      $('#dxModal').modal('show');
+
+      fetch('/admin/nodes/' + b.dataset.node + '/diagnose', { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var bad = d.items.filter(function (i) { return i.level === 'bad'; }).length;
+          var html = '';
+          // `[!]` 先给一句总结:人打开弹窗想知道的是"有没有事",不是逐项读。
+          html += bad
+            ? '<div class="alert alert-danger py-2"><strong>' + bad + ' 项有问题</strong>，见下方红色条目</div>'
+            : '<div class="alert alert-success py-2"><strong>没发现问题</strong>（不代表用户那边一定能连上 —— ' +
+              '端口探测是从面板这台机器发起的，中间可能还有别的阻断）</div>';
+
+          d.items.forEach(function (i) {
+            var lv = LV[i.level] || LV.unknown;
+            html += '<div class="d-flex mb-2 p-2" style="background:#f8f9fc;border-radius:6px">' +
+              '<div class="mr-2 text-' + lv.cls + '"><i class="fas fa-' + lv.icon + '"></i></div>' +
+              '<div style="flex:1;min-width:0">' +
+              '<div><strong>' + i.title + '</strong> ' +
+              '<span class="badge badge-' + lv.cls + '">' + lv.txt + '</span></div>' +
+              '<div class="text-muted" style="font-size:13px;line-height:1.6">' + i.detail + '</div>' +
+              '</div></div>';
+          });
+          html += '<div class="text-muted mt-2" style="font-size:11.5px">检查于 ' + d.at + '</div>';
+          document.getElementById('dxBody').innerHTML = html;
+        })
+        .catch(function () {
+          document.getElementById('dxBody').innerHTML =
+            '<div class="alert alert-danger">诊断请求失败 —— 刷新页面再试；' +
+            '频繁点击会被限流（每分钟 20 次）</div>';
+        });
+    });
+  });
+})();
+</script>
