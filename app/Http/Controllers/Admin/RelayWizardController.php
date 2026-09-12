@@ -102,15 +102,58 @@ class RelayWizardController extends \App\Http\Controllers\Controller
 
         $msg = "已创建「{$rule->name}」：用户连 {$relay->server}:{$data['listen_port']}，转给 {$landing->server}:{$landing->port}。";
         $msg .= '节点会在下一个拉取周期取走这条规则。';
-        if ($flipped) {
-            // [!!] 开了收头就必须锁端口:PROXY 头无认证,能连到落地那个端口的人
-            // 可以随意伪造客户端 IP。这句话必须跟着出现,否则向导等于开了个洞。
-            $msg .= " 已自动打开落地「{$landing->name}」的 PROXY 头收取 ——"
-                ." **请立刻把落地的 {$landing->port} 端口限制为只允许 {$relay->server} 访问**"
-                .'（PROXY 头没有认证，不锁的话任何人都能伪造来源 IP）。';
+
+        // [!!] 只要这条链路发 PROXY 头,落地就在收头,就【必须】只放行中转 IP ——
+        // PROXY 头无认证,能连到落地那个端口的人可随意伪造来源 IP。
+        // 每次发头都提醒(不只在"这次刚翻开"时):给已开收头的落地再加一个中转,
+        // 新中转的 IP 同样得进白名单,否则要么被挡、要么运维根本不知道要加。
+        if ($send) {
+            $flipNote = $flipped
+                ? "已自动打开落地「{$landing->name}」的 PROXY 头收取。"
+                : "落地「{$landing->name}」此前已在收 PROXY 头。";
+            // 列出当前所有会拨向这台落地的中转 IP(含刚建的这条),它们都得放行。
+            $ips = $this->frontingRelayIps($landing);
+            $ipList = $ips === [] ? $relay->server : implode('、', $ips);
+            $msg .= " {$flipNote} ⚠️ 开了收头的落地【必须把 {$landing->port} 端口只放行中转 IP】"
+                .'(PROXY 头没有认证,不锁的话任何人都能伪造来源 IP)。'
+                ."当前应放行的中转:{$ipList}。"
+                .'最省事的做法:到【节点管理】对这台落地点【🚀部署】重装一次 ——'
+                .'一键部署会按拓扑自动配好防火墙,不用手敲 iptables。';
         }
 
         return redirect('/admin/rules')->with('status', $msg);
+    }
+
+    /**
+     * 当前会拨向这台落地的所有中转的 server IP(含按地址:端口 与 按节点集两种写法)。
+     * 落地开了 accept_proxy 后,这些就是防火墙该放行的全部来源。
+     *
+     * @return array<int,string>
+     */
+    private function frontingRelayIps(Node $landing): array
+    {
+        $ips = [];
+        foreach (ForwardRule::with('outbounds')->where('enabled', true)->get() as $r) {
+            $targets = $r->outbounds->contains(function ($o) use ($landing) {
+                if (in_array((int) $landing->id, array_map('intval', (array) ($o->target_node_set ?? [])), true)) {
+                    return true;
+                }
+
+                return (string) $o->target_addr === (string) $landing->server
+                    && (string) $o->target_port === (string) $landing->port;
+            });
+            if (! $targets) {
+                continue;
+            }
+            foreach ((array) ($r->inbound_node_set ?? []) as $rid) {
+                $n = Node::find((int) $rid);
+                if ($n && $n->server !== '' && $n->server !== null) {
+                    $ips[$n->server] = true;
+                }
+            }
+        }
+
+        return array_keys($ips);
     }
 
     /** 这台中转上有没有别的规则已经在用这个端口。 */

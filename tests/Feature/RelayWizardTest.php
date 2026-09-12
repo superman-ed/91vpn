@@ -87,7 +87,38 @@ it('自动开了收头时,提醒去锁落地端口', function () {
         'listen_port' => 30001, 'send_proxy' => 1,
     ]);
 
-    expect(session('status'))->toContain('只允许')->toContain('伪造');
+    // 断言意图而非具体措辞:提醒锁端口只放行中转 + 讲清无认证会被伪造 +
+    // 指向一键部署自动配防火墙(而不是叫人手敲 iptables)。
+    expect(session('status'))
+        ->toContain('只放行中转')
+        ->toContain('伪造')
+        ->toContain('部署');
+});
+
+// `[!!]` 给【已经开着收头】的落地再挂一个中转:accept_proxy 不用再翻,
+// 但防火墙提醒【仍必须出现】,而且要把新中转的 IP 一并列进放行清单 ——
+// 否则第二个中转的流量要么被挡、要么运维根本不知道要加它。
+it('给已开收头的落地再加中转,仍提醒防火墙并列出全部中转 IP', function () {
+    $landing = wizLanding();
+    $relay1 = wizRelay('1.1.1.1');
+    $relay2 = wizRelay('2.2.2.2');
+    $admin = wizAdmin();
+
+    $this->actingAs($admin)->post('/admin/rules/wizard', [
+        'relay_id' => $relay1->id, 'landing_id' => $landing->id,
+        'listen_port' => 30001, 'send_proxy' => 1,
+    ]);
+    expect($landing->fresh()->accept_proxy_protocol)->toBeTrue();
+
+    // 第二条:同一落地、另一台中转。此时 accept_proxy 已开(不翻)。
+    $this->actingAs($admin)->post('/admin/rules/wizard', [
+        'relay_id' => $relay2->id, 'landing_id' => $landing->id,
+        'listen_port' => 30001, 'send_proxy' => 1,
+    ]);
+    expect(session('status'))
+        ->toContain('只放行中转')       // 提醒仍在
+        ->toContain('1.1.1.1')          // 两个中转
+        ->toContain('2.2.2.2');         // 都在放行清单里
 });
 
 it('不发 PROXY 头时不动落地的开关', function () {
