@@ -86,7 +86,10 @@ it('REALITY 的 dest 挂了时,说明"端口在听但没人能握手"', function
     $r = dxRun($n)['REALITY dest'];
 
     expect($r['level'])->toBe('bad');
-    expect($r['detail'])->toContain('没有任何客户端能完成握手');
+    // `[!]` 措辞要说清【包括密钥正确的老用户】—— 直觉模型("验不过才去连 dest")
+    // 会让人以为"至少密钥对的人还能连",而实际是全量失败。
+    expect($r['detail'])->toContain('包括密钥正确的老用户');
+    expect($r['detail'])->toContain('握手根本没机会开始');
 });
 
 it('非 REALITY 节点不报 dest 那一项', function () {

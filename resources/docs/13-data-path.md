@@ -14,7 +14,7 @@
 ┌──────────┐
 │  客户端   │  vless + REALITY + vision
 └────┬─────┘
-     │ ① TCP：REALITY 握手（SNI 填 dest 的域名，uTLS 伪装成 chrome）
+     │ ① TCP：ClientHello，SNI = serverNames 之一
      ▼
 ┌─────────────────────────────────────────────┐
 │ 中转节点  dokodemo-door（InDirect，不解协议） │
@@ -25,56 +25,97 @@
 │                                             │
 │   ③ freedom 出站                             │
 │      DestinationOverride → 落地的 addr:port  │
-│      ProxyProtocol = 0 / 1 / 2               │
+│      ProxyProtocol = 0（关）/ 1 / 2           │
 └────┬────────────────────────────────────────┘
      │ ④ TCP：[PROXY 头][客户端原始字节…]
-     │    ⚠ 开了 send_proxy_protocol 时【不是原样转发】—— 前面多一段头
+     │    ⚠ 开了 send_proxy_protocol 时【不是原样转发】
      ▼
 ┌─────────────────────────────────────────────┐
-│ 落地节点  Xray REALITY Server                │
+│ 落地节点  Xray VLESS + REALITY Server        │
 │                                             │
-│   ⑤ sockopt.acceptProxyProtocol 剥掉 PROXY 头│
-│      ↓ 剥完才轮到 REALITY                     │
-│   ⑥ REALITY 握手校验                          │
-│      ├─ 密钥对不上 ──→ ⑦ 原样转发给 dest 真站  │
-│      └─ 通过 ──→ ⑧ vless 认证 → 匹配用户       │
-│   ⑨ freedom 出站                             │
+│   ⑤ sockopt.acceptProxyProtocol 消费 PROXY 头 │
+│      ↓                                      │
+│   ⑥ REALITY Server 启动                      │
+│      ├──→ 【先连 target】                     │
+│      │     ClientHello 转给真站              │
+│      └──← ServerHello / Certificate 由真站返回 │
+│      ↓                                      │
+│   ⑦ REALITY 鉴权（X25519 / AEAD）            │
+│      ├─ 通过 ──→ ⑧ vless 用户认证             │
+│      └─ 未通过 ─→ 继续按 target 机制处理       │
+│                  （字节在两侧对拷，客户端看到  │
+│                   的自始至终是真站的响应）     │
+│   ⑨ 用户流量 → freedom 出站                  │
 └────┬────────────────────────────────────────┘
      │
      ▼
    互联网
 ```
 
+### `[!!]` ⑥ target 不是"鉴权失败后的兜底"
+
+这是最容易建立错误模型的一处。直觉上会以为：**先验密钥，不对才去连 dest**。
+实际相反 —— `[S]` 源码 `xtls/reality` 的 `tls.go:162`，`Server()` 的第一件事
+就是连 target：
+
+```go
+func Server(ctx, conn, config) (*Conn, error) {
+    remoteAddr := conn.RemoteAddr().String()
+    target, err := config.DialContext(ctx, config.Type, config.Dest)  // ← 第一行实质动作
+    if err != nil {
+        conn.Close()
+        return nil, errors.New("REALITY: failed to dial dest: " + err.Error())
+    }
+    ...
+    hs := serverHandshakeStateTLS13{c: &Conn{conn: &MirrorConn{Conn: conn, Target: target}}}
+```
+
+**在读 ClientHello 之前、在任何鉴权之前。** 之后握手全程由 `MirrorConn`
+夹在中间：ClientHello 发往真站，ServerHello 与证书由真站返回，
+REALITY 的 X25519/AEAD 鉴权是在这之后才发生的。
+
+`[!!]` **实际后果：dest 连不上时，每条新连接在第一步就 `return err`。**
+不是"鉴权失败后兜底失败"，而是**握手根本没机会开始** —— 所以它是全量的、
+立即的、不分用户的（密钥正确的老用户一样连不上）。
+
+按错误模型推会得出相反的预期："至少密钥对的人还能连"。**不会。**
+
+而已建立的连接不受影响（它们不再走握手），于是现象是：
+**老连接好好的，新连接全断，端口还在听，`/health` 还是 200。**
+这正是诊断页要单独查 dest 的原因。
+
+### `[!]` ① SNI 填的是 serverNames，不是 dest
+
+`Dest` 与 `ServerNames` 在配置里是**两个独立字段**
+（`[S]` 服务端用 `config.ServerNames[hs.clientHello.serverName]` 单独校验）。
+
+通常两者一致（`dest = www.example.com:443`、`serverNames = [www.example.com]`），
+但那是**惯例不是等式**：能用哪些 SNI 取决于 target 接受什么、证书 SAN 覆盖什么。
+所以不要把 `target = xxx.com:443` 机械等同于 `SNI = xxx.com`。
+
 ### `[!!]` ④ 不是"原样转发"
 
-图上最容易画错的一处。开了 `send_proxy_protocol` 时，中转在**每条连接最前面
-加一段 PROXY 头**（v2 是 28 字节），落地靠 `acceptProxyProtocol` 剥掉。
+开了 `send_proxy_protocol` 时，中转在**每条连接最前面加一段 PROXY 头**
+（v2 是 28 字节），落地靠 `acceptProxyProtocol` 消费掉。准确的说法是
+**L4 透明转发 + 前置 PROXY protocol 元数据头**。
 
 两件事必须成对，而**配错时两端都不报错**：
 
 | | 结果 |
 |---|---|
 | 中转发头 + 落地收头 | ✅ |
-| 中转发头 + 落地不收 | ❌ 落地把 PROXY 头当成 REALITY 握手数据 → 失败 |
+| 中转发头 + 落地不收 | ❌ 落地把 PROXY 头当成 TLS 握手数据 → 失败 |
 | 中转不发 + 落地要收 | ❌ 落地等一个永远不来的头 → 超时 |
+
+`[!]` `freedom` 的 `proxyProtocol` 取值是 **1 或 2**，不填即 0（关闭）。
 
 `[!!]` 由此推出一个常被误判的结论：**开了收头的落地，那个端口不能直连**。
 直连客户端没有 PROXY 头，会被全部拒绝 —— 所以诊断页对这类节点把
 "从面板连不上"判成**正常**，能连上反而是 warn（说明防火墙没锁）。
 
-### `[!!]` ⑦ dest 不是路由分支
-
-`target` / `dest` 那条线容易被读成"一部分流量走这里"。实际上：
-
-- **正常用户的流量永远不经过 dest**
-- dest 只接住**握手失败**的连接：探测者、扫描器、密钥不对的客户端 ——
-  它们被原样转发给真站，看到的是那个网站**真实的证书和响应**
-
-所以 dest 是**伪装兜底出口**，不是业务路径。
-
-这解释了一个反直觉的现象：**dest 挂掉时，已经连上的用户不受影响，
-但新的握手全部失败** —— 而端口还在听、心跳还正常、`/health` 还是 200。
-它是"静默失效"的典型，也是为什么诊断要单独查它。
+`[!]` 顺带一提：REALITY 服务端自己也能向 target 发 PROXY 头
+（`config.Xver`，`[S]` `tls.go:174`）。那是**另一层**，与中转发给落地的
+那一层无关 —— 我们没有用它。
 
 ---
 

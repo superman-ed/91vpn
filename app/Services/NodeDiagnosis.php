@@ -133,7 +133,10 @@ class NodeDiagnosis
             'ok' => $this->x('ok', 'REALITY dest', "{$node->reported_dest} 可达"),
             'down' => $this->x('bad', 'REALITY dest',
                 "{$node->reported_dest} 连续失败 {$node->reported_dest_failures} 次 —— "
-                .'【端口照常监听、面板照常显示在线，但没有任何客户端能完成握手】。换一个 dest'),
+                .'【新连接全部失败，包括密钥正确的老用户】。REALITY 服务端在读 ClientHello '
+                .'之前就要先连上 dest（它全程参与握手），连不上就直接断，握手根本没机会开始。'
+                .'已建立的连接不受影响，所以现象是"老连接好好的、新连接全断、'
+                .'端口还在听、面板还显示在线"。换一个 dest'),
             default => $this->x('unknown', 'REALITY dest',
                 '节点没报过 dest 探活，或上报已过期 —— 等一个心跳周期再看'),
         };
