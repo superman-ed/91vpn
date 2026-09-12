@@ -1,6 +1,29 @@
 @extends('layouts.admin')
 @section('title', '概览')
 @section('content')
+
+{{-- 上线自检。`[!!]` 全绿时【整块不显示】—— 一个常年绿着的横幅会被当成装饰,
+     等它变红的那天也没人注意。只在真有问题时出现。 --}}
+@php $rdBad = collect($readiness)->whereIn('level', ['bad', 'warn']); @endphp
+@if ($rdBad->isNotEmpty())
+<div class="card mb-4" style="border-left:4px solid {{ $rdBad->contains('level','bad') ? '#fc544b' : '#ffa426' }}">
+  <div class="card-body py-3">
+    <h6 class="mb-2" style="color:#34395e;font-weight:700">
+      <i class="fas fa-clipboard-check mr-1"></i>上线自检
+      <small class="text-muted font-weight-normal ml-1">新用户现在能不能真的用起来</small>
+    </h6>
+    @foreach ($rdBad as $i)
+      <div class="d-flex align-items-start mb-2">
+        <i class="fas fa-{{ $i['level'] === 'bad' ? 'times-circle text-danger' : 'exclamation-circle text-warning' }} mt-1 mr-2"></i>
+        <div style="flex:1;min-width:0;font-size:13px;line-height:1.6">
+          <strong>{{ $i['title'] }}</strong> —— {{ $i['detail'] }}
+          @if ($i['fix'])<a href="{{ $i['fix'] }}" class="ml-1">去处理</a>@endif
+        </div>
+      </div>
+    @endforeach
+  </div>
+</div>
+@endif
 <style>
 .ad-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .ad-stat { flex: 1; min-width: 155px; border-radius: 14px; padding: 16px 18px; color: #fff; position: relative; overflow: hidden; }
