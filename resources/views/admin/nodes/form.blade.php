@@ -185,7 +185,11 @@
     function sync() { if (ws) ws.style.display = (sel && sel.value === 'ws') ? '' : 'none'; }
     if (sel) { sel.addEventListener('change', sync); sync(); }
 
-    var f = document.querySelector('form');
+    // [!!] 页面上第一个 <form> 是导航栏的搜索/登出表单,不是节点表单 ——
+    // 直接 querySelector('form') 会拿错,get() 全返回 null,预设/一键 dest 点了没反应。
+    // 用节点表单里必有的字段(type)定位到它自己那个 form。
+    var typeEl = document.querySelector('[name="type"]');
+    var f = typeEl ? typeEl.closest('form') : document.querySelector('form');
     var get = function (n) { return f ? f.querySelector('[name="' + n + '"]') : null; };
 
     // 预设：一次把一组互相约束的选择填好
