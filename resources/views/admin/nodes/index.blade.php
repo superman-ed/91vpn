@@ -56,7 +56,7 @@
                     {{-- `[!]` dest 共用要在列表上看得见:逐个点进去才发现"撞车"
                          的话,撞了也不会有人发现。 --}}
                     @if(($destShared[$n->reality_dest] ?? 0) > 1)
-                        <span class="adm-pill warn" title="{{ $n->reality_dest }} 被 {{ $destShared[$n->reality_dest] }} 台落地共用 —— 一次识别全灭，且负载叠加">dest 撞车 ×{{ $destShared[$n->reality_dest] }}</span>
+                        <span class="adm-pill warn" title="{{ $n->reality_dest }} 被 {{ $destShared[$n->reality_dest] }} 台落地共用 —— 这个 dest 挂掉时它们会同时新连接全断，且负载叠加">dest 撞车 ×{{ $destShared[$n->reality_dest] }}</span>
                     @endif
                     @if($n->destHealth() === 'ok' && $n->reported_dest_degraded)
                         {{-- `[!]` 劣化:每一项检查都绿,而每条用户新连接都在多付时间。 --}}

@@ -8,12 +8,15 @@ use Illuminate\Support\Facades\DB;
 /**
  * 多台落地共用同一个 dest。
  *
- * `[!!]` 两重后果，独立且不同：
- * ① **关联风险**：我们要求 dest 非 CDN，而非 CDN 的站正常只有一两个 IP。
- *    十台落地都声称自己是同一个站，本身就是异常模式 ——
- *    识别或封禁其中一台，就顺藤摸到全部。
- * ② **负载叠加**：每条用户新连接都要连一次 dest（严格 1:1，
- *    见 sogacore compatibility/dest-latency.md），共用时它承受的是几台之和。
+ * `[!!]` 主要理由是【故障爆炸半径】,不是"更难被识别":
+ * dest 挂掉时用它的落地【全部同时】新连接失效(REALITY 在读 ClientHello 之前
+ * 就要连上 dest,连不上直接断,密钥正确的老用户也一样)。
+ * `[D]` 踩过一次:mirrors.xtom.com 当天挂掉。
+ * **这一条不需要任何对手模型就成立,是可靠性问题。**
+ *
+ * `[!]` "共用会更易被关联识别"是 [I] 推测、未实证 —— 外部评审指出过:
+ * 把它和故障隔离捆在一句话里,是把推测挂在了事实的强度上。
+ * 所以用例断言的是【故障】那一半,不断言识别风险。
  */
 function sdNode(string $name, string $dest, array $over = []): Node
 {
@@ -79,9 +82,12 @@ it('诊断:独占报 ok,共用报 warn 并说清两重后果', function () {
     $items = collect(app(NodeDiagnosis::class)->run($a->fresh()))->keyBy('title');
 
     expect($items['dest 共用']['level'])->toBe('warn');
+    // `[!]` 断言的是【故障爆炸半径】与【负载叠加】—— 两条都是有证据的。
+    // 不断言"更易被识别":那是 [I],不该写进产品文案当结论。
     expect($items['dest 共用']['detail'])
-        ->toContain('识别一台就顺藤摸到全部')   // ① 关联风险
-        ->toContain('几台之和');                 // ② 负载叠加
+        ->toContain('同时')->toContain('新连接全断')   // 故障域
+        ->toContain('几台之和')                         // 负载叠加
+        ->not->toContain('识别');                       // 推测不进文案
 });
 
 it('节点列表把 dest 撞车标出来', function () {

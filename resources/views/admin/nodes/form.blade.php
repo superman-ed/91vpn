@@ -139,12 +139,14 @@
                 <div class="alert alert-warning mb-0">
                     这个 dest 还被 <strong>{{ $same->count() }}</strong> 台落地用着（{{ $same->take(5)->pluck('name')->implode('、') }}）：
                     <ul class="mb-0 mt-1" style="font-size:13px">
-                        <li><strong>一次识别全灭</strong> —— 我们要求 dest 非 CDN，而非 CDN 的站正常只有一两个 IP；
-                            多台落地都声称是同一个站，本身就是异常模式</li>
+                        <li><strong>故障爆炸半径</strong> —— 这个 dest 挂掉时，这几台会【同时】新连接全断
+                            （REALITY 在读 ClientHello 之前就要连上 dest；密钥正确的老用户也一样）。
+                            我们踩过一次：<code>mirrors.xtom.com</code> 当天挂掉</li>
                         <li><strong>负载叠加</strong> —— 每条用户新连接都要连一次 dest，
                             共用时它承受的是这几台之和</li>
                     </ul>
-                    建议各节点用不同的 dest。
+                    建议<strong>按地区分组</strong>把故障域拆开（同地区两三台共用尚可，
+                    10 个国家共用一个则整个系统是一个故障域）。
                 </div>
             </div></div>
             @endif
