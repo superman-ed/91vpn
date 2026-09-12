@@ -53,7 +53,10 @@
                 <td>@if($n->online)<span class="adm-pill ok">在线</span>@else<span class="adm-pill danger">离线</span>@endif
                     {{-- `[!!]` dest 失效是【静默】的:端口照常监听、这里照常显示"在线",
                          而没有任何客户端能完成握手。所以 dest 挂了必须单独标出来。 --}}
-                    @if($n->destHealth() === 'down')
+                    @if($n->destHealth() === 'ok' && $n->reported_dest_degraded)
+                        {{-- `[!]` 劣化:每一项检查都绿,而每条用户新连接都在多付时间。 --}}
+                        <span class="adm-pill warn" title="{{ $n->reported_dest }} 探测时延中位 {{ $n->reported_dest_latency_ms }}ms —— 加在每条用户新连接上">dest 变慢 {{ $n->reported_dest_latency_ms }}ms</span>
+                    @elseif($n->destHealth() === 'down')
                         <span class="adm-pill danger" title="{{ $n->reported_dest }} 连续失败 {{ $n->reported_dest_failures }} 次">dest 不可达</span>
                     @elseif($n->usesReality() && $n->destHealth() === 'unknown')
                         <span class="adm-pill" title="节点没报过 dest 探活,或上报已过期">dest ?</span>

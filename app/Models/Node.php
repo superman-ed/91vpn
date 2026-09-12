@@ -15,7 +15,7 @@ class Node extends Model
         'reality_public_key', 'reality_short_ids', 'accept_proxy_protocol',
         'reported_accept_proxy', 'accept_proxy_reported_at',
         'dest_scan_candidates', 'dest_scan_id', 'dest_scan_result', 'dest_scan_at',
-        'reported_dest', 'reported_dest_up', 'reported_dest_failures', 'dest_reported_at',
+        'reported_dest', 'reported_dest_up', 'reported_dest_failures', 'reported_dest_latency_ms', 'reported_dest_degraded', 'dest_reported_at',
         // 中转相关（ADR-008 从 relaypanel 并入）
         'quota_gb', 'quota_reset_day', 'applied_hash', 'fetched_hash',
         'sync_error', 'sync_degraded', 'sync_rules', 'sync_reported_at',
@@ -45,6 +45,7 @@ class Node extends Model
         'dest_scan_result' => 'array',
         'dest_scan_at' => 'datetime',
         'reported_dest_up' => 'boolean',
+        'reported_dest_degraded' => 'boolean',
         'dest_reported_at' => 'datetime',
         'accept_proxy_reported_at' => 'datetime',
     ];

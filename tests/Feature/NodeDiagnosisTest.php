@@ -184,3 +184,58 @@ it('节点列表有诊断按钮', function () {
 
     $this->actingAs(dxAdmin())->get('/admin/nodes')->assertOk()->assertSee('诊断');
 });
+
+// ── dest 劣化 ──────────────────────────────────────────────────────────
+//
+// `[!!]` 劣化与 up/down 是两件事:一个上线时 40ms 的 dest 跑着跑着变成 400ms,
+// 它仍然【可达】,destHealth() 返回 ok,每一项检查都是绿的 ——
+// 而每条用户新连接都在多付 360ms(REALITY 每条连接都要先连一次 dest)。
+// 用户只会说"这节点变慢了",那是最难归因的一种故障。
+function dxRealityNode(array $over = []): Node
+{
+    return dxNode(array_merge([
+        'type' => 'vless', 'flow' => 'xtls-rprx-vision',
+        'reality_dest' => 'slow.example:443', 'reality_private_key' => 'k',
+        'reality_public_key' => 'p', 'reality_short_ids' => ['ab'],
+        'reality_server_names' => ['slow.example'],
+        'reported_dest' => 'slow.example:443', 'reported_dest_up' => true,
+        'reported_dest_failures' => 0, 'dest_reported_at' => now(),
+    ], $over));
+}
+
+it('dest 可达但变慢时报 warn,并说清时延加在每条新连接上', function () {
+    $n = dxRealityNode(['reported_dest_degraded' => true, 'reported_dest_latency_ms' => 420]);
+    $r = dxRun($n)['REALITY dest'];
+
+    expect($r['level'])->toBe('warn');
+    expect($r['detail'])->toContain('420ms');
+    expect($r['detail'])->toContain('每一条');
+    expect($r['detail'])->toContain('每一项检查都是绿的');
+});
+
+it('dest 正常时把时延一并显示出来', function () {
+    $n = dxRealityNode(['reported_dest_degraded' => false, 'reported_dest_latency_ms' => 35]);
+    $r = dxRun($n)['REALITY dest'];
+
+    expect($r['level'])->toBe('ok');
+    expect($r['detail'])->toContain('35ms');
+});
+
+// `[!]` 挂了优先于变慢:两者同时为真时要报"挂了"—— 那是更根本的问题。
+it('dest 挂了时不报变慢', function () {
+    $n = dxRealityNode([
+        'reported_dest_up' => false, 'reported_dest_failures' => 5,
+        'reported_dest_degraded' => true, 'reported_dest_latency_ms' => 420,
+    ]);
+    $r = dxRun($n)['REALITY dest'];
+
+    expect($r['level'])->toBe('bad');
+    expect($r['detail'])->toContain('包括密钥正确的老用户');
+});
+
+it('节点列表把"dest 变慢"单独标出来', function () {
+    dxRealityNode(['reported_dest_degraded' => true, 'reported_dest_latency_ms' => 420]);
+
+    $this->actingAs(dxAdmin())->get('/admin/nodes')
+        ->assertOk()->assertSee('dest 变慢 420ms');
+});

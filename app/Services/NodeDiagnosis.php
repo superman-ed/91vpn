@@ -129,8 +129,20 @@ class NodeDiagnosis
         if (! $node->usesReality()) {
             return null;
         }
+        // [!!] 劣化排在"可达"之前判:一个变慢的 dest,destHealth() 仍然返回 ok,
+        // 而每条用户新连接都在多付时间 —— 那正是"每一项检查都绿、用户却说变慢了"
+        // 的那种故障。只看 up/down 看不见它。
+        if ($node->destHealth() === 'ok' && $node->reported_dest_degraded) {
+            return $this->x('warn', 'REALITY dest',
+                "{$node->reported_dest} 可达，但探测时延中位数已达 "
+                ."{$node->reported_dest_latency_ms}ms —— 这个时延加在【每一条】用户新连接上"
+                .'（REALITY 每条连接都要先连一次 dest）。用户会觉得"这节点变慢了"，'
+                .'而每一项检查都是绿的。换一个更近的 dest');
+        }
+
         return match ($node->destHealth()) {
-            'ok' => $this->x('ok', 'REALITY dest', "{$node->reported_dest} 可达"),
+            'ok' => $this->x('ok', 'REALITY dest', "{$node->reported_dest} 可达"
+                .($node->reported_dest_latency_ms > 0 ? "（{$node->reported_dest_latency_ms}ms）" : '')),
             'down' => $this->x('bad', 'REALITY dest',
                 "{$node->reported_dest} 连续失败 {$node->reported_dest_failures} 次 —— "
                 .'【新连接全部失败，包括密钥正确的老用户】。REALITY 服务端在读 ClientHello '

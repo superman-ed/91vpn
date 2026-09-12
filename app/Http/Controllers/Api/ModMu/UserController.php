@@ -143,6 +143,11 @@ class UserController extends Controller
             $patch['reported_dest'] = (string) $request->input('reality_dest', '');
             $patch['reported_dest_up'] = $request->boolean('reality_dest_up');
             $patch['reported_dest_failures'] = (int) $request->input('reality_dest_failures', 0);
+            // [!!] 劣化与 up/down 是两件事:可达但变慢时 up 仍是 true,
+            // 而每条用户新连接都在多付时间(sogacore compatibility/dest-latency.md)。
+            // 只看 up/down 的话这完全不可见 —— 劣化先于失败。
+            $patch['reported_dest_latency_ms'] = (int) $request->input('reality_dest_latency_ms', 0);
+            $patch['reported_dest_degraded'] = $request->boolean('reality_dest_degraded');
             $patch['dest_reported_at'] = now();
         }
         $node->update($patch);
