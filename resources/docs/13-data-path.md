@@ -109,6 +109,16 @@ func Server(ctx, conn, config) (*Conn, error) {
 夹在中间：ClientHello 发往真站，ServerHello 与证书由真站返回，
 REALITY 的 X25519/AEAD 鉴权是在这之后才发生的。
 
+`[D]` **target 侧实际流过什么**（`lab/dest-tls-trace.sh` 直接观测）：
+
+| | 去 target 的 | 从 target 回来的 |
+|---|---|---|
+| 鉴权**通过** | 只有 ClientHello | ServerHello → Cert → CertVerify → Finished（全套） |
+| 鉴权**失败** | ClientHello + 客户端的 Finished | 同上，之后转双向直通 |
+
+`[!]` 所以鉴权通过时 target 那边是个**未完成的握手**；
+只有失败的连接才会在 target 上走完整套。
+
 `[!!]` **实际后果：dest 连不上时，每条新连接在第一步就 `return err`。**
 不是"鉴权失败后兜底失败"，而是**握手根本没机会开始** —— 所以它是全量的、
 立即的、不分用户的（密钥正确的老用户一样连不上）。
