@@ -9,6 +9,9 @@ use Symfony\Component\Yaml\Yaml;
 
 class SubscriptionService
 {
+    /** 上游状态整表的本次请求缓存。见 hopStatuses()。 */
+    private ?\Illuminate\Support\Collection $hopStatuses = null;
+
     /**
      * 统一入口：按客户端类型(flag)生成对应格式的订阅。
      * flag: clash / v2ray(v2rayN base64) / sub(通用base64) / 其它→默认 clash
@@ -234,11 +237,60 @@ class SubscriptionService
                 if (! $relay || ! $relay->enabled || ! $relay->online) {
                     continue;
                 }
+                // `[!!]` 心跳活着【不代表这条路通】。2026-09-13 实测:一台中转
+                // online=Y、心跳 19 秒前、入站端口正常监听,而它到落地那一跳
+                // 8 秒超时无回包(防火墙没放行) —— 订阅照样把它发给了用户。
+                // 这一跳只有中转自己测得了(面板连不到 accept_proxy 的落地),
+                // 所以这里读的是它上报的结果。
+                if ($this->hopKnownDead($relay, $rule, $landing)) {
+                    continue;
+                }
                 $push($relay->server, $port, $relay->name);
             }
         }
 
         return $out;
+    }
+
+    /**
+     * 这台中转到【这个落地】那一跳，是不是有新鲜证据说明它不通。
+     *
+     * `[!!]` 判据是「有证据说明死了」,不是「没有证据说明活着」。
+     * 没上报过、上报已过期 —— 一律【保留】这条入口:
+     *   - 中转刚部署、还没跑完第一轮探测,是最常见的"无数据"场景;
+     *   - 而误删一条其实能用的入口,用户是完全无感的(他只是少了个选择),
+     *     排查起来却要从订阅一路回溯到上报链路。
+     * 客户端那边还有 url-test 兜着(P0-1),所以这里宁可漏判不可误判。
+     *
+     * `[!]` 要求【全部】匹配的上游都死了才丢。一条规则可以有多个出站指向
+     * 同一个落地(地址池),只要还有一个活着这条路就是通的。
+     * 这与 Node::relayHopHealth() 的口径【不同】——那个是展示用的,
+     * 有任何一跳不通就标黄(因为那确实意味着有一批用户受影响);
+     * 这里是"要不要把入口从订阅里拿掉",误判的代价不对称,所以更保守。
+     */
+    private function hopKnownDead(Node $relay, \App\Models\ForwardRule $rule, Node $landing): bool
+    {
+        $rows = $this->hopStatuses()
+            ->where('rule_id', $rule->id)
+            ->where('node_id', $relay->id)
+            ->reject->stale();
+
+        if ($rows->isEmpty()) {
+            return false;                       // 未知 → 保留
+        }
+
+        // `[!]` 按 dial 对上具体是哪个落地。tag 有两种格式(fwd-out-* / relay-*),
+        // 不能当连接键;dial 是解析后的 host:port,与落地的 server:port 直接可比。
+        $matched = $rows->where('dial', $landing->server.':'.$landing->port);
+        $rows = $matched->isNotEmpty() ? $matched : $rows;
+
+        return $rows->every(fn (\App\Models\RuleOutboundStatus $r) => ! $r->alive);
+    }
+
+    /** 上游状态整表读一次就够 —— entrypoints() 对每个落地都要查,别按次打库。 */
+    private function hopStatuses(): \Illuminate\Support\Collection
+    {
+        return $this->hopStatuses ??= \App\Models\RuleOutboundStatus::all();
     }
 
     /** 这条规则的出站里有没有指向该落地的（按节点集或按地址+端口两种写法）。 */

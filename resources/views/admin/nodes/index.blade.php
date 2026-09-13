@@ -65,6 +65,18 @@
                         <span class="adm-pill danger" title="{{ $n->reported_dest }} 连续失败 {{ $n->reported_dest_failures }} 次">dest 不可达</span>
                     @elseif($n->usesReality() && $n->destHealth() === 'unknown')
                         <span class="adm-pill" title="节点没报过 dest 探活,或上报已过期">dest ?</span>
+                    @endif
+                    {{-- `[!!]` 「到落地」这一跳要在列表上看得见。2026-09-13 实测:
+                         一台中转心跳 19 秒前、端口在听、这里显示"在线",
+                         而它到落地 8 秒超时无回包 —— 订阅照发给用户。
+                         这一跳【面板测不了】(accept_proxy 落地只对中转放行),
+                         所以标签上要写清楚这是中转自己报的。 --}}
+                    @if($n->role === 'relay' || $n->role === 'both')
+                        @if($n->relayHopHealth() === 'down')
+                            <span class="adm-pill danger" title="中转上报:连不上下游落地。这一跳只有中转自己测得了,面板测不了 —— 去中转上查防火墙/路由/落地是否在监听">到落地不通</span>
+                        @elseif($n->relayHopHealth() === 'unknown')
+                            <span class="adm-pill" title="中转没报过到落地的探测结果,或上报已过期 —— 过期一律按未知,不按正常">到落地 ?</span>
+                        @endif
                     @endif</td>
                 <td>
                     <a href="/admin/nodes/{{ $n->id }}/edit" class="btn btn-outline-primary btn-sm">编辑</a>

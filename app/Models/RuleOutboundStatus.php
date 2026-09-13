@@ -27,6 +27,9 @@ class RuleOutboundStatus extends Model
 
     public function stale(): bool
     {
-        return $this->reported_at->lt(now()->subMinutes(self::STALE_MINUTES));
+        // `[!]` 没有 reported_at 一律按陈旧。实践中 upsert 每次都写，
+        // 但"没报过"与"报过且还新鲜"绝不能混为一谈 —— 混了就是把未知渲染成健康。
+        return $this->reported_at === null
+            || $this->reported_at->lt(now()->subMinutes(self::STALE_MINUTES));
     }
 }

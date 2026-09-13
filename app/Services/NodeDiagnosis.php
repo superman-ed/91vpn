@@ -32,6 +32,7 @@ class NodeDiagnosis
             [$this->heartbeat($node)],
             [$this->port($node)],
             [$this->dest($node)],
+            [$this->relayHop($node)],
             [$this->pairing($node)],
             [$this->sharedDest($node)],
             [$this->visibility($node)],
@@ -152,6 +153,35 @@ class NodeDiagnosis
                 .'端口还在听、面板还显示在线"。换一个 dest'),
             default => $this->x('unknown', 'REALITY dest',
                 '节点没报过 dest 探活，或上报已过期 —— 等一个心跳周期再看'),
+        };
+    }
+
+    /**
+     * 中转到落地那一跳。
+     *
+     * `[!!]` 这一条补的是本服务此前的一个盲区:上面所有检查【全绿】,
+     * 而节点仍然完全不可用。2026-09-13 实测:一台中转心跳 19 秒前、
+     * 入站端口正常监听、面板显示在线,到落地却是 8 秒超时无回包
+     * (防火墙没放行),订阅照发给用户。
+     *
+     * `[!!]` 这一跳【面板测不了】。accept_proxy 的落地按设计只对中转放行,
+     * 从面板连过去本来就不通 —— 那是对的,不是故障。所以这里读的是
+     * 中转自己上报的探测结果,并且必须一并说清楚"这不是面板探的",
+     * 否则人会去 ping 落地,然后根据一个无效的结果下结论。
+     */
+    private function relayHop(Node $node): ?array
+    {
+        if ($node->role !== 'relay' && $node->role !== 'both') {
+            return null;
+        }
+        $layer = app(LayerHealth::class)->forNode($node)['landing'];
+
+        return match ($layer['state']) {
+            'ok' => $this->x('ok', '到落地', $layer['detail'].'（中转自己探的）'),
+            'bad' => $this->x('bad', '到落地', $layer['detail']
+                .'。去中转上看它到这个地址通不通：防火墙、路由、落地是否在监听'),
+            'unknown' => $this->x('unknown', '到落地', $layer['detail']),
+            default => null,
         };
     }
 

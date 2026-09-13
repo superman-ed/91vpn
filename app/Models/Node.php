@@ -70,6 +70,42 @@ class Node extends Model
         return $this->reported_dest_up ? 'ok' : 'down';
     }
 
+    /** 本节点作为【中转】时，它到各下游落地那一跳的上报状态。 */
+    public function outboundStatuses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(RuleOutboundStatus::class, 'node_id');
+    }
+
+    /**
+     * 中转到落地那一跳的展示状态：ok / down / unknown。
+     *
+     * `[!!]` 这一跳【只有中转自己测得了】。面板测不了 —— accept_proxy 的落地
+     * 按设计只对中转放行，从面板连过去本来就不通（这是对的，不是故障）。
+     * 所以这里读的是中转上报的探测结果，不是面板自己探的。
+     *
+     * `[!!]` 陈旧一律按 unknown，不按 ok —— 同 destHealth()。
+     * 2026-09-13 实测到这个形态：中转停机 7 小时，它最后一次上报的
+     * alive=true 还原样留在库里，页面照样显示这一跳是通的。
+     *
+     * `[!]` 判据是「有任何一跳明确不通」而不是「全部不通」：
+     * 出站是按落地展开的，一个落地不通就意味着有一批用户连不上，
+     * 哪怕同一台中转的另一个落地还好着。
+     *
+     * @param  int|null  $ruleId  只看某条规则（按落地判时用），null 为全部
+     */
+    public function relayHopHealth(?int $ruleId = null): string
+    {
+        $rows = $this->outboundStatuses
+            ->when($ruleId !== null, fn ($c) => $c->where('rule_id', $ruleId))
+            ->reject(fn (RuleOutboundStatus $r) => $r->stale());
+
+        if ($rows->isEmpty()) {
+            return 'unknown';
+        }
+
+        return $rows->contains(fn (RuleOutboundStatus $r) => ! $r->alive) ? 'down' : 'ok';
+    }
+
     /**
      * 收 PROXY 头的"面板期望值 / 节点实际在跑的值"。
      *

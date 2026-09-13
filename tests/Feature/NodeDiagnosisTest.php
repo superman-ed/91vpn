@@ -239,3 +239,34 @@ it('节点列表把"dest 变慢"单独标出来', function () {
     $this->actingAs(dxAdmin())->get('/admin/nodes')
         ->assertOk()->assertSee('dest 变慢 420ms');
 });
+
+/**
+ * 「到落地」这一跳。
+ *
+ * `[!!]` 这组用例补的是本服务此前的盲区：其余各项【全绿】而节点完全不可用。
+ * 2026-09-13 实测过这个形态 —— 心跳 19 秒前、端口在听、面板在线，
+ * 而到落地 8 秒超时无回包。
+ */
+it('中转到落地不通时，其余各项全绿而这一项是红的', function () {
+    $relay = dxNode(['role' => 'relay', 'port' => 0, 'server' => '203.0.113.7']);
+    \App\Models\RuleOutboundStatus::create([
+        'rule_id' => 1, 'node_id' => $relay->id, 'tag' => 'fwd-out-1-0',
+        'dial' => '179.253.249.78:39500', 'backup' => false, 'alive' => false,
+        'live' => 0, 'reported_at' => now(),
+    ]);
+
+    $r = dxRun($relay->fresh());
+    expect($r['心跳']['level'])->toBe('ok')            // 绿
+        ->and($r['到落地']['level'])->toBe('bad')       // 真因在这里
+        ->and($r['到落地']['detail'])->toContain('179.253.249.78:39500')
+        ->and($r['到落地']['detail'])->toContain('面板测不了');
+});
+
+it('落地节点不出现「到落地」这一项', function () {
+    expect(dxRun(dxNode()))->not->toHaveKey('到落地');
+});
+
+it('中转从没报过这一跳时是 unknown，不是 ok', function () {
+    $relay = dxNode(['role' => 'relay', 'port' => 0, 'server' => '203.0.113.8']);
+    expect(dxRun($relay)['到落地']['level'])->toBe('unknown');
+});

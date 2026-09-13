@@ -17,7 +17,9 @@ class NodeController extends Controller
         $totalByNode = \App\Models\NodeDailyTraffic::selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
             ->groupBy('node_id')->get()->keyBy('node_id');
 
-        $nodes = Node::orderBy('sort')->orderBy('id')->get();
+        // `[!]` 预加载上游状态:视图里每个中转都要判"到落地"那一层,
+        // 不预加载就是 O(节点数) 次查询 —— 与额度、dest 撞车那两列同一个教训。
+        $nodes = Node::with('outboundStatuses')->orderBy('sort')->orderBy('id')->get();
 
         return view('admin.nodes.index', [
             // `[!!]` 额度用量【一次算完】，不要在视图里逐行调 quotaPercent()。
