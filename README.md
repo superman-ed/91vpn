@@ -43,5 +43,19 @@ tools/repro --real 脚本.php   # 真实库，需要输入 yes 确认
 它把连接切到 `vpn_test`，并拼上 `tools/repro-guard.php` 兜底 ——
 万一 env 覆盖没生效，守卫会在脚本的第一行之前就退出。
 
+**直接调 artisan 也挡住了。** 这几条命令在生产库上会被拒绝：
+
+```
+tinker · db:seed · migrate:fresh · migrate:refresh · migrate:reset · db:wipe
+```
+
+它们会写库，而最常见的用法是"临时验一件事"—— 一旦连错库，现象是
+**没有现象**：命令正常跑完，数据静静地进了生产。
+
+`migrate`（前向）和全部定时任务**不在名单里** —— 它们本来就该在生产库上跑，
+拦住等于堵死上线，而一个挡住正常操作的守卫三天内就会被人绕过去。
+
+确实要动生产：`REPRO_ALLOW_REAL=1` 再执行，或 `tools/repro --real`。
+
 ## 文档
 设计文档与实现计划见 `docs/superpowers/`。
