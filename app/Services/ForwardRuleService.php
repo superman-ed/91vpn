@@ -55,14 +55,24 @@ class ForwardRuleService
             ->filter(fn (ForwardRule $r) => $r->enabled && $r->runsOn($node->id));
 
         $out = [];
+        $dropped = [];
         foreach ($rules as $rule) {
             $compiled = $this->compileRule($rule, $node);
             if ($compiled !== null) {
                 $out[] = $compiled;
+
+                continue;
             }
+            // `[!!]` 丢掉的规则【必须报出来】。
+            // 丢弃本身是对的(空出站会让 agent 拒绝整份配置,一条坏规则连累全部),
+            // 但此前它是【静默】的:哈希是在【丢完之后】的那份上算的,
+            // 于是节点如实应用、两边哈希一致、同步状态显示「已同步」——
+            // 而运维配的规则有一条根本没在跑。
+            // 2026-09-13 收口审计第一项,用测试证实过这个形态。
+            $dropped[] = ['id' => $rule->id, 'name' => $rule->name];
         }
 
-        return ['rules' => $out, 'config_hash' => self::hash($out)];
+        return ['rules' => $out, 'config_hash' => self::hash($out), 'dropped' => $dropped];
     }
 
     /**

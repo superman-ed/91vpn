@@ -25,6 +25,16 @@ class RuleSync
 
     public const OK = 'ok';
 
+    /**
+     * 节点跑的是我们发出去的那份，但【有规则没发出去】。
+     *
+     * `[!]` 单独一档，不并进 OK 也不并进 BEHIND：
+     *   并进 OK   → 就是此前那个静默盲区
+     *   并进 BEHIND → 措辞会变成"节点落后了"，而节点没有落后，是面板没发
+     * 归错档比没有档更糟：它把人引向错误的排查方向。
+     */
+    public const PARTIAL = 'partial';
+
     public const BEHIND = 'behind';
 
     public const DOWN = 'down';
@@ -39,7 +49,7 @@ class RuleSync
      * @param  string  $expected  面板当下编译出的 config_hash
      * @return array{state:string,label:string,detail:string,error:?string}
      */
-    public static function of(Node $node, string $expected): array
+    public static function of(Node $node, string $expected, array $dropped = []): array
     {
         if (! $node->forwards()) {
             // 落地节点没有转发规则可言。返回 unknown 而不是 ok ——
@@ -72,6 +82,22 @@ class RuleSync
         }
 
         if ($node->applied_hash !== null && $node->applied_hash === $expected) {
+            // `[!!]` 哈希一致只证明「节点跑的就是我们【发出去的】那份」，
+            // 不证明「我配的规则都发出去了」—— 中间隔着一次编译，而编译会丢东西。
+            // 丢掉的那些在哈希算出来【之前】就没了，所以两边永远一致。
+            // 不单独报出来的话，这里就是一个说着实话却让人误解的绿灯。
+            if ($dropped !== []) {
+                $names = implode('、', array_map(
+                    fn ($d) => "#{$d['id']}「{$d['name']}」", array_slice($dropped, 0, 3)));
+                $more = count($dropped) > 3 ? ' 等 '.count($dropped).' 条' : '';
+
+                return self::r(self::PARTIAL, '部分未下发',
+                    '节点跑的确实是面板发出去的那份，但有规则【压根没发出去】：'
+                    .$names.$more.'。它们解析不出可达的落地（落地停用/已删/端口无效），'
+                    .'面板会整条跳过 —— 因为空出站会让节点拒绝整份配置。'
+                    .'去规则页看「解析不出任何拨号目标」。');
+            }
+
             return self::r(self::OK, '已同步',
                 '节点正在跑的就是面板当下这一份（'.$node->sync_rules.' 条规则）。');
         }
@@ -116,7 +142,9 @@ class RuleSync
         $preloaded = \App\Models\ForwardRule::with('outbounds')->get();
         $out = [];
         foreach ($nodes as $n) {
-            $out[$n->id] = self::of($n, $svc->compileForNode($n, $preloaded)['config_hash']);
+            $c = $svc->compileForNode($n, $preloaded);
+            // `[!]` dropped 必须一起传:少传就退回到那个静默绿灯。
+            $out[$n->id] = self::of($n, $c['config_hash'], $c['dropped'] ?? []);
         }
 
         return $out;
