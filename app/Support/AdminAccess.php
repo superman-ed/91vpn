@@ -113,6 +113,8 @@ class AdminAccess
         ['admin/announcements', 'content.manage', 'content.manage'],
         ['admin/help', 'content.manage', 'content.manage'],
         ['admin/notifications', 'content.manage', 'content.manage'],
+        ['admin/downloads', 'content.manage', 'content.manage'],
+        ['admin/banners', 'content.manage', 'content.manage'],
         ['admin/tickets', 'tickets.manage', 'tickets.manage'],
         ['admin/nodes', 'nodes.view', 'nodes.manage'],
         ['admin/rules', 'rules.manage', 'rules.manage'],
@@ -123,7 +125,20 @@ class AdminAccess
         ['admin/docs', 'dashboard.view', null],
         // `[!]` 改自己的密码：每个管理员都该能做，不需要任何额外能力。
         ['admin/account', 'dashboard.view', 'dashboard.view'],
-        ['admin', 'dashboard.view', null],   // 总览，必须排最后（它是所有 admin 路径的前缀）
+    ];
+
+    /**
+     * 精确匹配的路径（不作为前缀参与匹配）。
+     *
+     * `[!!]` 总览必须放这里，【不能】作为前缀条目。
+     * 一条 `['admin', ...]` 的前缀条目会匹配所有 `admin/*` ——
+     * 于是"没声明权限就抛错"这个性质被自己的兜底条目消掉了：
+     * 新加的管理路由会被静默接住（GET 人人可读、写操作 403），
+     * 而覆盖测试照常通过 —— 它验的是"不抛异常"，兜底正好满足。
+     * 2026-09-13 加下载/Banner 路由时才发现，当时测试是绿的。
+     */
+    public const EXACT = [
+        'admin' => ['dashboard.view', null],
     ];
 
     /** 这个角色有没有这项能力。 */
@@ -149,6 +164,12 @@ class AdminAccess
     {
         $uri = trim($uri, '/');
         $write = ! in_array(strtoupper($method), ['GET', 'HEAD', 'OPTIONS'], true);
+
+        if (isset(self::EXACT[$uri])) {
+            [$read, $writeCap] = self::EXACT[$uri];
+
+            return ($write ? $writeCap : $read) ?? false;
+        }
 
         foreach (self::ROUTES as [$prefix, $read, $writeCap]) {
             if ($uri === $prefix || str_starts_with($uri, $prefix.'/')) {

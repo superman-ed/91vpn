@@ -34,6 +34,8 @@ class AdminNav
             ['/admin/announcements', 'fas fa-thumbtack', '公告管理'],
             ['/admin/help', 'fas fa-book', '帮助中心'],
             ['/admin/notifications', 'fas fa-paper-plane', '站内信'],
+            ['/admin/downloads', 'fas fa-download', '客户端下载'],
+            ['/admin/banners', 'fas fa-image', '首页 Banner'],
         ],
         '节点与网络' => [
             ['/admin/nodes', 'fas fa-server', '节点管理'],

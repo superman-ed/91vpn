@@ -258,3 +258,33 @@ it('用户只在导航里出现一处', function () {
     $all = collect(\App\Support\AdminNav::GROUPS)->flatten(1)->pluck(0);
     expect($all->filter(fn ($p) => $p === '/admin/users')->count())->toBe(1);
 });
+
+/**
+ * `[!!]` 这一条钉死的是【2026-09-13 实际发生过的一个洞】。
+ *
+ * ROUTES 里原本有一条 `['admin', 'dashboard.view', null]` 作为总览。
+ * 但前缀匹配下它会吃掉所有 `admin/*` —— 新加的管理路由被静默接住
+ * （GET 人人可读、写操作 403），而"没声明权限就抛错"这个性质被自己消掉了。
+ *
+ * 更糟的是覆盖测试【照常通过】：它验的是"capFor 不抛异常"，而兜底正好满足。
+ * 绿色的测试没有证明任何事。总览因此移到 EXACT（精确匹配，不参与前缀）。
+ */
+it('没有任何条目会吃掉所有 admin 路径', function () {
+    foreach (AdminAccess::ROUTES as [$prefix, , ]) {
+        expect($prefix)->not->toBe('admin',
+            '这条会匹配所有 admin/* —— 新路由会被静默接住，覆盖测试还照样绿');
+        expect(str_starts_with($prefix, 'admin/'))->toBeTrue("前缀必须在 admin/ 之下：{$prefix}");
+    }
+});
+
+it('一条没声明权限的路径确实会抛错，而不是被兜底接住', function () {
+    // 直接拿一个不存在的管理路径试 —— 这是那条覆盖测试真正依赖的行为。
+    expect(fn () => AdminAccess::capFor('admin/something-nobody-declared', 'GET'))
+        ->toThrow(\RuntimeException::class);
+});
+
+it('总览本身仍然进得去', function () {
+    expect(AdminAccess::capFor('admin', 'GET'))->toBe('dashboard.view');
+    // 总览是只读的：对它发写请求不该被当成"可以"
+    expect(AdminAccess::capFor('admin', 'POST'))->toBeFalse();
+});

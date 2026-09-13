@@ -12,13 +12,13 @@ class DownloadController extends Controller
     {
         $links = ClientLinks::for(auth()->user());
 
-        // 91VPN 定制客户端（第二阶段自研，暂占位）
-        $official = [
-            ['os' => 'Windows', 'icon' => 'fab fa-windows', 'url' => null],
-            ['os' => 'macOS', 'icon' => 'fab fa-apple', 'url' => null],
-            ['os' => 'Android', 'icon' => 'fab fa-android', 'url' => null],
-            ['os' => 'iOS', 'icon' => 'fab fa-app-store-ios', 'url' => null],
-        ];
+        // `[!]` 从后台读，不再硬编码。url 为空仍然列出来并显示「即将推出」——
+        // 那是一个有意义的状态，不是缺数据，把它整个藏掉会让人以为不支持该平台。
+        $official = \App\Models\ClientDownload::visible()->get()
+            ->map(fn ($d) => [
+                'os' => $d->platform, 'label' => $d->label, 'icon' => $d->icon,
+                'url' => $d->url, 'version' => $d->version, 'note' => $d->note,
+            ])->all();
 
         return view('user.downloads', array_merge($links, [
             'official' => $official,

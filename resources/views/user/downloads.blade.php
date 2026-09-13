@@ -11,12 +11,14 @@
             <div class="col-6 col-md-3 mb-3">
                 <div class="text-center p-3" style="border:1px solid #eee;border-radius:8px">
                     <i class="{{ $d['icon'] }}" style="font-size:36px;color:#6777ef"></i>
-                    <div class="mt-2 font-weight-bold">91VPN For {{ $d['os'] }}</div>
+                    <div class="mt-2 font-weight-bold">{{ $d['label'] ?? ('91VPN For '.$d['os']) }}</div>
+                    @if(!empty($d['version']))<div class="text-muted" style="font-size:12px">v{{ $d['version'] }}</div>@endif
                     @if($d['url'])
                         <a href="{{ $d['url'] }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm mt-2">下载</a>
                     @else
                         <button class="btn btn-light btn-sm mt-2" disabled>即将推出</button>
                     @endif
+                    @if(!empty($d['note']))<div class="text-muted mt-1" style="font-size:12px">{{ $d['note'] }}</div>@endif
                 </div>
             </div>
             @endforeach

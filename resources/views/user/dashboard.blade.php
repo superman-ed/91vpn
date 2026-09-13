@@ -25,6 +25,24 @@
 </form>
 @endsection
 @section('content')
+{{-- 首页 Banner。`[!!]` 时间窗在【查询里】判（Banner::live）,不是在这里 ——
+     放视图里判的话,"过期的还挂在首页"只有被人看见才会发现,
+     而"忘了下架"正是运营最常见的失误。 --}}
+@foreach(\App\Models\Banner::live()->get() as $b)
+  <div class="card mb-3" style="overflow:hidden">
+    @if($b->link)<a href="{{ $b->link }}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">@endif
+      @if($b->image_url)
+        <img src="{{ $b->image_url }}" alt="{{ $b->title }}" style="width:100%;display:block">
+      @else
+        <div class="card-body" style="padding:16px 18px">
+          <div style="font-weight:600">{{ $b->title }}</div>
+          @if($b->text)<div class="text-muted" style="font-size:13px">{{ $b->text }}</div>@endif
+        </div>
+      @endif
+    @if($b->link)</a>@endif
+  </div>
+@endforeach
+
 @php $queued = $user->queuedOrders()->with('plan')->get(); @endphp
 @if($queued->isNotEmpty() || $user->canEndCurrentPackage())
 <div class="card">

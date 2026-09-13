@@ -148,6 +148,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::resource('plans', AdminPlanController::class)->except('show')->names('admin.plans');
     Route::post('plans/{plan}/toggle-sale', [AdminPlanController::class, 'toggleSale'])->name('admin.plans.toggle-sale');
     Route::post('plans/{plan}/move', [AdminPlanController::class, 'move'])->name('admin.plans.move');
+    // 内容：客户端下载 / 首页 Banner —— 改文案和链接不该找开发
+    Route::resource('downloads', \App\Http\Controllers\Admin\ClientDownloadController::class)
+        ->except('show')->names('admin.downloads')->parameters(['downloads' => 'download']);
+    Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)
+        ->except('show')->names('admin.banners');
     Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
     Route::resource('help', AdminHelpArticleController::class)->except('show')->names('admin.help')->parameters(['help' => 'help']);
     Route::get('users/export', [AdminUserController::class, 'export'])->name('admin.users.export');
