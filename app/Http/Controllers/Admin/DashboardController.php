@@ -43,6 +43,9 @@ class DashboardController extends Controller
             // [!] 上线自检:一个新注册的用户现在能不能真的用起来。
             // 每一项单独都查得到,但"合起来够不够开张"此前没有页面回答。
             'readiness' => app(\App\Services\ServiceReadiness::class)->check(),
+            // `[!!]` 钱和货对不上的几种形态。判据取自【真实流程不会产生的组合】,
+            // 不是泛泛的"已付未发货"—— 排队中的订单是正常的,算进去就天天误报。
+            'orderAnomalies' => app(\App\Services\OrderAnomalies::class)->check(),
             'userCount' => User::count(),
             'onlineUsers' => \App\Models\AliveIp::where('last_seen', '>=', now()->subSeconds(\App\Models\AliveIp::ONLINE_WINDOW))->distinct()->count('user_id'),
             'activeToday' => User::whereDate('last_used_at', $today)->count(),

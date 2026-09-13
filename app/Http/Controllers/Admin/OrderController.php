@@ -16,11 +16,21 @@ class OrderController extends Controller
         $from = $request->query('from');
         $to = $request->query('to');
 
-        $orders = $this->filtered($status, $q, $from, $to)->with(['user', 'plan'])
+        // `[!!]` ?anomaly= 来自总览上的异常卡片。它【绕过普通筛选】——
+        // 那几种形态本来就是"状态字段本身不可信"的情况,
+        // 再叠一层按状态筛选只会把要找的订单筛掉。
+        $anomaly = $request->query('anomaly');
+        $scope = $anomaly ? \App\Services\OrderAnomalies::scope($anomaly) : null;
+
+        $orders = ($scope ?? $this->filtered($status, $q, $from, $to))
+            ->with(['user', 'plan'])
             ->latest()->paginate(30)->withQueryString();
 
         return view('admin.orders.index', [
             'orders' => $orders,
+            'anomaly' => $anomaly,
+            'anomalyTitle' => $anomaly ? collect(app(\App\Services\OrderAnomalies::class)->check())
+                ->firstWhere('key', $anomaly)['title'] ?? '异常订单' : null,
             'status' => $status,
             'q' => $q,
             'from' => $from,
@@ -90,6 +100,32 @@ class OrderController extends Controller
     }
 
     /** 手动标记已支付并发货(线下/补单用) */
+    /**
+     * 退款。
+     *
+     * `[!!]` 只保证【钱这一侧】准确。权益不自动撤销 —— 发货是覆盖写，
+     * 覆盖前的值没有留存，自动还原只能靠猜。要收回就显式勾选「结束当前套餐」。
+     * 把做不到的事明说出来，比事后解释便宜得多。
+     */
+    public function refund(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'reason' => ['required', 'string', 'max:200'],
+            'end_package' => ['nullable'],
+        ], [], ['amount' => '退款金额', 'reason' => '退款原因']);
+
+        $r = app(\App\Services\RefundService::class)->refund(
+            $order, (float) $data['amount'], $data['reason'], (bool) ($data['end_package'] ?? false));
+
+        if ($r['ok']) {
+            audit('order.refund', sprintf('订单 %s 退款 ¥%s：%s', $order->order_no,
+                number_format((float) $data['amount'], 2), $data['reason']), $order);
+        }
+
+        return back()->with('status', $r['message']);
+    }
+
     public function markPaid(Order $order, BillingService $billing)
     {
         if ($order->status !== 'pending') {

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Order extends Model
 {
     protected $fillable = [
-        'user_id', 'plan_id', 'coupon_id', 'order_no', 'trade_no', 'amount', 'status', 'period', 'pay_method',
+        'user_id', 'plan_id', 'coupon_id', 'order_no', 'trade_no', 'amount', 'status', 'period', 'pay_method', 'refunded_at', 'refund_amount', 'refund_reason',
         'paid_at', 'activate_at', 'delivered_at',
     ];
 
@@ -22,6 +22,7 @@ class Order extends Model
     }
 
     protected $casts = [
+        'refunded_at' => 'datetime',
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'activate_at' => 'datetime',

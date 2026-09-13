@@ -1,8 +1,18 @@
 @extends('layouts.admin')
 @section('title', '订单管理')
 @section('content')
+  @if(!empty($anomaly))
+    {{-- `[!]` 说清楚当前是在看一个筛选出来的子集,而不是全部订单 ——
+         否则人会以为"订单怎么只剩这几条了"。 --}}
+    <div class="alert alert-warning" style="display:flex;gap:12px;align-items:center">
+      <i class="fas fa-filter"></i>
+      <div style="flex:1">正在查看「<strong>{{ $anomalyTitle }}</strong>」，不是全部订单。</div>
+      <a href="/admin/orders" class="btn btn-sm btn-outline-secondary">看全部</a>
+    </div>
+  @endif
+
 @php
-    $tabs = ['' => '全部', 'paid' => '已支付', 'pending' => '待支付', 'queued' => '排队中', 'cancelled' => '已取消'];
+    $tabs = ['' => '全部', 'paid' => '已支付', 'pending' => '待支付', 'queued' => '排队中', 'cancelled' => '已取消', 'refunded' => '已退款'];
     $payName = ['balance' => '余额', 'alipay' => '支付宝', 'wechat' => '微信', 'wxpay' => '微信', 'usdt' => 'USDT', 'epay' => '网关', 'mock' => '模拟', 'free' => '免费', 'admin' => '管理员开通', 'manual' => '手动标记'];
 @endphp
 <div class="adm-head">
@@ -65,6 +75,16 @@
                     @if($o->status === 'pending')
                         <form method="POST" action="/admin/orders/{{ $o->id }}/mark-paid" class="d-inline" data-dgr="确认将该订单标记为已支付并发货？">@csrf<button class="btn btn-success btn-sm">标记支付</button></form>
                         <form method="POST" action="/admin/orders/{{ $o->id }}/cancel" class="d-inline" data-dgr="确认取消该订单？">@csrf<button class="btn btn-outline-danger btn-sm">取消</button></form>
+                    @elseif(in_array($o->status, \App\Services\RefundService::REFUNDABLE, true))
+                        {{-- `[!!]` 退款【只退钱】。把做不到的事摆在按下之前 ——
+                             人是按界面上写的去理解系统行为的，事前说明比事后解释便宜得多。 --}}
+                        <button type="button" class="btn btn-outline-warning btn-sm js-refund"
+                                data-id="{{ $o->id }}" data-no="{{ $o->order_no }}"
+                                data-amount="{{ $o->amount }}"
+                                data-delivered="{{ $o->delivered_at ? 1 : 0 }}"
+                                data-caveats="{{ implode('||', \App\Services\RefundService::caveats($o)) }}">退款</button>
+                    @elseif($o->status === 'refunded')
+                        <span class="text-muted" title="{{ $o->refund_reason }}">已退 ¥{{ number_format((float) $o->refund_amount, 2) }}</span>
                     @else — @endif
                 </td>
             </tr>
@@ -75,3 +95,52 @@
     @include('admin.partials.pager', ['p' => $orders])
 </div>
 @endsection
+
+@push('scripts')
+<div class="modal fade" id="refundModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <form method="POST" id="refundForm">@csrf
+    <div class="modal-header"><h5 class="modal-title">退款 <span id="rfNo" class="text-muted"></span></h5></div>
+    <div class="modal-body">
+      {{-- 做不到的事放在最上面，不是折叠在下面 --}}
+      <div class="alert alert-warning" id="rfCaveats" style="font-size:13px"></div>
+      <div class="form-group">
+        <label>退款金额</label>
+        <input name="amount" id="rfAmount" class="form-control" required>
+        <div class="hint">可以少于订单金额（部分退款）。原始金额不会被改动。</div>
+      </div>
+      <div class="form-group">
+        <label>退款原因 <span class="text-danger">*</span></label>
+        <input name="reason" class="form-control" required placeholder="例如：用户申请 / 重复下单 / 服务不可用">
+        <div class="hint">不填原因的退款，以后对账时说不清是怎么回事。</div>
+      </div>
+      <label class="custom-switch" id="rfEndWrap">
+        <input type="checkbox" name="end_package" value="1" class="custom-switch-input">
+        <span class="custom-switch-indicator"></span>
+        <span class="custom-switch-description">同时<strong>立即结束该用户当前套餐</strong></span>
+      </label>
+      <div class="hint" id="rfEndHint">不勾的话，用户的套餐继续有效 —— 退款不会自动收回权益。</div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-dismiss="modal">算了</button>
+      <button class="btn btn-warning">确认退款</button>
+    </div>
+  </form>
+</div></div></div>
+<script>
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('.js-refund'); if (!b) return;
+  document.getElementById('refundForm').action = '/admin/orders/' + b.dataset.id + '/refund';
+  document.getElementById('rfNo').textContent = b.dataset.no;
+  document.getElementById('rfAmount').value = b.dataset.amount;
+  var cav = (b.dataset.caveats || '').split('||').filter(Boolean);
+  document.getElementById('rfCaveats').innerHTML = cav.length
+    ? '<strong>退款不会做这些：</strong><ul style="margin:6px 0 0;padding-left:18px">'
+      + cav.map(function (c) { return '<li>' + c + '</li>'; }).join('') + '</ul>'
+    : '这笔订单尚未发货，没有权益需要处理。';
+  var delivered = b.dataset.delivered === '1';
+  document.getElementById('rfEndWrap').style.display = delivered ? '' : 'none';
+  document.getElementById('rfEndHint').style.display = delivered ? '' : 'none';
+  $('#refundModal').modal('show');
+});
+</script>
+@endpush

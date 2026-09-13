@@ -194,6 +194,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
+    Route::post('orders/{order}/refund', [\App\Http\Controllers\Admin\OrderController::class, 'refund']);
     Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.orders.cancel');
     Route::get('tickets', [AdminTicketController::class, 'index'])->name('admin.tickets.index');
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('admin.tickets.show');

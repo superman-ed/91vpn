@@ -5,6 +5,27 @@
 {{-- 上线自检。`[!!]` 全绿时【整块不显示】—— 一个常年绿着的横幅会被当成装饰,
      等它变红的那天也没人注意。只在真有问题时出现。 --}}
 @php $rdBad = collect($readiness)->whereIn('level', ['bad', 'warn']); @endphp
+
+{{-- `[!!]` 订单异常放在最前面:钱和货对不上是唯一一类【用户已经付了钱却没得到东西】
+     的故障,它比任何运营指标都该先被看到。没有异常时整块不显示 ——
+     一个常驻的"一切正常"横幅,几天之后就没人再看了。 --}}
+@if(!empty($orderAnomalies))
+  <div class="card" style="border-left:4px solid #e0567b;margin-bottom:18px">
+    <div class="card-body" style="padding:16px 18px">
+      <h4 style="margin:0 0 10px;font-size:16px"><i class="fas fa-exclamation-triangle text-danger"></i> 订单异常</h4>
+      @foreach($orderAnomalies as $a)
+        <div style="display:flex;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid #f2f4f7">
+          <span class="adm-pill {{ $a['level'] === 'bad' ? 'danger' : 'warn' }}">{{ $a['count'] }}</span>
+          <div style="flex:1">
+            <div style="font-weight:600">{{ $a['title'] }}</div>
+            <div class="text-muted" style="font-size:13px">{{ $a['detail'] }}</div>
+          </div>
+          <a href="{{ $a['link'] }}" class="btn btn-sm btn-outline-danger">查看</a>
+        </div>
+      @endforeach
+    </div>
+  </div>
+@endif
 @if ($rdBad->isNotEmpty())
 <div class="card mb-4" style="border-left:4px solid {{ $rdBad->contains('level','bad') ? '#fc544b' : '#ffa426' }}">
   <div class="card-body py-3">

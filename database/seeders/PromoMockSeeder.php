@@ -52,7 +52,13 @@ class PromoMockSeeder extends Seeder
                     Order::create([
                         'user_id' => $u->id, 'plan_id' => $plan->id, 'amount' => $price,
                         'status' => 'paid', 'period' => 'month', 'pay_method' => 'epay',
-                        'paid_at' => now()->subDays(random_int(0, 20)),
+                        // `[!!]` 造 mock 订单也要满足真实流程的不变量:
+                        // status=paid 必然带 delivered_at 与 activate_at(见 BillingService)。
+                        // 少写这两个,发货异常告警会被一堆假数据淹没 ——
+                        // 而一个从第一天就全是误报的告警,等于没有告警。
+                        'paid_at' => $paidAt = now()->subDays(random_int(0, 20)),
+                        'delivered_at' => $paidAt,
+                        'activate_at' => $paidAt,
                     ]);
                 }
             }
