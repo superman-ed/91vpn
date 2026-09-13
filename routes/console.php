@@ -37,3 +37,9 @@ Schedule::command('nodes:mark-offline')->everyMinute();
 
 // 每日 4 点按保留天数清理日志/统计表(登录/崩溃/日流量),防磁盘无限增长
 Schedule::command('logs:prune')->dailyAt('04:00');
+
+// 每 5 分钟采样各节点是否可用,维护"存活区段"。
+// `[!!]` 这是【被动观察】—— 不为了统计去杀节点。人工注入故障测出来的是
+// "故障后的表现",不是"生产环境中的自然存活时间",而后者才是要回答的问题。
+// 周期与心跳失联阈值(180s)同量级:更密没有信息增量,更疏会让失效时刻不准。
+Schedule::command('health:sample')->everyFiveMinutes();

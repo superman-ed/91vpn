@@ -75,6 +75,11 @@ class PruneLogs extends Command
             ->where('created_at', '<', now()->subDays((int) $this->option('deploy-days')))
             ->update(['log' => null]);
 
+        // `[!!]` node_health_spells 【刻意不清】。它不是流水，是研究数据：
+        // 一个区段一行，一年也就几百行；而清掉旧区段就等于把长尾样本删掉 ——
+        // 存活分析里最有价值的恰恰是活得久的那些。哪天它真涨大了，
+        // 再按"已结束且超过 N 年"清，不要按天数一刀切。
+
         // ---- 只增不减的几张流水表 ----
         // [!] 这几张此前【没有任何保留策略】。单看行数都不大,但它们的共同点是
         // 每次用户动作都写一行、永不回收 —— subscribe_logs 尤其:客户端每次
