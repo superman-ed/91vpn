@@ -376,7 +376,17 @@ class RuleCheck
             $why[] = self::whyNoTarget($o);
         }
         if ($any) {
-            return [];   // 还有别的出站能拨，这条规则仍会下发
+            // `[!!]` 还有别的出站能拨 → 规则仍会下发，所以不是 skip。
+            // 但【池子悄悄变小了】：运维配了两个上游，现在只剩一个 ——
+            // 规则照常编译、哈希照常一致、同步照常绿,没有任何地方提过这件事。
+            // 冗余没了而人不知道,下一次剩下那个也挂时才会发现。
+            if ($why !== []) {
+                return [self::x('warn', '这条规则的部分上游【解析不出拨号目标】—— '
+                    .'规则仍会下发，但池子比你配的小：'.implode('；', array_unique($why))
+                    .'。以为有冗余而实际没有，是最容易出事的那种状态')];
+            }
+
+            return [];
         }
 
         return [self::x('skip', '主池的出站【解析不出任何拨号目标】—— '
@@ -388,6 +398,20 @@ class RuleCheck
     /** 说清楚这一条出站为什么拨不出去 —— 只说查得到的，查不到就说查不到。 */
     private static function whyNoTarget(ForwardOutbound $o): string
     {
+        // `[!]` relay_rule 的原因和别的不是一类：它取决于【另一条规则】的状态，
+        // 说成"没选落地节点"会把人引到错误的地方。
+        if ($o->out_type === 'relay_rule') {
+            $ref = $o->relay_rule_ref ? ForwardRule::find($o->relay_rule_ref) : null;
+            if (! $ref) {
+                return "引用的规则 #{$o->relay_rule_ref} 已不存在";
+            }
+            if (! $ref->enabled) {
+                return "引用的规则 #{$ref->id}「{$ref->name}」已停用";
+            }
+
+            return "引用的规则 #{$ref->id}「{$ref->name}」的入站节点都不可用";
+        }
+
         $set = $o->target_node_set;
         if (is_array($set) && $set !== []) {
             $nodes = Node::whereIn('id', $set)->get()->keyBy('id');

@@ -303,6 +303,18 @@ class ForwardRuleService
 
     private function resolveTargets(ForwardOutbound $ob): array
     {
+        // `[!!]` relay_rule 必须在这里也认。它的下一跳住在【被引用规则的入站】上，
+        // 与 target_node_set / target_addr 完全是另一条路 ——
+        // 而 targetsFor() 是面板里「这条出站拨向谁」的【唯一求法】，
+        // 漏掉这一支的后果不是少个功能，是**假阳性**：
+        // 一条纯 relay_rule 的规则编译得好好的，检查却报"解析不出任何拨号目标",
+        // 把人支去改一条没问题的规则。
+        // 2026-09-13 收口审计抓到,是我在 P1 加那个检查时引入的。
+        if ($ob->out_type === 'relay_rule') {
+            return array_values(array_filter(array_map(
+                fn (array $e) => $e['dial'] ?? null, $this->resolveRuleRef($ob))));
+        }
+
         $port = $this->firstPort((string) ($ob->target_port ?? ''));
 
         if (is_array($ob->target_node_set) && $ob->target_node_set !== []) {
