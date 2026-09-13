@@ -93,9 +93,17 @@ class LayerHealth
             return $this->x('na', '到落地', '本节点不是中转');
         }
 
-        $fresh = $node->outboundStatuses->reject->stale();
+        $reported = $node->outboundStatuses->reject->stale();
+        $fresh = $reported->filter->measured();
         if ($fresh->isEmpty()) {
+            // `[!!]` 三种"没有证据"要分开说，因为对应三种完全不同的动作。
+            if ($reported->isNotEmpty()) {
+                return $this->x('unknown', '到落地',
+                    '这些上游所在的规则【没开健康检查】—— 节点侧探测器不装配，'
+                    .'上报的 alive 恒为真，那是"没人检查过"不是"活着"。去规则里打开健康检查');
+            }
             $total = $node->outboundStatuses->count();
+
             return $this->x('unknown', '到落地', $total > 0
                 ? "有 {$total} 条上报但都已过期 —— 中转多半停了，这些值不能当真"
                 : '中转还没报过到落地的探测结果');
@@ -108,7 +116,21 @@ class LayerHealth
                 "连不上 {$where} —— 这一跳是中转自己探的，面板测不了");
         }
 
-        return $this->x('ok', '到落地', $fresh->count().' 条上游全部可达');
+        // `[!!]` 可达但明显变慢单独是一档。它与 alive 是两件事:
+        // 每一项检查都绿,而每条用户连接都在多付那点时间。
+        // 判据在节点侧且是【自身相对】的 —— 港→美 200ms 正常、同机房 1ms 也正常,
+        // 面板这边不该拿绝对毫秒再判一次。
+        $slow = $fresh->filter->slow;
+        if ($slow->isNotEmpty()) {
+            $d = $slow->map(fn ($r) => ($r->dial ?: $r->tag).' '.$r->delay_ms.'ms')->implode('、');
+            return $this->x('warn', '到落地',
+                "{$d} —— 相对它自己的基线明显变慢，加在每条用户连接上");
+        }
+
+        $ms = $fresh->max('delay_ms');
+
+        return $this->x('ok', '到落地',
+            $fresh->count().' 条上游全部可达'.($ms > 0 ? "，最慢 {$ms}ms" : ''));
     }
 
     /**

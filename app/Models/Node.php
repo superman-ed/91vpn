@@ -77,7 +77,7 @@ class Node extends Model
     }
 
     /**
-     * 中转到落地那一跳的展示状态：ok / down / unknown。
+     * 中转到落地那一跳的展示状态：ok / slow / down / unknown。
      *
      * `[!!]` 这一跳【只有中转自己测得了】。面板测不了 —— accept_proxy 的落地
      * 按设计只对中转放行，从面板连过去本来就不通（这是对的，不是故障）。
@@ -97,13 +97,24 @@ class Node extends Model
     {
         $rows = $this->outboundStatuses
             ->when($ruleId !== null, fn ($c) => $c->where('rule_id', $ruleId))
-            ->reject(fn (RuleOutboundStatus $r) => $r->stale());
+            ->reject(fn (RuleOutboundStatus $r) => $r->stale())
+            // `[!!]` 规则没开健康检查时 alive 恒为 true（没人写过那张表）——
+            // 那不是"活着"，是"没人检查过"。当成无证据。
+            ->filter(fn (RuleOutboundStatus $r) => $r->measured());
 
         if ($rows->isEmpty()) {
             return 'unknown';
         }
 
-        return $rows->contains(fn (RuleOutboundStatus $r) => ! $r->alive) ? 'down' : 'ok';
+        if ($rows->contains(fn (RuleOutboundStatus $r) => ! $r->alive)) {
+            return 'down';
+        }
+        // `[!]` 不通优先于变慢：两者同时出现时，先说不通的那件事。
+        if ($rows->contains(fn (RuleOutboundStatus $r) => $r->slow)) {
+            return 'slow';
+        }
+
+        return 'ok';
     }
 
     /**

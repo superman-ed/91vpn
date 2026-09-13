@@ -32,8 +32,15 @@ function rhvRelay(array $over = []): Node
 function rhvHop(Node $relay, bool $alive, $at = 'now'): void
 {
     static $seq = 0;
+    // `[!]` 必须挂在开了健康检查的规则上 —— 没开的话 alive 恒为真,
+    // 面板按无证据处理(见 LayerHealthTest 里那两条用例)。
+    $rule = \App\Models\ForwardRule::create([
+        'name' => 'hc'.$seq, 'enabled' => true, 'listen_port' => (string) (41000 + $seq),
+        'inbound_node_set' => [], 'inbound_type' => 'direct',
+        'balance' => 'roundrobin', 'backup_balance' => 'fallback', 'hc_enabled' => true,
+    ]);
     RuleOutboundStatus::create([
-        'rule_id' => 1, 'node_id' => $relay->id, 'tag' => 'fwd-out-1-'.($seq++),
+        'rule_id' => $rule->id, 'node_id' => $relay->id, 'tag' => 'fwd-out-1-'.($seq++),
         'dial' => '179.253.249.78:39500', 'backup' => false, 'alive' => $alive,
         'live' => 0, 'reported_at' => $at === 'now' ? now() : $at,
     ]);
@@ -81,4 +88,13 @@ it('这一列不随节点数增加查询次数', function () {
     DB::disableQueryLog();
 
     expect($n)->toBeLessThan(15);
+});
+
+it('到落地变慢的中转，在列表上标成黄的而不是绿的', function () {
+    $r = rhvRelay();
+    rhvHop($r, true);
+    \App\Models\RuleOutboundStatus::where('node_id', $r->id)->update(['delay_ms' => 60, 'slow' => true]);
+
+    $this->actingAs(rhvAdmin())->get('/admin/nodes')
+        ->assertOk()->assertSee('到落地变慢')->assertDontSee('到落地不通');
 });

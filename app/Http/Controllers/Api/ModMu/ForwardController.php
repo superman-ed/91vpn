@@ -142,13 +142,17 @@ class ForwardController extends Controller
                     // [!] live 夹到非负：它是无符号列，节点报个负数会让整批写入失败，
                     // 而那会让【所有】上游的状态一起停止更新。
                     'live' => max(0, (int) ($o['live'] ?? 0)),
+                    // `[!]` 老版本 agent 不报这两个字段 —— 缺省即 0/false,
+                    // 与"报了 0"在展示上同义(都当没有劣化证据),不必区分。
+                    'delay_ms' => max(0, (int) ($o['delay_ms'] ?? 0)),
+                    'slow' => ! empty($o['slow']),
                     'reported_at' => $now, 'created_at' => $now, 'updated_at' => $now,
                 ];
             }
         }
         if ($rows !== []) {
             RuleOutboundStatus::upsert($rows, ['rule_id', 'node_id', 'tag'],
-                ['dial', 'backup', 'alive', 'live', 'reported_at', 'updated_at']);
+                ['dial', 'backup', 'alive', 'live', 'delay_ms', 'slow', 'reported_at', 'updated_at']);
         }
 
         return $this->ok(['accepted' => count($rows)]);

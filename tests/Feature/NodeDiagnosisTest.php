@@ -249,8 +249,13 @@ it('节点列表把"dest 变慢"单独标出来', function () {
  */
 it('中转到落地不通时，其余各项全绿而这一项是红的', function () {
     $relay = dxNode(['role' => 'relay', 'port' => 0, 'server' => '203.0.113.7']);
+    $rule = \App\Models\ForwardRule::create([
+        'name' => 'hc', 'enabled' => true, 'listen_port' => '41999',
+        'inbound_node_set' => [], 'inbound_type' => 'direct',
+        'balance' => 'roundrobin', 'backup_balance' => 'fallback', 'hc_enabled' => true,
+    ]);
     \App\Models\RuleOutboundStatus::create([
-        'rule_id' => 1, 'node_id' => $relay->id, 'tag' => 'fwd-out-1-0',
+        'rule_id' => $rule->id, 'node_id' => $relay->id, 'tag' => 'fwd-out-1-0',
         'dial' => '179.253.249.78:39500', 'backup' => false, 'alive' => false,
         'live' => 0, 'reported_at' => now(),
     ]);

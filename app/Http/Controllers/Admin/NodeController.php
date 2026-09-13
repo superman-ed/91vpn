@@ -19,7 +19,7 @@ class NodeController extends Controller
 
         // `[!]` 预加载上游状态:视图里每个中转都要判"到落地"那一层,
         // 不预加载就是 O(节点数) 次查询 —— 与额度、dest 撞车那两列同一个教训。
-        $nodes = Node::with('outboundStatuses')->orderBy('sort')->orderBy('id')->get();
+        $nodes = Node::with('outboundStatuses.rule')->orderBy('sort')->orderBy('id')->get();
 
         return view('admin.nodes.index', [
             // `[!!]` 额度用量【一次算完】，不要在视图里逐行调 quotaPercent()。

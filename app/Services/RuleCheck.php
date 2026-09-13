@@ -46,6 +46,7 @@ class RuleCheck
     {
         $p = [];
         $rule->loadMissing('outbounds');
+        $p = array_merge($p, self::healthCheckOff($rule));
         $opts = $rule->inbound_opts ?? [];
         $cred = $rule->inbound_cred ?? [];
 
@@ -344,6 +345,30 @@ class RuleCheck
      *
      * @return array<int,array{level:string,text:string}>
      */
+    /**
+     * 没开健康检查 → 这条规则的「到落地」状态是【永久假绿灯】。
+     *
+     * `[!!]` 不是"少了个功能",是【面板会持续显示一个错误的结论】:
+     * 节点侧的探测器在健康检查关闭时根本不装配,而 alive 走的是选路层的
+     * dead 表 —— 那张表只有探测器会写。没有探测器 → 永远没人写 →
+     * alive 恒为 true。2026-09-13 在真实数据上确认过这个形态。
+     *
+     * `[!]` 另一半代价是转发本身:死掉的上游会一直留在轮转里
+     * (compatibility/relay.md §4 实测 soga health_check=false 时失败率稳定 ~50%)。
+     */
+    private static function healthCheckOff(ForwardRule $rule): array
+    {
+        if ($rule->hc_enabled) {
+            return [];
+        }
+
+        return [self::x('warn', '这条规则【没开健康检查】—— 两个后果：'
+            .'一是死掉的上游会一直留在轮转里（不会被摘除）；'
+            .'二是节点上报的「到落地是否可达」会**恒为真** —— '
+            .'探测器不装配时那个值没人写，面板会把它显示成绿灯。'
+            .'打开它，这两件事才成立')];
+    }
+
     private static function proxyProtocolKillsUdp(ForwardRule $rule): array
     {
         if ($rule->inbound_type !== 'direct') {

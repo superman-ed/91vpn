@@ -41,7 +41,9 @@ function hfRule(Node $landing, array $relays): ForwardRule
         'name' => 'r', 'enabled' => true, 'listen_port' => '39600',
         'inbound_node_set' => array_map(fn (Node $n) => $n->id, $relays),
         'inbound_type' => 'direct', 'balance' => 'roundrobin',
-        'backup_balance' => 'fallback', 'hc_enabled' => false,
+        // `[!]` 必须开:没开的话节点侧探测器不装配、alive 恒为真,
+        // 这些行按无证据处理,整组用例就测不到想测的东西了。
+        'backup_balance' => 'fallback', 'hc_enabled' => true,
     ]);
     ForwardOutbound::create([
         'rule_id' => $r->id, 'pool' => 'primary', 'enabled' => true,

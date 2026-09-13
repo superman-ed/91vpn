@@ -291,3 +291,27 @@ it('非 REALITY 的中转入站不警告', function () {
     expect(implode('', pairingTexts($r->fresh('outbounds'), 'warn')))
         ->not->toContain('只覆盖落地节点自己的 dest');
 });
+
+/**
+ * 没开健康检查会让面板持续显示一个【错误的结论】。
+ *
+ * `[!!]` 节点侧探测器在健康检查关闭时根本不装配，而 alive 走的是选路层的
+ * dead 表 —— 那张表只有探测器会写。没有探测器 → 永远没人写 → alive 恒为真。
+ * 2026-09-13 在真实数据上确认：规则 #1 hc_enabled=N，状态行一直报 alive=Y。
+ */
+it('规则没开健康检查时给出告警，并说清楚假绿灯这件事', function () {
+    $rule = ruleSending(0);
+    $rule->update(['hc_enabled' => false]);
+
+    $texts = collect(RuleCheck::check($rule->fresh('outbounds')))->pluck('text')->implode("\n");
+    expect($texts)->toContain('没开健康检查')
+        ->and($texts)->toContain('恒为真');
+});
+
+it('开了健康检查就不再告警', function () {
+    $rule = ruleSending(0);
+    $rule->update(['hc_enabled' => true]);
+
+    $texts = collect(RuleCheck::check($rule->fresh('outbounds')))->pluck('text')->implode("\n");
+    expect($texts)->not->toContain('没开健康检查');
+});

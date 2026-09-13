@@ -273,7 +273,11 @@ class SubscriptionService
         $rows = $this->hopStatuses()
             ->where('rule_id', $rule->id)
             ->where('node_id', $relay->id)
-            ->reject->stale();
+            ->reject->stale()
+            // `[!!]` 规则没开健康检查时 alive 恒为 true（没人写过 dead 表）。
+            // 这里本来就只在 alive=false 时丢弃，所以不过滤也不会误判 ——
+            // 但留着会让人以为"这些行是测过的"，口径要与展示侧一致。
+            ->filter->measured();
 
         if ($rows->isEmpty()) {
             return false;                       // 未知 → 保留
@@ -290,7 +294,7 @@ class SubscriptionService
     /** 上游状态整表读一次就够 —— entrypoints() 对每个落地都要查,别按次打库。 */
     private function hopStatuses(): \Illuminate\Support\Collection
     {
-        return $this->hopStatuses ??= \App\Models\RuleOutboundStatus::all();
+        return $this->hopStatuses ??= \App\Models\RuleOutboundStatus::with('rule')->get();
     }
 
     /** 这条规则的出站里有没有指向该落地的（按节点集或按地址+端口两种写法）。 */

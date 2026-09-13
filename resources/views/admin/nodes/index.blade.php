@@ -74,6 +74,10 @@
                     @if($n->role === 'relay' || $n->role === 'both')
                         @if($n->relayHopHealth() === 'down')
                             <span class="adm-pill danger" title="中转上报:连不上下游落地。这一跳只有中转自己测得了,面板测不了 —— 去中转上查防火墙/路由/落地是否在监听">到落地不通</span>
+                        @elseif($n->relayHopHealth() === 'slow')
+                            {{-- `[!]` 可达但明显变慢:每一项检查都绿,而每条用户连接都在多付时间。
+                                 判据在节点侧且是自身相对的 —— 港→美 200ms 正常、同机房 1ms 也正常。 --}}
+                            <span class="adm-pill warn" title="中转上报:到落地这一跳相对它自己的基线明显变慢 —— 加在每条用户连接上">到落地变慢</span>
                         @elseif($n->relayHopHealth() === 'unknown')
                             <span class="adm-pill" title="中转没报过到落地的探测结果,或上报已过期 —— 过期一律按未知,不按正常">到落地 ?</span>
                         @endif

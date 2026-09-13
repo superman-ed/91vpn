@@ -19,8 +19,32 @@ class RuleOutboundStatus extends Model
     protected $casts = [
         'backup' => 'boolean',
         'alive' => 'boolean',
+        'slow' => 'boolean',
         'reported_at' => 'datetime',
     ];
+
+    public function rule(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(ForwardRule::class, 'rule_id');
+    }
+
+    /**
+     * 这一行的 alive 到底【有没有被测过】。
+     *
+     * `[!!]` 规则没开健康检查时，节点侧的探测器【根本不装配】，
+     * 而上报走的是选路层的 dead 表 —— 那张表只有探测器会写。
+     * 没有探测器 → 永远没人写 → alive 恒为 true。
+     * 所以这种行里的 `alive=Y` 意思是【没人检查过】，不是"活着"。
+     * 2026-09-13 在真实数据上确认：规则 #1 hc_enabled=N，
+     * 而它的状态行一直报 alive=Y —— 面板把它渲染成了绿灯。
+     *
+     * `[!]` 判据放在面板侧：面板本来就知道 hc_enabled，
+     * 这样不需要节点升级也能立刻停止发假绿灯。
+     */
+    public function measured(): bool
+    {
+        return (bool) ($this->rule?->hc_enabled);
+    }
 
     /** 超过这个时间没再上报，状态就不能当真了。 */
     public const STALE_MINUTES = 5;
