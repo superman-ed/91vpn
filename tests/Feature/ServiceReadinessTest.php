@@ -140,6 +140,11 @@ it('首页:有问题时显示自检,全绿时不显示', function () {
     \App\Models\Setting::put('smtp_username', 'noreply@example.com');
     \App\Models\Setting::put('epay_pid', '123');
     \App\Models\Setting::put('epay_url', 'https://pay.example.com');
+    // `[!]` 定时任务那一项也要补上 —— 测试里缓存是空的，
+    // 而"一条都没跑过"是 warn（新部署最常见的状态），会让卡片显示出来。
+    foreach (\App\Providers\AppServiceProvider::WATCHED_TASKS as $sig) {
+        \Cache::forever("task_hb:{$sig}", ['at' => now()->timestamp, 'ok' => true]);
+    }
 
     $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('上线自检');
 });

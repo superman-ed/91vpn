@@ -13,9 +13,20 @@ use Illuminate\Support\ServiceProvider;
 class AppServiceProvider extends ServiceProvider
 {
     /** 需记录心跳的定时任务 */
+    /**
+     * 记录"最后一次跑成功"的定时任务。
+     *
+     * `[!!]` 必须【覆盖全部】调度任务,由测试保证(ScheduledTaskWatchTest)。
+     * 漏掉一条的后果不是少个指标,是那条任务停了之后【没有任何地方会察觉】——
+     * 2026-09-13 收口审计发现 nodes:mark-offline 就不在名单里,
+     * 而它正是让 online 不撒谎的那个任务:它停了,所有节点会永远显示在线,
+     * 死节点照样被合成进订阅。
+     */
     public const WATCHED_TASKS = [
         'alive-ips:prune', 'traffic:reset-daily', 'traffic:reset-monthly',
-        'orders:activate-due', 'payment:reconcile', 'orders:expire-pending', 'stats:snapshot', 'notify:expiry',
+        'orders:activate-due', 'payment:reconcile', 'orders:expire-pending',
+        'stats:snapshot', 'notify:expiry',
+        'nodes:mark-offline', 'logs:prune', 'health:sample',
     ];
 
     public function register(): void

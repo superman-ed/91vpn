@@ -32,7 +32,53 @@ class ServiceReadiness
             $this->mail(),
             $this->payment(),
             $this->subUrl(),
+            $this->scheduler(),
         ];
+    }
+
+    /**
+     * 定时任务到底在不在跑。
+     *
+     * `[!!]` 此前只有 /admin/system/health 那一页显示它,而那一页要主动打开 ——
+     * 调度器停了没有任何地方会主动说一句。而它是【所有记账保鲜的唯一来源】:
+     * nodes:mark-offline 停了,所有节点永远显示在线,死节点照样进订阅。
+     *
+     * `[!]` 两档分开,为的是别制造噪声:
+     *   全部从未跑过 → 多半是调度器压根没起来(新部署最常见),warn
+     *   跑过又停了   → 那是真的出事了,bad
+     * 不区分的话,新部署第一分钟就会满屏红,而人会学会忽略这张卡片。
+     */
+    private function scheduler(): array
+    {
+        $tasks = \App\Providers\AppServiceProvider::WATCHED_TASKS;
+        $never = $stale = [];
+        foreach ($tasks as $sig) {
+            $hb = \Illuminate\Support\Facades\Cache::get("task_hb:{$sig}");
+            if (! isset($hb['at'])) {
+                $never[] = $sig;
+
+                continue;
+            }
+            // `[!]` 阈值按【最疏的那条】给,这里只答"调度器还活着吗",
+            // 每条任务各自的过期判定在健康页上。取 1 天 + 富余。
+            if (now()->timestamp - $hb['at'] > 90000) {
+                $stale[] = $sig;
+            }
+        }
+
+        if (count($never) === count($tasks)) {
+            return $this->x('warn', '定时任务', '一条都没运行过 —— 调度器多半没起来。'
+                .'流量清零、订单激活、失联节点置离线都靠它。',
+                'docker compose ps scheduler');
+        }
+        if ($stale !== []) {
+            return $this->x('bad', '定时任务',
+                '这些任务跑过、但已经很久没再跑了：'.implode('、', $stale)
+                .'。它们维护的记录会停在最后一次的值上，而页面上看不出来。',
+                '看 /admin/system/health 的定时任务一栏');
+        }
+
+        return $this->x('ok', '定时任务', '在跑');
     }
 
     /** 还剩几项没配好（只数 bad）。 */

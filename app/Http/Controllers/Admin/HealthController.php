@@ -20,6 +20,13 @@ class HealthController extends Controller
         'traffic:reset-daily' => ['每日流量清零', 86400, '每天00:00'],
         'traffic:reset-monthly' => ['月度流量重置', 86400, '每天00:05'],
         'notify:expiry' => ['到期提醒站内信', 86400, '每天09:00'],
+        // `[!!]` 这一条最要紧:它停了,所有节点会永远显示在线,
+        // 死节点照样被合成进订阅 —— 而页面上一切正常。
+        'nodes:mark-offline' => ['失联节点置离线', 60, '每分钟'],
+        'logs:prune' => ['清理日志与统计', 86400, '每天04:00'],
+        // 存活采集停了不会立刻有人受影响,但实验数据会出现一段空洞,
+        // 而空洞是【几周后】才会被发现的。
+        'health:sample' => ['节点存活采集', 300, '每5分钟'],
     ];
 
     /** GET /admin/system/health */
