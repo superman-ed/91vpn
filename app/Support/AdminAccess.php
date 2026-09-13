@@ -118,6 +118,7 @@ class AdminAccess
         ['admin/tickets', 'tickets.manage', 'tickets.manage'],
         ['admin/nodes', 'nodes.view', 'nodes.manage'],
         ['admin/rules', 'rules.manage', 'rules.manage'],
+        ['admin/topology', 'nodes.view', null],
         ['admin/relay', 'nodes.view', null],
         ['admin/admins', 'admins.manage', 'admins.manage'],
         ['admin/settings', 'system.manage', 'system.manage'],

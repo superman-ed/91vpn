@@ -142,6 +142,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('nodes/{node}/deploy/{run}', [\App\Http\Controllers\Admin\RelayDeployController::class, 'log']);
     // 落地部署的 91vpn 身份(面板即 91vpn,自动带入;secret 按需取不洒进列表页)
     Route::get('nodes/{node}/deploy-identity', [\App\Http\Controllers\Admin\RelayDeployController::class, 'identity']);
+    // 拓扑：按【路径】看 —— 哪条路存在、断在哪一段、用户实际拿得到哪几条
+    Route::get('topology', [\App\Http\Controllers\Admin\TopologyController::class, 'index'])->name('admin.topology');
     Route::get('relay/monitor', [\App\Http\Controllers\Admin\RelayMonitorController::class, 'index'])->name('admin.relay.monitor');
     Route::get('relay/online-ip', [\App\Http\Controllers\Admin\RelayOnlineIpController::class, 'index'])->name('admin.relay.online-ip');
 
