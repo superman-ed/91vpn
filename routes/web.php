@@ -134,6 +134,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('rules/{rule}/edit', [\App\Http\Controllers\Admin\RelayRuleController::class, 'edit'])->name('admin.rules.edit');
     Route::put('rules/{rule}', [\App\Http\Controllers\Admin\RelayRuleController::class, 'update'])->name('admin.rules.update');
     Route::delete('rules/{rule}', [\App\Http\Controllers\Admin\RelayRuleController::class, 'destroy'])->name('admin.rules.destroy');
+    // 把写死的出站地址转成落地节点引用（下发内容不变，面板从此认得回来）
+    Route::post('rules/{rule}/adopt-targets', [\App\Http\Controllers\Admin\RelayRuleController::class, 'adoptTargets']);
     Route::post('rules/{rule}/regenerate-cred', [\App\Http\Controllers\Admin\RelayRuleController::class, 'regenerateCred']);
     Route::post('rules/{rule}/reality-keypair', [\App\Http\Controllers\Admin\RelayRuleController::class, 'realityKeypair']);
     Route::post('nodes/{node}/deploy', [\App\Http\Controllers\Admin\RelayDeployController::class, 'start']);

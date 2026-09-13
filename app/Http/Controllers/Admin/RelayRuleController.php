@@ -162,7 +162,7 @@ class RelayRuleController extends \App\Http\Controllers\Controller
         Audit::log('rule.delete', 'rule', $rule->id, $name, $rule->getAttributes(), []);
         $rule->delete(); // 出站随外键级联删除
 
-        return redirect('/rules')->with('status', "规则「{$name}」已删除");
+        return redirect()->route('admin.rules.index')->with('status', "规则「{$name}」已删除");
     }
 
     /**
@@ -213,20 +213,52 @@ class RelayRuleController extends \App\Http\Controllers\Controller
      * 保存之后：若节点会拒绝这条规则，**留在编辑页并说清后果**，
      * 而不是跳回列表说"已保存"。
      *
+     * `[!!]` 跳转一律走【命名路由】，不要手写路径。
+     * 这些管理路由带 `admin/` 前缀，而此前这里写的是 `/rules` ——
+     * 保存、删除之后【全部落在 404】，那条"节点会拒绝它"的提示根本没人看得见。
+     * 2026-09-13 才发现：634 条测试里没有一条跟进跳转目的地，
+     * `assertRedirect()` 只证明"发生了跳转"，不证明目的地存在。
+     *
      * `[!!]` "已保存"和"会生效"是两回事。跳回列表只说保存成功，
      * 运维会以为事情办完了 —— 而那个节点上的【全部】中转其实正在停摆。
      */
+    /**
+     * 把这条规则里写死地址的出站，转成对应落地节点的引用。
+     *
+     * `[!!]` 这个动作【不改变下发给节点的内容】—— 节点引用是面板侧解析成
+     * host:port 的，agent 根本看不到节点 ID。所以它是纯粹的面板侧收编：
+     * 之后「到落地」那一层的健康态、PROXY 头配对校验、落地换地址时自动跟随，
+     * 才有东西可依。给出这个按钮而不只是警告，是因为**只提醒不给动作，
+     * 等于把问题原样丢回去**。
+     *
+     * `[!]` 只转【能唯一对上】的。对上多台(同 IP 同端口两台落地)或对不上的
+     * 一律不动 —— 猜一个填进去，比留着写死的地址更糟:
+     * 那会让面板从"认不出来"变成"认错了人",而认错了是不会报错的。
+     */
+    public function adoptTargets(ForwardRule $rule)
+    {
+        ['done' => $done, 'skipped' => $skipped] = app(\App\Services\TargetAdoption::class)->run($rule);
+
+        $msg = $done === [] ? '没有可以转换的出站' : '已转成节点引用：'.implode('、', $done)
+            .'。下发给节点的内容不变 —— 节点引用是面板侧解析的';
+        if ($skipped !== []) {
+            $msg .= '。未处理：'.implode('、', $skipped);
+        }
+
+        return redirect()->route('admin.rules.edit', $rule)->with('status', $msg);
+    }
+
     private function afterSave(ForwardRule $rule, string $verb)
     {
         $problems = RuleCheck::check($rule->fresh()->load('outbounds'));
         if (RuleCheck::willReject($problems)) {
-            return redirect("/rules/{$rule->id}/edit")
+            return redirect()->route('admin.rules.edit', $rule)
                 ->with('status', "规则「{$rule->name}」{$verb}，但【节点会拒绝它】—— 见下方检查结果");
         }
 
         // `[!]` 说清"已保存"不等于"已生效"。节点要到下一个拉取周期才看到它，
         // 而它还可能拒绝这一份 —— 指一下去哪儿看，比让人以为已经完事好。
-        return redirect('/rules')->with('status',
+        return redirect()->route('admin.rules.index')->with('status',
             "规则「{$rule->name}」{$verb} —— 节点会在下一个拉取周期取走；"
             .'是否真的应用了，看列表里的「节点同步」一列。');
     }

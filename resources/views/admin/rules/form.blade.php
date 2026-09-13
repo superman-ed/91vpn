@@ -211,6 +211,31 @@
             重新生成
           </button>
         </div>
+
+        {{-- `[!!]` 一键把写死的出站地址收编成落地节点引用。
+             这个动作【不改变下发给节点的内容】—— 节点引用是面板侧解析成
+             host:port 的，agent 根本看不到节点 ID。所以按下去没有风险，
+             而面板从此认得回这条出站：「到落地」那一层的健康态、
+             PROXY 头配对校验、落地换地址时自动跟随，都要靠那个引用。
+             `[!]` 只提醒不给动作，等于把问题原样丢回去 —— 所以放个按钮。 --}}
+        @if($rule->outbounds->contains(fn ($o) => $o->target_addr
+              && ! (is_array($o->target_node_set) && $o->target_node_set !== [])))
+          <hr>
+          <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+              <label class="mb-1">出站目标写死了地址</label>
+              <div class="hint">
+                改成引用落地节点后，<strong>下发给节点的内容一字不变</strong>，
+                但面板就能把这条出站认回来 —— 分层健康态、PROXY 头配对校验、
+                以及落地换地址时自动跟随，都要靠那个引用。
+              </div>
+            </div>
+            <button formaction="/admin/rules/{{ $rule->id }}/adopt-targets" formmethod="post"
+                    class="btn btn-outline-primary">
+              转成节点引用
+            </button>
+          </div>
+        @endif
       @endif
     </div>
   </div>

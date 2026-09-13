@@ -46,7 +46,14 @@
       <label>或直接填地址</label>
       <input name="outbounds[{{ $i }}][target_addr]" class="form-control"
              value="{{ ($o->target_addr ?? '') }}" placeholder="1.2.3.4 或 域名">
-      <div class="hint">选了节点就不用填这里</div>
+      {{-- `[!!]` 写死地址与选节点【下发的内容一模一样】——
+           节点引用是面板侧解析成 host:port 的。差别全在面板这边认不认得回来。 --}}
+      <div class="warn">
+        能选节点就<strong>别填这里</strong>。写死地址下发的内容一样，但面板
+        <strong>认不回这条出站</strong>：「到落地」那一层没有健康态、
+        PROXY 头配对无法校验、落地换地址时这里不会跟着改。<br>
+        只有目标<strong>不是面板管的机器</strong>时才填。
+      </div>
     </div>
     <div class="form-group col-md-1">
       <label>端口</label>

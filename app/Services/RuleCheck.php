@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\ForwardOutbound;
 use App\Models\ForwardRule;
+use App\Models\Node;
 
 /**
  * 规则预演：保存前告诉运维「节点会不会认这条规则」。
@@ -99,7 +101,10 @@ class RuleCheck
         $primary = $rule->outbounds->where('pool', 'primary')->where('enabled', true);
         if ($primary->isEmpty()) {
             $p[] = self::x('skip', '主池没有可用出站 —— 节点会整条跳过这条规则');
+        } else {
+            $p = array_merge($p, self::unresolvableTargets($rule, $primary));
         }
+        $p = array_merge($p, self::rawAddressTargets($rule));
 
         $serverNames = $opts['reality']['server_names'] ?? [];
         foreach ($rule->outbounds as $o) {
@@ -345,6 +350,115 @@ class RuleCheck
      *
      * @return array<int,array{level:string,text:string}>
      */
+    /**
+     * 主池有出站【行】，却解析不出任何拨号目标。
+     *
+     * `[!!]` 这一条补的是"数行数"与"看解析结果"之间的缝。行在、enabled 也是真，
+     * 但它指向一台【已停用】的落地 —— 解析出来是空目标，于是 compileRule
+     * 整条返回 null、不下发。**规则连同它的入站一起消失**，
+     * 用户那条入口静默失效，而此前面板一句话都不说。
+     * 2026-09-13 用测试证实过这个形态。
+     *
+     * `[!]` 面板丢掉这条规则是【对的】—— agent 对空出站的规则会报
+     * "至少需要一个 outbound" 并拒绝整份配置，一条坏规则会连累其余全部。
+     * 要修的不是那个行为，是"没人被告知"。
+     */
+    private static function unresolvableTargets(ForwardRule $rule, $primary): array
+    {
+        $svc = app(ForwardRuleService::class);
+        $any = false;
+        $why = [];
+        foreach ($primary as $o) {
+            if ($svc->targetsFor($o) !== []) {
+                $any = true;
+                continue;
+            }
+            $why[] = self::whyNoTarget($o);
+        }
+        if ($any) {
+            return [];   // 还有别的出站能拨，这条规则仍会下发
+        }
+
+        return [self::x('skip', '主池的出站【解析不出任何拨号目标】—— '
+            .'面板会整条跳过这条规则，**连它的入站一起**：'
+            .'用户那条入口会静默失效（端口不再监听），而节点上不会有任何报错。'
+            .'原因：'.implode('；', array_unique($why)))];
+    }
+
+    /** 说清楚这一条出站为什么拨不出去 —— 只说查得到的，查不到就说查不到。 */
+    private static function whyNoTarget(ForwardOutbound $o): string
+    {
+        $set = $o->target_node_set;
+        if (is_array($set) && $set !== []) {
+            $nodes = Node::whereIn('id', $set)->get()->keyBy('id');
+            $bad = [];
+            foreach ($set as $id) {
+                $n = $nodes->get($id);
+                if (! $n) {
+                    $bad[] = "#{$id} 已不存在";
+                } elseif (! $n->enabled) {
+                    $bad[] = "#{$id}「{$n->name}」已停用";
+                } elseif (! $o->target_port && ! $n->port) {
+                    $bad[] = "#{$id}「{$n->name}」没有端口（中转节点的 port 是 0），"
+                        .'而这条出站也没写目标端口';
+                }
+            }
+
+            return $bad === [] ? '指定的落地都取不到有效地址' : implode('、', $bad);
+        }
+        if ($o->target_addr && ! $o->target_port) {
+            return "直填地址 {$o->target_addr} 缺目标端口";
+        }
+
+        return '既没选落地节点，也没填目标地址';
+    }
+
+    /**
+     * 出站写死了地址，而不是引用落地节点。
+     *
+     * `[!!]` 两种写法【下发给节点的内容一字不差】—— 节点引用是面板侧解析成
+     * host:port 的，agent 根本看不到节点 ID。所以这不是功能问题，
+     * 是面板能不能把这条出站**认回到一个节点**上的问题。认不回来就丢掉三样：
+     *
+     *   分层健康态   「到落地」那一层靠 dial 反查落地，认不回来就没有这一层
+     *   PROXY 头配对  靠地址去找落地的收头姿态，找不到就无法校验
+     *   改地址时跟随  落地换 IP/端口时，节点引用自动跟着走，写死的不会
+     *
+     * `[!]` 分两档说，因为处置不同：
+     *   能对上某个节点  → 改成引用即可，下发内容不变，纯赚
+     *   对不上任何节点  → 这是个面板【管不到】的目标，只能提醒，不能替他改
+     */
+    private static function rawAddressTargets(ForwardRule $rule): array
+    {
+        $p = [];
+        foreach ($rule->outbounds as $o) {
+            if (! $o->enabled || ! $o->target_addr) {
+                continue;
+            }
+            if (is_array($o->target_node_set) && $o->target_node_set !== []) {
+                continue;   // 节点集优先，地址字段是死字段
+            }
+            $where = ($o->pool === 'backup' ? '备池' : '主池').'出站 → '.$o->target_addr;
+            $hit = Node::where('server', $o->target_addr)
+                ->when($o->target_port, fn ($q) => $q->where('port', (int) $o->target_port))
+                ->first();
+            if ($hit) {
+                $p[] = self::x('warn', "{$where}：写死了地址，而面板里就有这台落地"
+                    ."（#{$hit->id}「{$hit->name}」）—— 改成【选落地节点】。"
+                    .'下发给节点的内容一字不差，但面板就能把它认回来：'
+                    .'「到落地」那一层的健康态、PROXY 头配对校验、'
+                    .'以及落地换地址时自动跟随，都要靠那个引用');
+            } else {
+                $p[] = self::x('warn', "{$where}：写死了地址，且面板里【没有】这台节点 —— "
+                    .'这是个面板管不到的目标：没有健康态、无法校验 PROXY 头配对、'
+                    .'它换地址时这条规则不会跟着改。确实是外部目标就保持现状，'
+                    .'是我们自己的机器就先把它建成节点');
+            }
+        }
+
+        return $p;
+    }
+
     /**
      * 没开健康检查 → 这条规则的「到落地」状态是【永久假绿灯】。
      *
