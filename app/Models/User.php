@@ -23,7 +23,7 @@ class User extends Authenticatable
         'money', 'ref_by', 'ref_code', 'reg_ip', 'reg_referer',
         'utm_source', 'utm_medium', 'utm_campaign', 'promo_code',
         'invite_token', 'api_token',
-        'is_admin', 'banned', 'last_check_in', 'last_used_at',
+        'is_admin', 'admin_role', 'banned', 'last_check_in', 'last_used_at',
     ];
 
     protected $hidden = [

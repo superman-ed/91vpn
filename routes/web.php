@@ -162,6 +162,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('admins', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('admin.admins.index');
     Route::get('admins/create', [App\Http\Controllers\Admin\AdminController::class, 'create']);
     Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);
+    Route::post('admins/{user}/role', [\App\Http\Controllers\Admin\AdminController::class, 'updateRole']);
     Route::delete('admins/{user}', [App\Http\Controllers\Admin\AdminController::class, 'destroy']);
     // 管理员自助改密
     Route::get('account', [App\Http\Controllers\Admin\AccountController::class, 'edit'])->name('admin.account');

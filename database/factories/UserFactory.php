@@ -21,6 +21,25 @@ class UserFactory extends Factory
      *
      * @return array<string, mixed>
      */
+    /**
+     * `[!!]` 测试里 `is_admin => true` 而没写角色的，一律按超级管理员。
+     *
+     * 理由是保持既有测试的语义:在角色引入之前,"是管理员"就等于"什么都能做",
+     * 48 个测试文件都建立在这个前提上。
+     *
+     * `[!!]` 这一条【只在工厂里】,不放模型事件 —— 放模型事件的话,
+     * 生产环境新建一个管理员忘了选角色,就会静默变成超管。
+     * 那是把一个"少了权限"的失误,变成一个"多了全部权限"的漏洞。
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (\App\Models\User $u) {
+            if ($u->is_admin && $u->admin_role === null) {
+                $u->admin_role = 'super';
+            }
+        });
+    }
+
     public function definition(): array
     {
         return [

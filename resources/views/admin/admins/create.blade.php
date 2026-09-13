@@ -21,6 +21,16 @@
                     <label>昵称（选填）</label>
                     <input name="name" value="{{ old('name') }}" class="form-control" placeholder="默认「管理员」">
                 </div>
+                {{-- `[!]` 角色【不给默认值】：忘了选就是一个权限过大或过小的账号，而没人会注意到。 --}}
+                <div class="form-group col-md-6">
+                    <label>角色 <span class="text-danger">*</span></label>
+                    <select name="admin_role" class="form-control @error('admin_role') is-invalid @enderror" required>
+                        <option value="">— 请选择 —</option>
+                        @foreach($roles as $k => $label)<option value="{{ $k }}" @selected(old('admin_role')===$k)>{{ $label }}</option>@endforeach
+                    </select>
+                    <div class="hint">进后台之后能做什么由它决定。可以先给小的，之后随时改。</div>
+                    @error('admin_role')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </div>
                 <div class="form-group col-md-6">
                     <label>密码（新建账号时必填，至少 8 位）</label>
                     <input name="password" type="password" class="form-control @error('password') is-invalid @enderror" placeholder="提升已有用户可留空">

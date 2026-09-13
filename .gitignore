@@ -32,3 +32,6 @@ tmp_laravel/
 # [!!] 别提交二进制 —— 每发一版仓库就胖 24M，而它本来就是构建产物。
 # install.sh 的源在 sogacore/deploy/install.sh，这里只是发布副本。
 /public/agent/
+
+# 临时评审文档(随手放、随手删,不该进版本库)
+/public/r/

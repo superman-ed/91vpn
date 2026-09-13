@@ -41,14 +41,19 @@ it('admin page lists only admins', function () {
 it('promotes an existing user to admin', function () {
     $u = User::factory()->create(['username' => 'promoteme', 'is_admin' => false]);
 
-    $this->actingAs($this->admin)->post('/admin/admins', ['username' => 'promoteme'])
+    $this->actingAs($this->admin)->post('/admin/admins',
+        ['username' => 'promoteme', 'admin_role' => 'support'])
         ->assertRedirect('/admin/admins');
-    expect($u->fresh()->is_admin)->toBeTrue();
+    // 提升时指定的角色要真的落下去 —— 只断言 is_admin 的话，
+    // 角色没存也照样绿，而那个人进来之后什么都做不了。
+    expect($u->fresh()->is_admin)->toBeTrue()
+        ->and($u->fresh()->admin_role)->toBe('support');
 });
 
 it('creates a new admin account with password', function () {
     $this->actingAs($this->admin)->post('/admin/admins', [
         'username' => 'newadmin', 'name' => 'Boss', 'password' => 'secret123',
+        'admin_role' => 'ops',
     ])->assertRedirect('/admin/admins');
 
     $created = User::where('username', 'newadmin')->first();
@@ -60,7 +65,8 @@ it('creates a new admin account with password', function () {
 });
 
 it('rejects new admin account without password', function () {
-    $this->actingAs($this->admin)->post('/admin/admins', ['username' => 'nopassuser'])
+    $this->actingAs($this->admin)->post('/admin/admins',
+        ['username' => 'nopassuser', 'admin_role' => 'ops'])
         ->assertSessionHasErrors('password');
     expect(User::where('username', 'nopassuser')->exists())->toBeFalse();
 });
@@ -70,7 +76,7 @@ it('rejects new admin account without password', function () {
 it('rejects an invalid username', function () {
     foreach (['ab', 'has space', 'with-dash', str_repeat('x', 21)] as $bad) {
         $this->actingAs($this->admin)->post('/admin/admins',
-            ['username' => $bad, 'password' => 'secret123'])
+            ['username' => $bad, 'password' => 'secret123', 'admin_role' => 'ops'])
             ->assertSessionHasErrors('username');
     }
     expect(User::where('is_admin', true)->count())->toBe(1); // 只有 beforeEach 那个

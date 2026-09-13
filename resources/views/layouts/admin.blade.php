@@ -70,34 +70,17 @@
                 <div class="sidebar-brand sidebar-brand-sm"><a href="/admin">9V</a></div>
                 <ul class="sidebar-menu">
                     <li class="{{ request()->is('admin') ? 'active' : '' }}"><a class="nav-link" href="/admin"><i class="fas fa-chart-bar"></i><span>概览</span></a></li>
-                    <li class="menu-header">运营</li>
-                    <li class="{{ request()->is('admin/users*') ? 'active' : '' }}"><a class="nav-link" href="/admin/users"><i class="fas fa-users"></i><span>用户管理</span></a></li>
-                    <li class="{{ request()->is('admin/nodes*') ? 'active' : '' }}"><a class="nav-link" href="/admin/nodes"><i class="fas fa-server"></i><span>节点管理</span></a></li>
-                    {{-- 中转（ADR-008：从独立的中转面板并入，不再需要开两个后台）--}}
-                    <li class="{{ request()->is('admin/rules*') ? 'active' : '' }}"><a class="nav-link" href="/admin/rules"><i class="fas fa-random"></i><span>转发规则</span></a></li>
-                    <li class="{{ request()->is('admin/relay/monitor') ? 'active' : '' }}"><a class="nav-link" href="/admin/relay/monitor"><i class="fas fa-heartbeat"></i><span>中转监控</span></a></li>
-                    <li class="{{ request()->is('admin/relay/online-ip') ? 'active' : '' }}"><a class="nav-link" href="/admin/relay/online-ip"><i class="fas fa-network-wired"></i><span>中转在线IP</span></a></li>
-                    <li class="{{ request()->is('admin/plans*') ? 'active' : '' }}"><a class="nav-link" href="/admin/plans"><i class="fas fa-box"></i><span>套餐管理</span></a></li>
-                    <li class="{{ request()->is('admin/orders*') ? 'active' : '' }}"><a class="nav-link" href="/admin/orders"><i class="fas fa-receipt"></i><span>订单管理</span></a></li>
-                    <li class="{{ request()->is('admin/finance*') ? 'active' : '' }}"><a class="nav-link" href="/admin/finance"><i class="fas fa-money-bill-wave"></i><span>资金流水</span></a></li>
-                    <li class="{{ request()->is('admin/rebates*') ? 'active' : '' }}"><a class="nav-link" href="/admin/rebates"><i class="fas fa-hand-holding-usd"></i><span>返佣记录</span></a></li>
-                    <li class="{{ request()->is('admin/promo*') ? 'active' : '' }}"><a class="nav-link" href="/admin/promo"><i class="fas fa-bullhorn"></i><span>推广代理</span></a></li>
-                    <li class="{{ request()->is('admin/online*') ? 'active' : '' }}"><a class="nav-link" href="/admin/online"><i class="fas fa-signal"></i><span>在线用户</span></a></li>
-                    <li class="menu-header">支持</li>
-                    <li class="{{ request()->is('admin/tickets*') ? 'active' : '' }}"><a class="nav-link" href="/admin/tickets"><i class="far fa-comments"></i><span>工单管理</span></a></li>
-                    <li class="{{ request()->is('admin/coupons*') ? 'active' : '' }}"><a class="nav-link" href="/admin/coupons"><i class="fas fa-ticket-alt"></i><span>优惠券</span></a></li>
-                    <li class="{{ request()->is('admin/announcements*') ? 'active' : '' }}"><a class="nav-link" href="/admin/announcements"><i class="fas fa-bullhorn"></i><span>公告管理</span></a></li>
-                    <li class="{{ request()->is('admin/help*') ? 'active' : '' }}"><a class="nav-link" href="/admin/help"><i class="fas fa-book"></i><span>帮助中心</span></a></li>
-                    <li class="{{ request()->is('admin/notifications*') ? 'active' : '' }}"><a class="nav-link" href="/admin/notifications"><i class="fas fa-paper-plane"></i><span>站内信</span></a></li>
-                    <li class="{{ request()->is('admin/admins*') ? 'active' : '' }}"><a class="nav-link" href="/admin/admins"><i class="fas fa-user-shield"></i><span>管理员</span></a></li>
-                    <li class="{{ request()->is('admin/settings*') ? 'active' : '' }}"><a class="nav-link" href="/admin/settings"><i class="fas fa-cog"></i><span>站点设置</span></a></li>
-                    <li class="menu-header">系统</li>
-                    <li class="{{ request()->is('admin/system/login-logs*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/login-logs"><i class="fas fa-sign-in-alt"></i><span>登录日志</span></a></li>
-                    <li class="{{ request()->is('admin/system/devices*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/devices"><i class="fas fa-mobile-alt"></i><span>设备统计</span></a></li>
-                    <li class="{{ request()->is('admin/system/crashes*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/crashes"><i class="fas fa-bug"></i><span>崩溃日志</span></a></li>
-                    <li class="{{ request()->is('admin/system/acquisition*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/acquisition"><i class="fas fa-route"></i><span>来路统计</span></a></li>
-                    <li class="{{ request()->is('admin/system/audit*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/audit"><i class="fas fa-clipboard-list"></i><span>操作日志</span></a></li>
-                    <li class="{{ request()->is('admin/docs*') ? 'active' : '' }}"><a class="nav-link" href="/admin/docs"><i class="fas fa-book"></i><span>技术文档</span></a></li>
+                    {{-- `[!!]` 导航按角色过滤,但这【只是体验】——真正的强制在 AdminOnly 中间件上。
+                         藏起菜单项不是访问控制:地址栏还在,而知道地址的人正是最可能去试的。
+                         `[!]` 整组都看不见时连标题也不显示 —— 空标题会让人以为"这里坏了"。 --}}
+                    @foreach(\App\Support\AdminNav::forRole(auth()->user()->admin_role) as $group => $items)
+                      <li class="menu-header">{{ $group }}</li>
+                      @foreach($items as [$path, $icon, $label])
+                        <li class="{{ request()->is(ltrim($path,'/').'*') ? 'active' : '' }}">
+                          <a class="nav-link" href="{{ $path }}"><i class="{{ $icon }}"></i><span>{{ $label }}</span></a>
+                        </li>
+                      @endforeach
+                    @endforeach
                     <li class="{{ request()->is('admin/system/emails*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/emails"><i class="fas fa-envelope-open-text"></i><span>邮件记录</span></a></li>
                     <li class="{{ request()->is('admin/system/health*') ? 'active' : '' }}"><a class="nav-link" href="/admin/system/health"><i class="fas fa-heartbeat"></i><span>系统健康</span></a></li>
                     <li class="menu-header"></li>
