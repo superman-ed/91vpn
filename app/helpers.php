@@ -73,6 +73,30 @@ if (! function_exists('audit')) {
     }
 }
 
+if (! function_exists('system_audit')) {
+    /**
+     * 记一条【定时任务】产生的审计。
+     *
+     * `[!]` 与 audit() 的唯一区别是动作必须先登记。
+     * 不登记就抛错 —— 漏登记不会报错、只会让那条记录在页面上
+     * 显示成"管理员被删了"，而那是一条会误导排查的假信息。
+     * 同 AdminAccess::capFor() 的做法。
+     *
+     * `[!!]` 只在【确实拿走了东西】时调用。把每一次机械刷新都记下来，
+     * 人工操作会被淹没在里面，而人只会翻最上面那一屏。
+     */
+    function system_audit(string $action, string $description, $target = null): void
+    {
+        if (! array_key_exists($action, \App\Models\AuditLog::SYSTEM_ACTIONS)) {
+            throw new InvalidArgumentException(
+                "未登记的系统审计动作 [{$action}] —— 先加进 AuditLog::SYSTEM_ACTIONS，"
+                .'否则它会在日志页上显示成"操作人已被删除"'
+            );
+        }
+        audit($action, $description, $target);
+    }
+}
+
 if (! function_exists('client_family')) {
     /** 从 User-Agent 归类客户端家族(用于设备/客户端统计) */
     function client_family(string $ua): string

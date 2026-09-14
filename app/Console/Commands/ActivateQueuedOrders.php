@@ -28,8 +28,19 @@ class ActivateQueuedOrders extends Command
                     if (! $order->user || ! $order->plan) {
                         continue;
                     }
+                    $classBefore = (int) $order->user->class;
+                    $expireBefore = $order->user->class_expire;
                     $billing->activate($order);
                     $count++;
+
+                    $u = $order->user->fresh();
+                    system_audit('order.auto_activate', sprintf(
+                        '%s 排队订单 %s 到期自动发货：套餐「%s」，等级 %d → %d，到期 %s → %s',
+                        $u->ident(), $order->order_no, $order->plan->name,
+                        $classBefore, (int) $u->class,
+                        $expireBefore?->format('Y-m-d') ?? '无',
+                        $u->class_expire?->format('Y-m-d') ?? '无',
+                    ), $order);
                 }
             });
 

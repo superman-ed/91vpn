@@ -24,6 +24,11 @@ class MarkNodesOffline extends Command
             ->where('last_heartbeat', '<', $cutoff)
             ->update(['online' => false]);
 
+        // `[!!]` 这里【刻意不写审计】,不是漏了。
+        // 它每分钟跑一次,节点抖动时会反复翻转 —— 记下来会把人工操作淹掉,
+        // 而人只会翻最上面那一屏。节点上下线已经由 node_health_spells
+        // 按"存活区段"完整记录(见 HealthSampler),那才是该查的地方。
+        // 审计日志记的是【会变成争议的业务状态】,不是运维遥测。
         $this->info("已将 {$n} 个心跳失联(>{$threshold}s)的节点置为离线");
 
         return self::SUCCESS;

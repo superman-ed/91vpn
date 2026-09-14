@@ -122,7 +122,7 @@ it('L04-3 规格：月度重置把流量包清零（用户仪表盘上可见）'
     expect(l04RemainGb($this, $user))->toBe('100.0 GB');
 });
 
-it('L04-4 购买时已告知，但【事后】系统里仍然没有任何记录（L-09 未解决）', function () {
+it('L04-4 购买时已告知，事后也查得到是哪一次重置抹掉的', function () {
     $user = User::factory()->create(['money' => 100]);
     l04Buy($this, $user, l04Plan());
     $packOrder = l04Buy($this, $user, l04Plan(['transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0]));
@@ -142,10 +142,14 @@ it('L04-4 购买时已告知，但【事后】系统里仍然没有任何记录�
         expect($traffic)->not->toContain($word);
     }
 
-    // `[!]` 清零本身已经在购买前告知了（L04-2），所以这不再是"没打招呼"。
-    // 仍然成立的是【事后不可追溯】：具体哪一次重置、抹掉了多少，
-    // 系统里没有一处记得住。那是 L-09，尚未解决。
+    // `[!]` 这条争议的两头现在都有交代了：
+    //   购买前 —— 结账页写明清零规则（L04-2）
+    //   事后   —— 审计里记得住是哪一次重置、抹掉了多少（L-09）
     expect(l04RemainGb($this, $user))->toBe('100.0 GB');
+    $log = \App\Models\AuditLog::where('action', 'user.traffic_reset')
+        ->where('target_id', $user->id)->latest('id')->first();
+    expect($log)->not->toBeNull();
+    expect($log->description)->toContain('50.00 GB');
 });
 
 it('L04-5 对照：重置日未到时流量包不动 —— 清零确实由重置触发', function () {

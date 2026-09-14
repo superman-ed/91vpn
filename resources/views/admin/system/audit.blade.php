@@ -17,7 +17,10 @@
         'ticket.reply' => '回复工单', 'ticket.close' => '关闭工单',
         'promo.create' => '创建推广码', 'promo.update' => '更新推广码', 'promo.delete' => '删除推广码',
         'order.export' => '导出订单', 'finance.export' => '导出流水', 'user.export' => '导出用户',
-    ];
+    ]
+    // `[!]` 定时任务的动作名从模型取，不在这里抄第二份 ——
+    // 抄漏了不会报错，只会让那个动作在页面上显示成原始串。
+    + \App\Models\AuditLog::SYSTEM_ACTIONS;
     $pill = function ($a) {
         if (str_contains($a, '.delete') || str_contains($a, '.revoke') || $a === 'user.ban') return 'danger';
         if (str_starts_with($a, 'admin.')) return 'warn';
@@ -30,6 +33,7 @@
     <h4><i class="fas fa-clipboard-list text-primary"></i> 操作日志 <span class="text-muted" style="font-size:13px;font-weight:400">管理员后台操作审计</span></h4>
     <form method="GET" class="adm-search adm-tools">
         <input type="hidden" name="group" value="{{ $group }}">
+        <input type="hidden" name="src" value="{{ $src }}">
         <input name="q" value="{{ $q }}" class="form-control" placeholder="搜索描述 / 操作人邮箱" style="min-width:180px">
         <input type="date" name="from" value="{{ $from }}" class="form-control" style="width:auto"><span class="text-muted">~</span>
         <input type="date" name="to" value="{{ $to }}" class="form-control" style="width:auto">
@@ -43,9 +47,16 @@
     <div style="flex:1;min-width:150px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">{{ number_format($todayCount) }}</div><div style="font-size:12.5px;opacity:.9">今日操作</div></div>
 </div>
 
+<div class="adm-tools" style="margin-bottom:10px">
+    @php $keep = ($group ? '&group='.$group : '').($q ? '&q='.$q : ''); @endphp
+    <a href="/admin/system/audit?{{ ltrim($keep, '&') }}" class="btn btn-sm {{ $src === null ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">全部</a>
+    <a href="/admin/system/audit?src=human{{ $keep }}" class="btn btn-sm {{ $src === 'human' ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">人工操作</a>
+    <a href="/admin/system/audit?src=system{{ $keep }}" class="btn btn-sm {{ $src === 'system' ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">定时任务</a>
+</div>
+
 <div class="adm-tools" style="margin-bottom:18px">
     @foreach($groups as $k => $label)
-    <a href="/admin/system/audit?group={{ $k }}{{ $q ? '&q='.$q : '' }}" class="btn btn-sm {{ (string) $group === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }}</a>
+    <a href="/admin/system/audit?group={{ $k }}{{ $q ? '&q='.$q : '' }}{{ $src ? '&src='.$src : '' }}" class="btn btn-sm {{ (string) $group === $k ? 'adm-btn' : 'btn-light' }}" style="border-radius:9px">{{ $label }}</a>
     @endforeach
 </div>
 
@@ -57,7 +68,19 @@
             @forelse($logs as $l)
             <tr>
                 <td class="text-muted">{{ $l->created_at?->format('Y-m-d H:i:s') }}</td>
-                <td style="color:#34395e;font-weight:600">{{ $l->admin?->email ?? '系统' }}</td>
+                {{-- `[!!]` admin_id 为空有【两个】来源，含义相反：
+                     定时任务写的（动作登记在 AuditLog::SYSTEM_ACTIONS 里），
+                     和管理员被删掉了。此前一律显示「系统」，
+                     而当时根本没有自动任务写审计 —— 那个标签实际在说的是后者。 --}}
+                <td style="color:#34395e;font-weight:600">
+                    @if($l->admin)
+                        {{ $l->admin->email }}
+                    @elseif($l->isSystem())
+                        <span class="adm-pill" title="定时任务自动执行，无操作人">系统</span>
+                    @else
+                        <span class="text-muted" title="这条记录有操作人，但该账号已被删除">已删除的管理员</span>
+                    @endif
+                </td>
                 <td><span class="adm-pill {{ $pill($l->action) }}">{{ $actionName[$l->action] ?? $l->action }}</span></td>
                 <td>{{ $l->description }}</td>
                 <td class="text-muted" style="font-size:12.5px">@if($l->target_type){{ $l->target_type }} #{{ $l->target_id }}@else—@endif</td>

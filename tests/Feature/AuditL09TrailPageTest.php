@@ -6,11 +6,14 @@ use App\Models\Plan;
 use App\Models\User;
 
 /**
- * L-09 消费端验证：出事之后去后台「操作日志」页，能查到什么。
+ * 操作日志页 —— 消费端守卫。
  *
- * `[!!]` 之前的 P14 断言的是 AuditLog::count() —— 那是表。
- * 而人真正会做的动作是：打开 /admin/system/audit，按用户搜一下。
- * 所以判据要落在【那一页渲染出来的内容】上。
+ * `[!!]` 这组用例最初是【审计实验】（L-09），断言的是"定时任务改了用户权益，
+ * 日志页上一个字都没有"。缺口已补（见 SystemAuditTrailTest 与
+ * AuditLog::SYSTEM_ACTIONS），断言随之反转。
+ *
+ * 判据始终落在【页面】上，不是 AuditLog::count() ——
+ * 人真正会做的动作是打开 /admin/system/audit 按用户搜一下。
  */
 $GLOBALS['l09'] = 0;
 
@@ -33,7 +36,7 @@ function l09Page(object $t, string $q = ''): string
         ->assertOk()->getContent();
 }
 
-it('L09-1 对照：人在后台改了用户，日志页上查得到（装置自检）', function () {
+it('L09-1 人在后台改了用户，日志页上查得到', function () {
     $admin = User::factory()->create(['is_admin' => true]);
     $target = User::factory()->create(['class' => 0, 'money' => 0]);
 
@@ -49,69 +52,74 @@ it('L09-1 对照：人在后台改了用户，日志页上查得到（装置自�
     expect($html)->not->toContain('暂无操作记录');
 });
 
-it('L09-2 月度重置抹掉用户已付费的流量包，日志页上一个字都没有', function () {
+it('L09-2 定时任务抹掉用户已付费的流量包，按用户搜得到那一条', function () {
+    $gb = 1024 ** 3;
     $user = User::factory()->create(['money' => 100]);
-    $this->actingAs($user);
-    // 走真实购买，确保这是一次真的付费行为
+    // 走真实购买,确保这是一次真的付费行为
     foreach ([l09Plan(), l09Plan(['transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0])] as $p) {
         $this->actingAs($user->fresh());
         $this->post('/user/order/create', ['plan_id' => $p->id])->assertRedirect();
         $o = Order::where('user_id', $user->id)->latest('id')->firstOrFail();
         $this->post("/user/order/{$o->id}/pay-balance")->assertRedirect();
     }
-    expect((int) $user->fresh()->transfer_enable)->toBe(150 * 1024 ** 3);
+    expect((int) $user->fresh()->transfer_enable)->toBe(150 * $gb);
 
     AuditLog::query()->delete();                       // 只看这一步产生了什么
     $user->fresh()->update(['next_reset_at' => now()->subMinute()]);
     $this->artisan('traffic:reset-monthly')->assertSuccessful();
+    expect((int) $user->fresh()->transfer_enable)->toBe(100 * $gb);   // 前置条件
 
-    // 前置条件：这一步确实改了用户的权益
-    expect((int) $user->fresh()->transfer_enable)->toBe(100 * 1024 ** 3);
-
-    // `[!!]` 消费端：客服/运营打开日志页，按这个用户搜
+    // `[!!]` 消费端：客服/运营按这个用户搜
     $html = l09Page($this, $user->email);
-    expect($html)->toContain('暂无操作记录');
-
-    // `[!]` 这里【不能】断言"页面里没有这个邮箱"—— 搜索框会把 q 原样回显，
-    // 所以搜什么词，页面上就一定有什么词。那条断言永远失败，
-    // 而它失败的原因与本条结论毫无关系。判据只能是空状态本身。
-    expect(AuditLog::count())->toBe(0);
+    expect($html)->not->toContain('暂无操作记录');
+    expect($html)->toContain('流量重置');
+    expect($html)->toContain('50.00 GB');              // 抹掉了多少,答得上
 });
 
-it('L09-3 自动发货把用户等级从 0 改到 3，日志页同样查不到', function () {
+it('L09-3 自动发货把用户等级从 0 改到 3，也查得到', function () {
     $user = User::factory()->create(['class' => 0]);
-    $plan = l09Plan();
     Order::create([
-        'user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 10,
+        'user_id' => $user->id, 'plan_id' => l09Plan()->id, 'amount' => 10,
         'status' => 'queued', 'period' => 'month', 'order_no' => 'L09Q',
         'activate_at' => now()->subMinute(),
     ]);
 
     AuditLog::query()->delete();
     $this->artisan('orders:activate-due')->assertSuccessful();
-    expect((int) $user->fresh()->class)->toBe(3);      // 前置条件：真的改了
+    expect((int) $user->fresh()->class)->toBe(3);      // 前置条件
 
-    expect(l09Page($this, $user->email))->toContain('暂无操作记录');
+    $html = l09Page($this, 'L09Q');
+    expect($html)->not->toContain('暂无操作记录');
+    expect($html)->toContain('自动发货');
 });
 
-it('L09-4 「系统」这个署名，今天只可能来自被删掉的管理员', function () {
-    // 先由一个真管理员留一条记录，然后把他删掉
+it('L09-4 「系统」这个标签只给定时任务，管理员被删了是另一句话', function () {
+    // (a) 定时任务写的
+    $user = User::factory()->create([
+        'class' => 3, 'class_expire' => now()->addYear(),
+        'transfer_enable' => 150 * 1024 ** 3, 'base_transfer_enable' => 100 * 1024 ** 3,
+        'u' => 0, 'd' => 0, 'next_reset_at' => now()->subMinute(),
+    ]);
+    $this->artisan('traffic:reset-monthly')->assertSuccessful();
+    $sysLog = AuditLog::where('action', 'user.traffic_reset')->latest('id')->first();
+    expect($sysLog)->not->toBeNull();
+    expect($sysLog->isSystem())->toBeTrue();
+
+    // (b) 人工写的，然后把那个管理员删掉 —— admin_id 同样变成 null
     $admin = User::factory()->create(['is_admin' => true]);
-    $target = User::factory()->create(['class' => 0, 'money' => 0]);
+    $victim = User::factory()->create(['class' => 0, 'money' => 0]);
     $this->actingAs($admin);
-    $this->put("/admin/users/{$target->id}", [
-        'class' => 2, 'transfer_enable_gb' => 50, 'money' => 0, 'original_money' => 0,
+    $this->put("/admin/users/{$victim->id}", [
+        'class' => 1, 'transfer_enable_gb' => 10, 'money' => 0, 'original_money' => 0,
     ])->assertRedirect();
+    $this->get('/admin/users');            // 消费掉 flash,否则它会渲染到下一页上
+    $humanLog = AuditLog::where('action', 'user.update')->latest('id')->first();
+    $admin->delete();
+    expect($humanLog->fresh()->admin_id)->toBeNull();
+    expect($humanLog->fresh()->isSystem())->toBeFalse();
 
-    $log = AuditLog::latest('id')->firstOrFail();
-    expect($log->admin_id)->toBe($admin->id);
-    $admin->delete();                                  // admin_id 变成悬空
-
+    // `[!!]` 两条记录的 admin_id 都是 null,而含义相反 —— 页面必须分得开。
     $html = l09Page($this, '');
-    expect($html)->toContain('系统');
-
-    // `[!]` 页面把 admin_id=null 渲染成「系统」。
-    // 而 null 的两个来源里，自动任务那一支从来不写审计（L09-2/3），
-    // 所以这个标签实际在说的是「这条记录的操作人已经不在了」。
-    expect(AuditLog::whereNull('admin_id')->count())->toBeGreaterThan(0);
+    expect($html)->toContain('已删除的管理员');
+    expect($html)->toContain('流量重置');
 });

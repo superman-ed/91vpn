@@ -39,6 +39,12 @@ class ReconcilePayments extends Command
                     try {
                         if ($billing->settleOrder($order, 'epay')) {   // 幂等
                             $count++;
+                            // 回调丢了、钱已经收了 —— 这条必须留痕:
+                            // 它是"用户付了钱但系统当时没反应"的唯一证据
+                            system_audit('order.reconciled', sprintf(
+                                '订单 %s 对账发现网关已付款，自动补发货（金额 ¥%s）',
+                                $order->order_no, number_format((float) $order->amount, 2),
+                            ), $order);
                         }
                     } catch (\Throwable $e) {
                         Log::warning('reconcile settle failed', ['order' => $order->id, 'err' => $e->getMessage()]);
@@ -61,6 +67,12 @@ class ReconcilePayments extends Command
                     try {
                         $billing->creditRecharge($recharge, null);   // 幂等
                         $rechargeCount++;
+                        // 与订单补发货同一类:钱已经收了而系统当时没反应,
+                        // 这条是唯一的证据
+                        system_audit('recharge.reconciled', sprintf(
+                            '充值单 %s 对账发现网关已付款，自动补到账（金额 ¥%s）',
+                            $recharge->order_no, number_format((float) $recharge->amount, 2),
+                        ), $recharge);
                     } catch (\Throwable $e) {
                         Log::warning('reconcile recharge failed', ['recharge' => $recharge->id, 'err' => $e->getMessage()]);
                     }

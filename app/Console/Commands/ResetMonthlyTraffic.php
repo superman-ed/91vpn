@@ -36,8 +36,27 @@ class ResetMonthlyTraffic extends Command
                     if ($user->base_transfer_enable > 0) {
                         $updates['transfer_enable'] = $user->base_transfer_enable;
                     }
+                    $quotaBefore = (int) $user->transfer_enable;
+                    $quotaAfter = (int) ($updates['transfer_enable'] ?? $quotaBefore);
+                    $usedBefore = (int) $user->u + (int) $user->d;
                     $user->update($updates);
                     $count++;
+
+                    // `[!!]` 只在【确实拿走了东西】时记一条 —— 也就是流量包被清掉的那一次。
+                    //
+                    // 不记全部刷新:每月每个会员一行,人工操作会被淹没,而人只会翻最上面那一屏。
+                    // 而清掉流量包是【用户付过钱的东西消失了】,是唯一会变成争议的那一种,
+                    // 事后要答得上"哪一次、抹掉了多少"。规则本身已在结账页告知(见 L-04),
+                    // 这里补的是事后可追溯(L-09)。
+                    if ($quotaAfter < $quotaBefore) {
+                        $lost = $quotaBefore - $quotaAfter;
+                        $remaining = max(0, $quotaBefore - $usedBefore);
+                        system_audit('user.traffic_reset', sprintf(
+                            '%s 流量重置：配额 %s → %s，其中流量包 %s 按规则清零（重置前剩余 %s，已用 %s 归零）',
+                            $user->ident(), human_bytes($quotaBefore), human_bytes($quotaAfter),
+                            human_bytes($lost), human_bytes($remaining), human_bytes($usedBefore),
+                        ), $user);
+                    }
                 }
             });
 
@@ -57,6 +76,9 @@ class ResetMonthlyTraffic extends Command
                         $next = $next->addMonthNoOverflow();
                     } while ($next->lte($now));
 
+                    // `[!]` 这一支【不写审计】:它只把已用清零(等于把额度还给用户),
+                    // 不动 transfer_enable,没有任何东西被拿走。
+                    // 记下来只会是每月每个免费用户一行的噪声。
                     $user->update(['u' => 0, 'd' => 0, 'next_reset_at' => $next]);
                     $freeCount++;
                 }

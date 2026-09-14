@@ -24,14 +24,19 @@ class ExpirePendingOrders extends Command
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subMinutes($minutes))
             ->orderBy('id')
-            ->chunkById(200, function ($orders) use ($epay, $billing, &$count) {
+            ->chunkById(200, function ($orders) use ($epay, $billing, $minutes, &$count) {
                 foreach ($orders as $order) {
                     // 关单前最后确认（三态）：绝不误杀已付/查询失败的单
                     if ($epay->configured()) {
                         $paid = $epay->isPaidOnGateway($order->order_no);
                         if ($paid === true) {   // 网关确认已付 → 补发货
                             try {
-                                $billing->settleOrder($order, 'epay');
+                                if ($billing->settleOrder($order, 'epay')) {
+                                    system_audit('order.reconciled', sprintf(
+                                        '订单 %s 关单前查得网关已付款，自动补发货（金额 ¥%s）',
+                                        $order->order_no, number_format((float) $order->amount, 2),
+                                    ), $order);
+                                }
                             } catch (\Throwable $e) {
                                 Log::warning('expire settle failed', ['order' => $order->id, 'err' => $e->getMessage()]);
                             }
@@ -58,6 +63,11 @@ class ExpirePendingOrders extends Command
                     });
                     if ($cancelled) {
                         $count++;
+                        // 用户可能来问"我的订单怎么没了"——要答得上是谁、什么时候、按什么规则关的
+                        system_audit('order.auto_cancel', sprintf(
+                            '订单 %s 超过 %d 分钟未支付，自动关闭（金额 ¥%s）',
+                            $order->order_no, $minutes, number_format((float) $order->amount, 2),
+                        ), $order);
                     }
                 }
             });
