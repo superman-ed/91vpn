@@ -114,13 +114,41 @@ class BillingService
         });
     }
 
-    /** 激活一笔到期的排队订单（由定时任务调用） */
-    public function activate(Order $order): void
+    /**
+     * 激活一笔到期的排队订单（由定时任务调用）。
+     *
+     * @return bool 是否真的发了货。false = 这单已经被别人处理过了，本次跳过。
+     *
+     * `[!!]` 锁【订单】并在锁内复查状态，与 settleOrder() 同一套路。
+     *
+     * 此前只锁 user、不复查订单状态，于是对同一个订单调两次会【发两次货】——
+     * 实测时长 9 天 → 39 → 69。而同一个类里的 settleOrder() 连调两次是安全的，
+     * 说明这不是框架限制，是少写了一层复查。
+     *
+     * 两条可达路径：
+     *   · orders:activate-due 两轮重叠（调度侧另加了 withoutOverlapping 兜底）
+     *   · 定时任务与用户点「立即结束当前套餐」(endCurrentPackage) 撞在一起
+     * 顺序跑两次本来就是安全的（查询条件 status=queued 已不匹配），
+     * 所以这一层挡的是并发，不是重放。
+     *
+     * `[!]` 加锁顺序是 订单 → 用户，与 settleOrder() 一致 ——
+     * 两处不一致会在并发时互相等成死锁。
+     */
+    public function activate(Order $order): bool
     {
-        DB::transaction(function () use ($order) {
-            $user = User::whereKey($order->user_id)->lockForUpdate()->first();   // 锁 user，避免与并发发货竞态
-            $this->deliver($user, $order->plan);
-            $order->update(['status' => 'paid', 'delivered_at' => now()]);
+        return DB::transaction(function () use ($order) {
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
+            if (! $locked || $locked->status !== 'queued') {
+                return false;   // 并发下已被处理，幂等跳过
+            }
+            $user = User::whereKey($locked->user_id)->lockForUpdate()->first();
+            if (! $user || ! $locked->plan) {
+                return false;
+            }
+            $this->deliver($user, $locked->plan);
+            $locked->update(['status' => 'paid', 'delivered_at' => now()]);
+
+            return true;
         });
     }
 

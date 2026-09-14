@@ -142,6 +142,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('nodes/{node}/deploy/{run}', [\App\Http\Controllers\Admin\RelayDeployController::class, 'log']);
     // 落地部署的 91vpn 身份(面板即 91vpn,自动带入;secret 按需取不洒进列表页)
     Route::get('nodes/{node}/deploy-identity', [\App\Http\Controllers\Admin\RelayDeployController::class, 'identity']);
+    // 入口域名池：给中转挂稳定域名,订阅发域名不发裸 IP;IP 被墙只改 A 记录、客户端无感。
+    Route::get('entry-domains', [\App\Http\Controllers\Admin\EntryDomainController::class, 'index'])->name('admin.entry-domains.index');
+    Route::post('entry-domains', [\App\Http\Controllers\Admin\EntryDomainController::class, 'store'])->name('admin.entry-domains.store');
+    Route::post('entry-domains/{entryDomain}/activate', [\App\Http\Controllers\Admin\EntryDomainController::class, 'activate'])->name('admin.entry-domains.activate');
+    Route::post('entry-domains/{entryDomain}/block', [\App\Http\Controllers\Admin\EntryDomainController::class, 'block'])->name('admin.entry-domains.block');
+    Route::post('entry-domains/{entryDomain}/rotate', [\App\Http\Controllers\Admin\EntryDomainController::class, 'rotate'])->name('admin.entry-domains.rotate');
+    Route::delete('entry-domains/{entryDomain}', [\App\Http\Controllers\Admin\EntryDomainController::class, 'destroy'])->name('admin.entry-domains.destroy');
+
     // 拓扑：按【路径】看 —— 哪条路存在、断在哪一段、用户实际拿得到哪几条
     Route::get('topology', [\App\Http\Controllers\Admin\TopologyController::class, 'index'])->name('admin.topology');
     Route::get('relay/monitor', [\App\Http\Controllers\Admin\RelayMonitorController::class, 'index'])->name('admin.relay.monitor');

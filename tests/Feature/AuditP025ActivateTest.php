@@ -8,8 +8,13 @@ use App\Services\BillingService;
 /**
  * 审计实验 P02-5 —— 只做观察，不修复。
  *
- * 待查命题：BillingService::activate() 只锁 user 行，【不锁订单、不复查订单状态】，
- * 所以对同一个订单调用两次会发两次货（时长加两个周期）。
+ * 原命题（已证实，并已修复）：BillingService::activate() 只锁 user 行，
+ * 【不锁订单、不复查订单状态】，对同一个订单调两次会发两次货。
+ *
+ * 修复：锁订单 + 锁内复查状态，与同一个类里的 settleOrder() 对齐。
+ * 断言随之反转，本文件留作回归守卫。
+ * 真并发的验证在 tools/l10/run.sh —— 那条更有说服力：
+ * 旧实现两个进程都 delivered（69 天），新实现一个 skipped（39 天）。
  *
  * `[!!]` 必须同时验【两件事】，否则会把结论夸大：
  *   (a) 服务层是否真的不复查状态 —— 缺陷本身
@@ -61,25 +66,24 @@ it('前提成立：购买后确实进入 queued，且现有权益未动', functi
         ->and(p25Days($user))->toBe(9);   // 原有 10 天，未被改动
 });
 
-it('`[D]` (a) activate() 对同一订单调两次 → 发两次货', function () {
+it('`[D]` (a) activate() 对同一订单调两次 → 第二次被锁内复查挡掉', function () {
     [$user, , $order] = p25QueuedOrder(days: 30);
     $billing = app(BillingService::class);
     $before = p25Days($user);
 
-    $billing->activate($order);
+    expect($billing->activate($order))->toBeTrue();
     $after1 = p25Days($user);
 
     // `[!!]` 用【同一个实例】再调一次 —— 这正是两轮任务重叠时各自持有的状态：
-    // 都在对方提交前读到 queued。不需要构造真并发就能证明"无状态复查"。
-    $billing->activate($order);
+    // 都在对方提交前读到 queued。
+    //
+    // 修复前这里会再加一个周期（实测 9 → 39 → 69 天）。
+    // 修复后 activate() 锁订单并在锁内复查状态，第二次返回 false。
+    expect($billing->activate($order))->toBeFalse();
     $after2 = p25Days($user);
 
-    dump(['剩余天数' => ['起始' => $before, '第一次激活后' => $after1, '第二次激活后' => $after2],
-        '订单状态' => $order->fresh()->status]);
-
     expect($after1)->toBeGreaterThan($before);
-    // 命题：第二次仍然生效 → 又加了一个周期
-    expect($after2)->toBeGreaterThan($after1);
+    expect($after2)->toBe($after1);
 });
 
 it('`[D]` 对照：settleOrder 同样调两次 → 第二次被拒（同一文件里的正确写法）', function () {

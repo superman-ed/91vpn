@@ -139,6 +139,31 @@ it('端口范围取第一个', function () {
     expect(app(SubscriptionService::class)->entrypoints($landing)[0]['port'])->toBe(30010);
 });
 
+// 入口域名(域名池):中转有【在用】入口域名时,订阅发域名而非裸 IP ——
+// 客户端从此连域名,IP 被墙只改 A 记录、无感跟过去。
+it('中转有在用入口域名时订阅发域名', function () {
+    $landing = subLanding(['accept_proxy_protocol' => true]);
+    $relay = subRelay();
+    subRule($relay, $landing, '30001');
+    \App\Models\EntryDomain::create([
+        'domain' => 'cp.example.com', 'node_id' => $relay->id, 'status' => 'active', 'pointed_ip' => '1.1.1.1',
+    ]);
+
+    $eps = app(SubscriptionService::class)->entrypoints($landing->fresh());
+    expect($eps)->toHaveCount(1);
+    expect($eps[0])->toMatchArray(['server' => 'cp.example.com', 'port' => 30001]);
+});
+
+// 备用/被墙的入口域名【不替换】—— 只有 active 那个才对外发。回退发裸 IP。
+it('备用入口域名不替换,仍发裸 IP', function () {
+    $landing = subLanding(['accept_proxy_protocol' => true]);
+    $relay = subRelay();
+    subRule($relay, $landing, '30001');
+    \App\Models\EntryDomain::create(['domain' => 'cp.example.com', 'node_id' => $relay->id, 'status' => 'standby']);
+
+    expect(app(SubscriptionService::class)->entrypoints($landing->fresh())[0]['server'])->toBe('1.1.1.1');
+});
+
 // `[!!]` 这条是终点:落地地址绝不能出现在订阅正文里。
 it('订阅正文里没有落地地址,只有中转入口', function () {
     $landing = subLanding(['accept_proxy_protocol' => true]);

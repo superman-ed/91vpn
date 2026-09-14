@@ -50,6 +50,27 @@ class Node extends Model
         'accept_proxy_reported_at' => 'datetime',
     ];
 
+    /** 这台中转的入口域名（域名池）。见 EntryDomain。 */
+    public function entryDomains()
+    {
+        return $this->hasMany(EntryDomain::class);
+    }
+
+    /** 在用的入口域名（一台中转至多一个 active）。 */
+    public function activeEntryDomain(): ?EntryDomain
+    {
+        return $this->entryDomains()->where('status', 'active')->first();
+    }
+
+    /**
+     * 订阅里对外发的入口主机名：有在用入口域名就发域名（IP 被墙可只改 DNS、
+     * 客户端无感），否则回退发真实 server（向后兼容，没配过域名的照旧）。
+     */
+    public function entryHost(): string
+    {
+        return $this->activeEntryDomain()?->domain ?: (string) $this->server;
+    }
+
     /** 是否 REALITY 入站:以 private_key 是否设置为准(下发/订阅的 security 由此派生)。 */
     /**
      * dest 探活的展示状态：ok / down / unknown。

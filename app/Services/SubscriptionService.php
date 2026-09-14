@@ -297,7 +297,8 @@ class SubscriptionService
                 if ($this->hopKnownDead($relay, $rule, $landing)) {
                     continue;
                 }
-                $push($relay->server, $port, $relay->name);
+                // 有在用入口域名就发域名(可只改 DNS 换 IP、客户端无感);否则发裸 IP。
+                $push($relay->entryHost(), $port, $relay->name);
             }
         }
 

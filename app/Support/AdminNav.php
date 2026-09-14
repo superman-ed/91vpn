@@ -41,6 +41,7 @@ class AdminNav
             ['/admin/nodes', 'fas fa-server', '节点管理'],
             ['/admin/topology', 'fas fa-project-diagram', '拓扑'],
             ['/admin/rules', 'fas fa-random', '转发规则'],
+            ['/admin/entry-domains', 'fas fa-globe', '入口域名'],
             ['/admin/relay/monitor', 'fas fa-heartbeat', '中转监控'],
             ['/admin/relay/online-ip', 'fas fa-network-wired', '中转在线IP'],
         ],

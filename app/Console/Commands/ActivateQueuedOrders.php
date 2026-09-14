@@ -30,7 +30,12 @@ class ActivateQueuedOrders extends Command
                     }
                     $classBefore = (int) $order->user->class;
                     $expireBefore = $order->user->class_expire;
-                    $billing->activate($order);
+                    // `[!]` 只有【真发了货】才计数、才写审计。
+                    // activate() 在并发下会幂等跳过并返回 false ——
+                    // 那种情况记一条"自动发货"是假记录，比不记更糟。
+                    if (! $billing->activate($order)) {
+                        continue;
+                    }
                     $count++;
 
                     $u = $order->user->fresh();

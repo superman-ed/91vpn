@@ -259,18 +259,29 @@ SQL 里 `NULL != 'admin'` 求值为 `NULL` 而不是 `true`，
 每个命令用到的动作必须在 `SYSTEM_ACTIONS` 里；每个动作前缀必须有对应的筛选分组
 （否则按分组筛时它们看不见）。
 
-### L-10 · `activate()` 不复查订单状态
+### L-10 · `activate()` 不复查订单状态 —— **已修（2026-09-14）**
 
-`[D]` `tests/Feature/AuditP025ActivateTest.php`：对同一订单调两次 `activate()`
-→ **发两次货**（剩余天数 9 → 39 → 69）。
-`[D]` 对照：同文件里的 `settleOrder` 连调两次，第二次被锁内复查拒绝 ——
-**说明这不是框架限制，是少写了一层复查**。
+`[D]` 缺陷是真的，且在**真并发**下可达。`tools/l10/run.sh`（两个独立进程同时激活同一笔订单）：
 
-`[D]` 但 `orders:activate-due` **顺序跑两次是安全的**（查询条件 `status=queued` 已不匹配），
-`[?]` 只在两轮重叠、或与 `endCurrentPackage()` 并发时才可能触发。
-`[S]` 调度未声明 `withoutOverlapping`。
+| 实现 | 进程 A | 进程 B | 用户剩余天数 |
+|---|---|---|---|
+| 修复前 | delivered | delivered | **69**（起点 9 + 30 + 30） |
+| 修复后 | skipped | delivered | **39**（起点 9 + 30） |
 
-改法很小：与 `settleOrder` 对齐（订单行锁 + 状态复查），或给调度加 `withoutOverlapping`。
+**修复**：`activate()` 锁订单并在锁内复查状态，与同一个类里的 `settleOrder()` 对齐 ——
+它一直是这个套路，所以这不是框架限制，是少写了一层。
+返回值改为 `bool`；命令侧只有**真发了货**才计数、才写审计
+（跳过时记一条"自动发货"是假记录，比不记更糟）。
+
+`[!]` 加锁顺序定为**订单 → 用户**，与 `settleOrder()` 一致 —— 两处不一致会在并发时互相等成死锁。
+
+**第二层**：调度侧给 `orders:activate-due`、`payment:reconcile`、`orders:expire-pending`、
+`traffic:reset-monthly` 加了 `withoutOverlapping`（带分钟超时，避免进程被 kill 后锁永不释放）。
+`[!!]` 这是兜底**不是修复本身** —— 它挡不住另一条路径：
+用户点「立即结束当前套餐」也会调 `activate()`，那跟调度器不是同一个进程，调度侧的锁管不到。
+
+`[!]` 顺序跑两次本来就安全（查询条件 `status=queued` 已不匹配），
+所以单进程测不出这条缺陷。`AuditP025ActivateTest` 的断言已从"发两次货"反转为"第二次被挡掉"。
 
 ### L-11 · 面板不可达时 fail-open 无时间上界
 
