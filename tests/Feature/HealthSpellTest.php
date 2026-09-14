@@ -227,3 +227,62 @@ it('accept_proxy 落地判不出原因时报 unknown，不硬猜', function () {
 
     expect($s->outcome)->toBe('failed')->and($s->reason)->toBe('unknown');
 });
+
+// ─────────────────────────────────────────────────────────────────
+// 审计发现 P12-C（钉住当前行为，不是期望行为）
+//
+// 存活统计分不清「节点活着」和「没人在看」。
+// 这两件事在数据上长得一模一样，而它们对结论的含义正相反：
+// 前者是分母(暴露时间)该算的，后者根本不该算。
+// ─────────────────────────────────────────────────────────────────
+it('P12-C 采样中断的那段时间被整段算成「存活」', function () {
+    Carbon::setTestNow($t0 = Carbon::parse('2026-09-01 00:00:00'));
+    $n = hsNode();
+
+    // 第一次采样：开区段
+    hsSample($t0);
+    expect(hsSpell($n))->not->toBeNull();
+
+    // 采样停了 6 小时（调度容器挂了 / 数据库不可达 / 部署窗口），
+    // 期间【没有任何观察】。恢复后节点照样健康。
+    $t1 = $t0->copy()->addHours(6);
+    Carbon::setTestNow($t1);
+    $n->update(['last_heartbeat' => time() - 5]);   // [!] 心跳判定用真实时钟,不受 setTestNow 影响
+    hsSample($t1);
+
+    $spell = hsSpell($n);
+    // 暴露时间按【墙上时钟】算，6 小时一秒不少地进了分母
+    expect($spell->exposureSeconds())->toBe(6 * 3600);
+    // 而这 6 小时里真正看过的次数是 0 —— 全程只有首尾两次
+    expect((int) $spell->observations)->toBe(2);
+
+    // `[!!]` 判据在这里：按 5 分钟一采，6 小时本该有 73 次观察。
+    // 数据【足以】发现这件事(observations 就在表里)，
+    // 但 exposureSeconds() 不看它,health:spells 也不比对 ——
+    // 于是「6 小时无人观察」和「6 小时持续健康」在报表上完全相同。
+    $expected = intdiv($spell->exposureSeconds(), 300) + 1;
+    expect($expected)->toBe(73);
+    expect((int) $spell->observations)->toBeLessThan($expected);
+
+    Carbon::setTestNow();
+});
+
+it('P12-C2 对照：正常采样时观察次数与暴露时间是对得上的', function () {
+    Carbon::setTestNow($t = Carbon::parse('2026-09-01 00:00:00'));
+    $n = hsNode();
+
+    for ($i = 0; $i < 7; $i++) {
+        Carbon::setTestNow($at = $t->copy()->addMinutes(5 * $i));
+        $n->update(['last_heartbeat' => time() - 5]);
+        hsSample($at);
+    }
+
+    $spell = hsSpell($n);
+    expect((int) $spell->observations)->toBe(7);
+    expect($spell->exposureSeconds())->toBe(30 * 60);
+    // 没有缺口时两者自洽 —— 说明上一条测到的差距确实来自"没人看"，
+    // 不是这个口径本身就对不上。
+    expect(intdiv($spell->exposureSeconds(), 300) + 1)->toBe(7);
+
+    Carbon::setTestNow();
+});
