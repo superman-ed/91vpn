@@ -13,6 +13,16 @@ services:
     depends_on: [db, redis]
   web:
     image: nginx:alpine
+    # [L-03] 访问日志走 docker 的 json-file 驱动,而 LogConfig.Config 是空的 ——
+    # 也就是【不轮转】。历史上这条日志里每行都带节点密钥,曾涨到取样 5 万行中
+    # 47,118 行含明文;密钥现已在 nginx 侧遮蔽(见 docker/nginx.conf),
+    # 但日志本身无上限这件事要单独治:磁盘满了会让整台机器一起出事。
+    #
+    # `[!]` 改这里要【重建容器】才生效(docker compose up -d web),
+    # 光 restart 不行 —— LogConfig 是创建时定的。
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
     # [!!] 两个口都【只绑回环】——对外一律经 Cloudflare Tunnel。
     # cloudflared 跑在本 compose 网内,用服务名直接到 web:80 / web:8080,
     # 根本不需要宿主机端口映射。
