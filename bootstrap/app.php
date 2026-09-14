@@ -32,5 +32,19 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // tinker 正常退出抛的是 Psy\Exception\BreakException（"Exit:  Goodbye"），
+        // 默认会被当成【未捕获异常】写成 ERROR。它是退出方式，不是异常情况，
+        // 不该进错误日志 —— 这一条按语义成立。
         //
+        // `[!!]` 但要说清它【证明了什么、没证明什么】：
+        // `[D]` 日志里有 28264 条这样的 ERROR，全部集中在 2026-09-09/10 两天，
+        //      最后一条 09-10 20:01:29，此后零新增。
+        // `[D]` 三种方式都【复现不出】触发条件：tools/repro 的文件模式 tinker、
+        //      tinker --execute、交互式 exit —— 都不产生该行。
+        // 所以这一条是【防复发的保险】，不是对某个活跃来源的修复。
+        // 第一次验证时我差点报成功：修复后未新增，而【撤回修复也未新增】——
+        // 停止的原因不是这行代码。跑了对照才发现（ROUND 判据 112）。
+        $exceptions->dontReport([
+            \Psy\Exception\BreakException::class,
+        ]);
     })->create();
