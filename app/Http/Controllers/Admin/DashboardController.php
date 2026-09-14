@@ -17,7 +17,17 @@ class DashboardController extends Controller
     {
         $today = today();
         // 已收款订单:paid + queued(排队中的钱已收,只是套餐排队等激活),营收/趋势按此口径
-        $paid = Order::whereIn('status', ['paid', 'queued']);
+        //
+        // `[!!]` 排除后台「开通」建的单(pay_method=admin)。它是管理员直接给用户
+        // 开套餐时手工建的一条 amount=0 记录 —— 一分钱没付,而这张卡片写的是
+        // 【已支付订单】。金额是 0 所以"累计收入"本来就不受影响,受影响的是【单数】:
+        // 拿它做测试(目前的实际用途)会把成交单数撑大,而那个数字上线后是要看的。
+        //
+        // `[!!]` 不能写成 where('pay_method', '!=', 'admin') ——
+        // SQL 里 NULL != 'admin' 的结果是 NULL(不是 true),那样会把
+        // pay_method 为空的历史订单【一起排除掉】,单数反而变小。
+        $paid = Order::whereIn('status', ['paid', 'queued'])
+            ->where(fn ($q) => $q->whereNull('pay_method')->orWhere('pay_method', '!=', 'admin'));
 
         // 日期区间(默认近 14 天),限制最长 180 天
         $to = $this->parseDate($request->query('to'), $today);
@@ -30,7 +40,7 @@ class DashboardController extends Controller
         }
 
         // 区间每日收入
-        $byDay = Order::whereIn('status', ['paid', 'queued'])->whereNotNull('paid_at')
+        $byDay = (clone $paid)->whereNotNull('paid_at')
             ->whereBetween('paid_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
             ->get(['amount', 'paid_at'])->groupBy(fn ($o) => $o->paid_at->toDateString());
 
