@@ -11,10 +11,16 @@ beforeEach(function () {
 });
 
 it('caps free (non-member) check-in traffic at the free cap and sets a regen date', function () {
-    // 非会员,已有 1.9GB;再签到最多到 2GB 封顶
+    // 非会员,已有 2GB-50MB;再签到必定撞到 2GB 封顶
+    //
+    // `[!!]` 余量必须【小于奖励的最小值】。签到奖励是 random_int(100,500) MB,
+    // 原来的起点 1.9GB 留了 102.4MB 余量 —— 奖励抽到 100/101/102 MB 时
+    // 根本够不着封顶,断言失败。3/401 ≈ 每 133 次全量跑红一次,
+    // 现象是"偶发、重跑就好",最容易被当成环境抖动放过去。
+    // 改的是【前提没立住】的夹具,不是把断言放宽。
     $user = User::factory()->create([
         'class' => 0, 'class_expire' => now(), 'last_check_in' => 0,
-        'transfer_enable' => (int) (1.9 * 1024 ** 3), 'next_reset_at' => null,
+        'transfer_enable' => 2 * 1024 ** 3 - 50 * 1024 ** 2, 'next_reset_at' => null,
     ]);
 
     $this->actingAs($user)->post('/user/checkin')->assertRedirect();
