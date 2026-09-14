@@ -118,12 +118,35 @@ it('APP_URL 指向 trycloudflare 临时域名时报 warn', function () {
     expect($r['detail'])->toContain('每次隧道重启都会变');
 });
 
+/** 假装刚成功备份过一次。测试库里没有这条记录，而"从来没备过"是 bad。 */
+function rdBackupOk(): void
+{
+    \Cache::forever(\App\Console\Commands\RecordBackup::KEY, [
+        'at' => now()->timestamp, 'status' => 'ok', 'detail' => 'test.tar.gz',
+        'last_ok_at' => now()->timestamp,
+    ]);
+}
+
 it('blockers 只数真正拦路的那几项', function () {
     rdNode();
     rdPlan();
+    rdBackupOk();        // 没备份过也是 bad，这里要单独测邮件那一项
 
     // 邮件没配 = 1 项 bad；支付只是 warn，不算
     expect(app(ServiceReadiness::class)->blockers())->toBe(1);
+});
+
+// `[!!]` 单独钉住"没备份过"本身就是拦路项 —— 线上库丢了就没了，
+// 这件事不该被别的绿灯衬托成小事。
+it('从来没备份过时，blockers 会多算一项', function () {
+    rdNode();
+    rdPlan();
+    \App\Models\Setting::put('smtp_host', 'smtp.example.com');
+    \App\Models\Setting::put('smtp_username', 'noreply@example.com');
+
+    expect(app(ServiceReadiness::class)->blockers())->toBe(1);   // 只剩备份
+    rdBackupOk();
+    expect(app(ServiceReadiness::class)->blockers())->toBe(0);
 });
 
 // `[!!]` 全绿时整块不显示 —— 一个常年绿着的横幅会被当成装饰,
@@ -145,6 +168,7 @@ it('首页:有问题时显示自检,全绿时不显示', function () {
     foreach (\App\Providers\AppServiceProvider::WATCHED_TASKS as $sig) {
         \Cache::forever("task_hb:{$sig}", ['at' => now()->timestamp, 'ok' => true]);
     }
+    rdBackupOk();   // 同理：测试里没有备份记录，而"从来没备过"是 bad
 
     $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('上线自检');
 });

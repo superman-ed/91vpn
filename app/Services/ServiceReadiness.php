@@ -33,7 +33,53 @@ class ServiceReadiness
             $this->payment(),
             $this->subUrl(),
             $this->scheduler(),
+            $this->backup(),
         ];
+    }
+
+    /**
+     * 上一次备份是什么时候、成没成。
+     *
+     * `[!!]` 这一项存在的理由，是宿主 crontab 里那条备 relaypanel 的任务：
+     * 它每天照跑、每天失败、每天往日志里写一行，而 relaypanel 的容器
+     * 早就退出了 —— 四天没人发现。备份最危险的失败方式不是报错，是【安静】。
+     *
+     * `[!]` 判据用「距上次成功多久」，不是「上次执行成没成」：
+     * 连续失败三天但今天碰巧成功了，风险是小的；
+     * 今天执行成功但那是三天前的数据，风险是大的。要答的是后一个问题。
+     */
+    private function backup(): array
+    {
+        $hb = \Illuminate\Support\Facades\Cache::get(
+            \App\Console\Commands\RecordBackup::KEY, []
+        );
+        $lastOk = $hb['last_ok_at'] ?? null;
+
+        if (! $lastOk) {
+            return $this->x('bad', '备份', '从来没有成功备份过 —— 线上库现在丢了就没了',
+                'bash tools/backup.sh --install-cron');
+        }
+
+        // `[!]` 用 now() 不用 time()：time() 是真实时钟，不受 Carbon::setTestNow 影响，
+        // 时间相关的判据就没法写测试。本项目在 LayerHealth 上已经栽过一次
+        // （判据见 ROUND-2026-09 P1-2），这里不重复。
+        $ageH = (int) floor((now()->timestamp - (int) $lastOk) / 3600);
+        $when = \Illuminate\Support\Carbon::createFromTimestamp($lastOk)->format('m-d H:i');
+
+        if (($hb['status'] ?? 'ok') === 'fail') {
+            return $this->x('bad', '备份',
+                "最近一次备份失败（{$hb['detail']}）；上次成功是 {$when}，已过 {$ageH} 小时",
+                'bash tools/backup.sh   # 手工跑一次看报什么');
+        }
+        if ($ageH >= 36) {
+            return $this->x('bad', '备份', "上次成功备份是 {$when}，已过 {$ageH} 小时 —— cron 多半没在跑",
+                'crontab -l | grep backup.sh');
+        }
+        if ($ageH >= 26) {
+            return $this->x('warn', '备份', "上次成功备份 {$when}（{$ageH} 小时前），比每日一次略久", null);
+        }
+
+        return $this->x('ok', '备份', "上次成功 {$when}".($hb['detail'] ? "（{$hb['detail']}）" : ''));
     }
 
     /**
