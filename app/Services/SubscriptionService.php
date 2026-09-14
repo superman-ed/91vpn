@@ -9,6 +9,18 @@ use Symfony\Component\Yaml\Yaml;
 
 class SubscriptionService
 {
+    /**
+     * 没有任何可用节点时，顶替节点位置的那个组名。
+     *
+     * `[!]` 它是【组名】而不是一条假节点：假节点会真的去建连接、卡满超时，
+     * 用户得到的是"很慢然后失败"；具名组 + REJECT 是立刻失败，
+     * 而且组名本身就是解释。
+     *
+     * `[!]` 不用 emoji —— 模板里其余组名都是纯中文，
+     * 个别客户端对组名里的非 BMP 字符处理不一致。
+     */
+    public const NO_NODE_GROUP = '无可用节点（账号下没有节点，或节点全部离线）';
+
     /** 上游状态整表的本次请求缓存。见 hopStatuses()。 */
     private ?\Illuminate\Support\Collection $hopStatuses = null;
 
@@ -144,17 +156,48 @@ class SubscriptionService
         // 而用户看到的只是"订阅导入失败",查不到原因。
         // 这种情况真实存在:新用户等级 0 而所有节点都设了门槛。
         $hasNodes = $nodeNames !== [];
+
+        // `[!!]` 而剩下的那些组【也不能回落到 DIRECT】。
+        //
+        // 这曾经是 DIRECT。后果:客户端把整份配置加载成功、界面显示"已连接",
+        // 而 MATCH → 其他 → Proxy → DIRECT —— 每一个字节都没走代理。
+        // 用户以为自己在用代理,实际在裸奔,且没有任何一处会告诉他。
+        //
+        // 判据早就立过,只是没贯彻到这里。lab/relay-failover-probe.sh [D]-4:
+        //   「关键不是"失败",是【不能静默直连】。直连也能成功,
+        //     那意味着用户以为在用代理、实际在裸奔」
+        // 那条管的是"两个中转都挂了",这里是"一个节点都没有"——
+        // 用户侧的表现完全相同,判据就该相同。
+        //
+        // 可达路径不是边角:全部节点离线 + 会员刷新订阅就够了,
+        // 而用户此刻恰恰会去刷订阅(各家客户端的第一条建议就是"更新订阅试试")。
+        //
+        // REJECT 同时满足两件此前被当成一件的事:
+        //   配置照样加载(空 url-test 组那个坑不会回来)
+        //   流量失败而不是静默直连
+        // 再套一层具名组,是为了让客户端的组列表里能【读出原因】——
+        // 光一个 REJECT 只说明"连不上",说不出"你名下没有可用节点"。
+        $fallback = $hasNodes ? $nodeNames : [self::NO_NODE_GROUP];
+
         $autoNames = [];
         $groups = [];
+        if (! $hasNodes) {
+            // 排在最前 = 用户一眼就能在组列表里看到它。
+            $groups[] = [
+                'name' => self::NO_NODE_GROUP,
+                'type' => 'select',
+                'proxies' => ['REJECT'],
+            ];
+        }
         foreach ($template['proxy-groups'] as $group) {
             $isAuto = ($group['__inject_all_nodes'] ?? false) === true
                 && in_array($group['type'] ?? '', ['url-test', 'fallback'], true);
             if ($isAuto && ! $hasNodes) {
-                continue;   // 无节点：整组丢弃，不是填 DIRECT
+                continue;   // 无节点：整组丢弃（空 url-test 会让配置加载失败）
             }
             if (($group['__inject_all_nodes'] ?? false) === true) {
                 unset($group['__inject_all_nodes']);
-                $group['proxies'] = $nodeNames ?: ['DIRECT'];
+                $group['proxies'] = $fallback;
                 if ($isAuto) {
                     $autoNames[] = $group['name'];
                 }
@@ -163,14 +206,23 @@ class SubscriptionService
                 unset($group['__inject_auto_first']);
                 // `[!]` 自动组排在最前 = 客户端默认选中它。
                 // 什么都不做的用户得到的是会自愈的那条；想钉住某个节点的照样能选。
-                $group['proxies'] = array_merge($autoNames, $nodeNames ?: ['DIRECT']);
+                $group['proxies'] = array_merge($autoNames, $fallback);
             }
             $groups[] = $group;
         }
         $config['proxy-groups'] = $groups;
         $config['rules'] = $template['rules'];
 
-        return Yaml::dump($config, 6, 2);
+        // `[!!]` DUMP_EMPTY_ARRAY_AS_SEQUENCE 不是格式洁癖 —— 没有它,
+        // 空的 proxies 会被渲染成 `proxies: {  }`(空 map),而 Clash 要的是序列。
+        // mihomo 在【第 12 行就 fatal】:
+        //   Parse config error: cannot unmarshal !!map into []map[string]interface{}
+        // 也就是整份订阅根本加载不起来,用户只看到"导入失败",查不到原因。
+        //
+        // 这恰恰是上面"自动组必须整个去掉"那段注释要避免的后果 ——
+        // 那边小心翼翼保住了可加载性,这一行又把它丢了。
+        // `[D]` 2026-09-14 用真 mihomo v1.19.14 实测确认(lab/mihomo 镜像)。
+        return Yaml::dump($config, 6, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE);
     }
 
     /** 按等级筛出用户能连的节点（会员=其等级内全部;非会员/过期=仅免费节点 node_class=0） */

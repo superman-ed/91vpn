@@ -71,16 +71,23 @@ it('Proxy 组的第一项是自动选择', function () {
 // `[!!]` 这条是边界:proxies 为空的 url-test 组会让【整份配置加载失败】,
 // 而用户看到的只是"订阅导入失败",查不到原因。
 // 这种情况真实存在:新用户等级 0 而所有节点都设了门槛。
-it('没有可用节点时,自动组整个去掉而不是填 DIRECT', function () {
+it('没有可用节点时,自动组整个去掉 —— 空 url-test 会让整份配置加载失败', function () {
     cgNode('高级节点', class: 5);   // apiUser 的 class=1，看不到它
 
     $y = cgYaml(apiUser());
     $names = collect($y['proxy-groups'])->pluck('name');
 
     expect($names)->not->toContain('自动选择')->not->toContain('故障转移');
-    // Proxy 组仍在，且回落到 DIRECT —— 配置本身仍然是可加载的
+
+    // `[!!]` Proxy 组仍在（配置照样可加载），但成员【不是 DIRECT】。
+    //
+    // 这里曾经是 ['DIRECT']，注释写着"配置本身仍然是可加载的"——
+    // 可加载是真的,但"可加载"与"不裸奔"被当成了同一件事,而它们不是:
+    // 用户导入成功、客户端显示已连接、每一个字节都没走代理。
+    // 见 docs/LAUNCH-CHECKLIST.md L-00 与 AuditP13SubBehaviourTest。
     $proxy = collect($y['proxy-groups'])->firstWhere('name', 'Proxy');
-    expect($proxy['proxies'])->toBe(['DIRECT']);
+    expect($proxy['proxies'])->toBe([\App\Services\SubscriptionService::NO_NODE_GROUP]);
+    expect($proxy['proxies'])->not->toBe(['DIRECT']);
 });
 
 // `[!]` 探测间隔不能太密:每次探测都是给节点(以及它背后的 dest)添连接。
