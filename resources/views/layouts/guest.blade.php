@@ -98,5 +98,9 @@ document.querySelectorAll('button[data-send-code]').forEach(function(btn){
     });
 });
 </script>
+{{-- `[!!]` 客服挂件也要出现在登录/注册页。
+     忘记密码的唯一找回途径就是联系客服(见 docs/LAUNCH-CHECKLIST.md),
+     而挂件此前只挂在 layouts/user 上 —— 也就是【只有进得去的人看得到】。 --}}
+@include('partials.support')
 </body>
 </html>

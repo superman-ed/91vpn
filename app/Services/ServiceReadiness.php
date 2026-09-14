@@ -34,7 +34,41 @@ class ServiceReadiness
             $this->subUrl(),
             $this->scheduler(),
             $this->backup(),
+            $this->support(),
         ];
+    }
+
+    /**
+     * 忘记密码的人，有没有一条够得着的路。
+     *
+     * `[!!]` 这一项之所以是【拦路项】而不是锦上添花：
+     * 本产品的注册走客户端、只要用户名和密码，邮箱是 `@invalid.local` 占位或为空；
+     * 而 Auth\PasswordController 是没有路由的死代码 —— 也就是说
+     * **邮箱找回这条路根本不存在**。产品上选定的找回方式就是"联系客服"。
+     * 客服联系方式没配，等于这批用户一旦忘了密码就永久锁死，
+     * 而你这边只会看到一个再也不登录的账号。
+     *
+     * `[!]` 判据只认【未登录也够得着】的渠道。工单不算：它要登录，
+     * 而站在这个场景里的人正是登不进去的那个。
+     */
+    private function support(): array
+    {
+        $reachable = array_filter([
+            'Crisp' => (string) setting('crisp_website_id', ''),
+            '第三方客服代码' => (string) setting('support_widget', ''),
+            'Telegram 客服' => (string) setting('support_tg', ''),
+            '客服群' => (string) setting('support_group', ''),
+        ], fn ($v) => $v !== '');
+
+        if (! $reachable) {
+            return $this->x('bad', '客服入口',
+                '一个都没配 —— 而忘记密码【只能】靠联系客服（本产品没有邮箱找回）。'
+                .'现在这批用户一旦忘密码就永久锁死，而你只会看到一个再也不登录的账号',
+                '/admin/settings');
+        }
+
+        return $this->x('ok', '客服入口',
+            '已配 '.implode('、', array_keys($reachable)).'（登录页与注册页都够得着）');
     }
 
     /**
@@ -170,6 +204,19 @@ class ServiceReadiness
      * [!!] 没配邮件的后果最隐蔽：用户卡在注册页收不到验证码，
      * 而你这边【什么日志都不会有异常】—— 他根本没注册成功，不会出现在用户列表里。
      */
+    /**
+     * SMTP。
+     *
+     * `[!!]` 这一项曾经是 bad，理由写的是"用户注册收不到验证码，会卡在注册页"——
+     * **那个理由是错的**，而且它误导过一次上线判断。实际：
+     *   · 网页注册整个关掉了（RegisterController@store 直接回"请在客户端中注册"）
+     *   · 客户端注册（POST /api/auth/register）只要用户名和密码，根本不碰邮箱
+     *   · Auth\EmailCodeController 与 Auth\PasswordController 都是【没有路由】的死代码
+     * 所以今天没有任何面向用户的功能依赖邮件，它挡不住任何人。
+     *
+     * 降到 warn 而不是直接去掉：邮件一旦要用（找回密码、到期提醒改走邮件），
+     * 没配就是静默失败，那时候这一项要在。
+     */
     private function mail(): array
     {
         $host = (string) setting('smtp_host', '');
@@ -177,15 +224,43 @@ class ServiceReadiness
 
         return $host !== '' && $user !== ''
             ? $this->x('ok', '邮件', "已配（{$host}）")
-            : $this->x('bad', '邮件', '没配 SMTP —— 用户注册收不到验证码，会卡在注册页，'
-                .'而你这边看不到任何异常（他根本没注册成功）', '/admin/settings');
+            : $this->x('warn', '邮件',
+                '没配 SMTP。当前不挡任何人 —— 注册走客户端、只要用户名和密码，'
+                .'邮箱找回那条路本来就不存在（忘密码走客服）。'
+                .'将来要做邮件找回或邮件通知之前需要配上', '/admin/settings');
     }
 
+    /**
+     * 支付到底能不能收到钱。
+     *
+     * `[!!]` 这一项曾经只检查 `epay_pid` / `epay_url` 非空就报 ok ——
+     * **而字段非空不等于对接完成**。它一路显示着绿灯，而实际上
+     * epay 从未对接、系统里没有任何可用的收款路径。
+     * 我自己也被这个绿灯骗过一次，据此判断"关掉 mock 支付不影响正常功能"。
+     *
+     * 现在改成【按证据判】：看有没有过一笔带**网关交易号**的成功支付。
+     * trade_no 只能来自网关的真实回调，造不出来 ——
+     * 而 `pay_method='epay'` 是可以被 seeder 造出来的（线上就有 48 笔这样的假单，
+     * 带 trade_no 的 0 笔）。
+     *
+     * `[!]` 这一项会一直红到你走通第一笔真实支付为止 —— 那是对的。
+     * 一个从来没收到过钱的收款通道，没有任何理由被当成可用。
+     */
     private function payment(): array
     {
-        return (string) setting('epay_pid', '') !== '' && (string) setting('epay_url', '') !== ''
-            ? $this->x('ok', '支付', '已配')
-            : $this->x('warn', '支付', '没配支付 —— 用户能注册能用免费节点，但买不了套餐',
+        if ((string) setting('epay_pid', '') === '' || (string) setting('epay_url', '') === '') {
+            return $this->x('warn', '支付', '没配支付 —— 用户能注册能用免费节点，但买不了套餐',
+                '/admin/settings');
+        }
+
+        $real = \App\Models\Order::where('status', 'paid')->whereNotNull('trade_no')->exists()
+            || \App\Models\Recharge::where('status', 'paid')->whereNotNull('trade_no')->exists();
+
+        return $real
+            ? $this->x('ok', '支付', '已对接，且有过带网关交易号的真实支付')
+            : $this->x('bad', '支付',
+                '配置已填，但【从未有过一笔带网关交易号的支付】—— 字段非空不等于对接完成。'
+                .'走通第一笔真实小额支付后这一项会自动转绿',
                 '/admin/settings');
     }
 

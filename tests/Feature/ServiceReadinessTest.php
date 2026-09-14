@@ -52,7 +52,11 @@ it('什么都没配时把问题都列出来', function () {
 
     expect($r['套餐']['level'])->toBe('bad');
     expect($r['可用节点']['level'])->toBe('bad');
-    expect($r['邮件']['level'])->toBe('bad');
+    // `[!]` 邮件已降为 warn —— 它挡不住注册(注册走客户端、不碰邮箱)。
+    // 真正该红的是客服入口:忘记密码【只能】靠它。
+    expect($r['邮件']['level'])->toBe('warn');
+    expect($r['客服入口']['level'])->toBe('bad');
+    expect($r['备份']['level'])->toBe('bad');
 });
 
 // `[!!]` 这条是最隐蔽的一种:有节点、有套餐,但所有节点都设了等级门槛 ——
@@ -84,12 +88,15 @@ it('中转节点不算进可用节点', function () {
 
 // `[!!]` 没配邮件的后果最隐蔽:用户卡在注册页,而你这边什么日志异常都没有 ——
 // 他根本没注册成功,不会出现在用户列表里。
-it('没配邮件时说清"你这边看不到任何异常"', function () {
+// `[!!]` 这条原本断言"没配邮件 = bad,理由是用户收不到验证码"。
+// 那个理由是【错的】,而且误导过一次上线判断:网页注册整个关掉了,
+// 客户端注册只要用户名和密码。断言随之改掉,并钉住不许退回旧措辞。
+it('没配邮件只是 warn,并且不再拿"注册收不到验证码"当理由', function () {
     $r = rd()['邮件'];
 
-    expect($r['level'])->toBe('bad');
-    expect($r['detail'])->toContain('收不到验证码');
-    expect($r['detail'])->toContain('看不到任何异常');
+    expect($r['level'])->toBe('warn');
+    expect($r['detail'])->toContain('不挡任何人');
+    expect($r['detail'])->not->toContain('收不到验证码');
 });
 
 it('没配支付只是 warn —— 免费节点仍然能用', function () {
@@ -130,9 +137,9 @@ function rdBackupOk(): void
 it('blockers 只数真正拦路的那几项', function () {
     rdNode();
     rdPlan();
-    rdBackupOk();        // 没备份过也是 bad，这里要单独测邮件那一项
+    rdBackupOk();
 
-    // 邮件没配 = 1 项 bad；支付只是 warn，不算
+    // 客服入口没配 = 1 项 bad；邮件与支付都只是 warn（支付未填配置），不算
     expect(app(ServiceReadiness::class)->blockers())->toBe(1);
 });
 
@@ -141,8 +148,7 @@ it('blockers 只数真正拦路的那几项', function () {
 it('从来没备份过时，blockers 会多算一项', function () {
     rdNode();
     rdPlan();
-    \App\Models\Setting::put('smtp_host', 'smtp.example.com');
-    \App\Models\Setting::put('smtp_username', 'noreply@example.com');
+    \App\Models\Setting::put('support_tg', 'https://t.me/x');
 
     expect(app(ServiceReadiness::class)->blockers())->toBe(1);   // 只剩备份
     rdBackupOk();
@@ -169,6 +175,103 @@ it('首页:有问题时显示自检,全绿时不显示', function () {
         \Cache::forever("task_hb:{$sig}", ['at' => now()->timestamp, 'ok' => true]);
     }
     rdBackupOk();   // 同理：测试里没有备份记录，而"从来没备过"是 bad
+    \App\Models\Setting::put('support_tg', 'https://t.me/x');   // 忘密码的唯一出路
+    // `[!]` 支付现在按证据判：光填配置不算，要有一笔带网关交易号的支付
+    $payer = User::factory()->create();
+    \App\Models\Order::create([
+        'user_id' => $payer->id, 'plan_id' => rdPlan()->id, 'amount' => 30,
+        'status' => 'paid', 'period' => 'month', 'order_no' => 'RD-GREEN',
+        'pay_method' => 'epay', 'trade_no' => 'GW-GREEN-1', 'paid_at' => now(),
+    ]);
 
     $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('上线自检');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// 支付：按【证据】判，不按字段非空判
+// ─────────────────────────────────────────────────────────────────
+it('填了配置但从来没有过网关交易号时，支付是红的', function () {
+    \App\Models\Setting::put('epay_pid', '123');
+    \App\Models\Setting::put('epay_url', 'https://pay.example.com');
+
+    $r = rd()['支付'];
+    expect($r['level'])->toBe('bad');
+    expect($r['detail'])->toContain('字段非空不等于对接完成');
+});
+
+it('有过一笔带网关交易号的支付后转绿', function () {
+    \App\Models\Setting::put('epay_pid', '123');
+    \App\Models\Setting::put('epay_url', 'https://pay.example.com');
+    $u = User::factory()->create();
+    $p = rdPlan();
+    \App\Models\Order::create([
+        'user_id' => $u->id, 'plan_id' => $p->id, 'amount' => 30,
+        'status' => 'paid', 'period' => 'month', 'order_no' => 'RD-T1',
+        'pay_method' => 'epay', 'trade_no' => 'GW-20260914-0001', 'paid_at' => now(),
+    ]);
+
+    expect(rd()['支付']['level'])->toBe('ok');
+});
+
+it('`pay_method=epay` 但没有交易号的单【不算数】—— 那是能被造出来的', function () {
+    \App\Models\Setting::put('epay_pid', '123');
+    \App\Models\Setting::put('epay_url', 'https://pay.example.com');
+    $u = User::factory()->create();
+    $p = rdPlan();
+    \App\Models\Order::create([
+        'user_id' => $u->id, 'plan_id' => $p->id, 'amount' => 30,
+        'status' => 'paid', 'period' => 'month', 'order_no' => 'RD-T2',
+        'pay_method' => 'epay', 'trade_no' => null, 'paid_at' => now(),
+    ]);
+
+    // `[!!]` 线上就有 48 笔这样的假单(seeder 造的),带 trade_no 的 0 笔。
+    // 判据认 trade_no 而不认 pay_method,正是为了不被它们骗过去。
+    expect(rd()['支付']['level'])->toBe('bad');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// 客服入口：忘记密码的唯一出路
+// ─────────────────────────────────────────────────────────────────
+it('一个客服渠道都没配时是红的 —— 忘密码的人无处可去', function () {
+    $r = rd()['客服入口'];
+    expect($r['level'])->toBe('bad');
+    expect($r['detail'])->toContain('没有邮箱找回');
+});
+
+it('配了 Telegram 就够得着', function () {
+    \App\Models\Setting::put('support_tg', 'https://t.me/x');
+    expect(rd()['客服入口']['level'])->toBe('ok');
+});
+
+it('只配工单不算 —— 工单要登录，而站在这里的人正是登不进去的那个', function () {
+    // 工单不是可配项，这里验的是"没有任何未登录可达渠道时仍然是红的"
+    \App\Models\Setting::put('smtp_host', 'smtp.example.com');   // 配点别的
+    expect(rd()['客服入口']['level'])->toBe('bad');
+});
+
+it('登录页给得出联系方式，而不是只写一句"请联系客服"', function () {
+    \App\Models\Setting::put('support_tg', 'https://t.me/mysupport');
+
+    $html = $this->get('/login')->assertOk()->getContent();
+    expect($html)->toContain('https://t.me/mysupport');
+    // 客服挂件也要出现在未登录页上
+    expect($html)->toContain('联系客服');
+});
+
+it('未登录时客服面板不给「提交工单」—— 那是个死循环', function () {
+    \App\Models\Setting::put('support_tg', 'https://t.me/mysupport');
+
+    $guest = $this->get('/login')->assertOk()->getContent();
+    expect($guest)->not->toContain('/user/ticket');
+
+    // 对照：登录后是给的
+    $u = User::factory()->create();
+    $in = $this->actingAs($u)->get('/user')->assertOk()->getContent();
+    expect($in)->toContain('/user/ticket');
+});
+
+it('邮件没配只是 warn —— 它挡不住注册（注册走客户端、不碰邮箱）', function () {
+    $r = rd()['邮件'];
+    expect($r['level'])->toBe('warn');
+    expect($r['detail'])->toContain('不挡任何人');
 });

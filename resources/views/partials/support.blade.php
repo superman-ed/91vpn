@@ -5,6 +5,10 @@
     $supportGroup = setting('support_group', '');
     $supportHours = setting('support_hours', '');
     $csUser = auth()->user();
+    // `[!!]` 这个挂件现在也会渲染在登录页上(layouts/guest)——
+    // 而那里的人恰恰是【进不去】的那批:忘了密码、只能靠客服。
+    // 给他们看「提交工单」是个死循环:工单要登录。
+    $csGuest = ! auth()->check();
 @endphp
 
 @if($crispWebsiteId !== '')
@@ -53,14 +57,20 @@
                     <i class="fas fa-chevron-right cs-arr"></i>
                 </a>
                 @endif
+                @unless($csGuest)
                 <a class="cs-item" href="/user/ticket">
                     <span class="cs-ic" style="background:#f0edff;color:#6777ef"><i class="fas fa-ticket-alt"></i></span>
                     <span class="cs-txt"><b>提交工单</b><small>复杂问题走工单，留档可追溯</small></span>
                     <i class="fas fa-chevron-right cs-arr"></i>
                 </a>
+                @endunless
             </div>
             @if(! $supportTg && ! $supportGroup)
-            <div class="cs-foot">管理员尚未配置即时客服，请通过工单联系。</div>
+            {{-- `[!]` 未登录时不能说"请通过工单联系"——工单要登录,
+                 而站在这里的人正是登不进去的那个。 --}}
+            <div class="cs-foot">{{ $csGuest
+                ? '管理员尚未配置客服联系方式 —— 目前没有可用的联系入口。'
+                : '管理员尚未配置即时客服，请通过工单联系。' }}</div>
             @endif
         </div>
         <button type="button" id="cs-bubble" onclick="csToggle()" aria-label="联系客服">
