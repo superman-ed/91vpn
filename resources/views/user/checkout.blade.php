@@ -7,6 +7,9 @@
 .co-summary .row-line .lbl { color: #7a869a; }
 .co-summary .row-line .val { color: #34395e; font-weight: 600; }
 .co-summary .row-line.discount .val { color: #63c76a; }
+/* 流量包的清零规则。整行铺满 —— 这句话进不了 lbl/val 的左右分栏。
+   特异度比 .co-summary .row-line 高一级，display 与 border-bottom 才压得住。 */
+.co-summary .row-line.note { display: block; margin: 8px 0; padding: 9px 11px; border: 1px solid #f5e3bd; border-bottom: 1px solid #f5e3bd; border-radius: 8px; background: #fff9ec; color: #8a6414; font-size: 12.5px; line-height: 1.8; }
 .co-pay { font-size: 30px; font-weight: 800; color: #6777ef; line-height: 1; }
 .co-balance { font-size: 20px; font-weight: 700; color: #34395e; }
 .co-coupon .form-control { border-radius: 8px; }
@@ -51,6 +54,13 @@
                 <div class="row-line"><span class="lbl">时长</span><span class="val">{{ period_name($order->period) }} · {{ $plan->duration_days }} 天</span></div>
                 @endunless
                 <div class="row-line"><span class="lbl">流量</span><span class="val">{{ $trafficLine }}</span></div>
+                {{-- `[!]` 只对流量包显示。清零规则是有意设计(会员到期日 / 流量重置日)，
+                     而此前【购买前完全没有告知】—— 用户付了 50GB 的钱可能只用到其中一部分，
+                     且重置那一刻屏幕上的数字是【涨】的，他当时察觉不到。
+                     见 docs/LAUNCH-CHECKLIST.md L-04。 --}}
+                @if($isPack)
+                <div class="row-line note">购买的流量包将会在您的会员到期日或流量重置日自动清零，请根据您的实际使用流量选择合适的流量包。</div>
+                @endif
                 <div class="row-line"><span class="lbl">原价</span><span class="val">¥{{ number_format($base, 2) }}</span></div>
                 @if($order->coupon_id)
                 <div class="row-line discount"><span class="lbl">优惠码 {{ $order->coupon?->code }}</span><span class="val">-¥{{ number_format($discount, 2) }}</span></div>

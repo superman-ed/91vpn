@@ -102,7 +102,7 @@ Parse config error: cannot unmarshal !!map into []map[string]interface{}
 
 ## 二、上线前应当决定（不决定也能上，但要知道选了什么）
 
-### L-04 · 流量包的清零规则**没有在购买前告知**
+### L-04 · 流量包的清零规则 —— **告知已补（2026-09-14）**
 
 `[!]` **行为本身是对的，不要改。** owner 已确认这是有意设计，对用户的口径是：
 
@@ -117,9 +117,10 @@ Parse config error: cannot unmarshal !!map into []map[string]interface{}
 **不要做的事**：恢复 `pack_transfer`；或让 `applyDataPack` 同时抬高
 `base_transfer_enable`（那会让会员**每月白拿一份**，从少给变成多给）。
 
-**真正待办的只有一件：把上面那句话放到结账页的订单卡片里。**
-`[D]` 现在卡片里只有「立即叠加 50GB 到当前套餐」，
-没有任何「有效期 / 到期 / 重置 / 失效」字样（`tests/Feature/AuditL04PackTest.php`）。
+**已做（2026-09-14）**：那句话已放进结账页的订单卡片，紧跟在「流量」那一行后面。
+`[D]` `tests/Feature/AuditL04PackTest.php` 逐字钉住这句口径，
+并有反向对照确认**普通套餐不显示它**（它只对流量包成立）。
+原本钉住缺陷的几条断言已反转为规格守卫。
 
 `[D]` 为什么这条值得在上线前做完 —— 实测的真实使用路径：
 

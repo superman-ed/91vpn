@@ -5,11 +5,20 @@ use App\Models\Plan;
 use App\Models\User;
 
 /**
- * L-04 消费端验证：用户付钱买的流量包，在【他自己看到的页面上】怎么变化。
+ * 流量包的清零规则 —— 规格测试。
  *
- * `[!!]` 之前的 P11-A 直接调 applyDataPack()。那证明了服务层的算法，
- * 没证明用户真的经历得到 —— 购买要走下单、付款、发货三步，
- * 任何一步拦下来，这条结论就不成立。这里全程走真实 HTTP。
+ * `[!!]` 这组用例最初是【审计实验】，断言的是"用户付费买的流量包会凭空消失"。
+ * 后来 owner 确认那是**有意设计**：流量包在会员到期日或流量重置日清零。
+ * 于是断言反转，文件留下来当规格守卫。
+ *
+ * `[!]` 不要按"修复缺陷"的思路改这里的行为。两条别走的路：
+ *   · 恢复 users.pack_transfer 列（2026_08_24_100008 建过，100009 又删了，后者是现行意图）
+ *   · 让 applyDataPack() 同时抬高 base_transfer_enable
+ *     —— 那会让会员【每月白拿一份】，从少给变成多给
+ * 见 docs/LAUNCH-CHECKLIST.md L-04。
+ *
+ * 全程走真实 HTTP：下单、付款、发货三步都真的发生，
+ * 判据落在用户自己看到的页面上 —— 服务层算对了不等于用户经历得到。
  */
 $GLOBALS['l04'] = 0;
 
@@ -58,7 +67,7 @@ it('L04-1 买流量包 → 仪表盘数字确实涨了（装置自检）', funct
     expect(l04RemainGb($this, $user))->toBe('150.0 GB');
 });
 
-it('L04-2 结账页承诺的是「立即叠加到当前套餐」，没有任何有效期字样', function () {
+it('L04-2 结账页在【购买前】就把清零规则说清楚', function () {
     $user = User::factory()->create(['money' => 100]);
     l04Buy($this, $user, l04Plan());
 
@@ -68,21 +77,38 @@ it('L04-2 结账页承诺的是「立即叠加到当前套餐」，没有任何�
     $order = Order::where('user_id', $user->id)->latest('id')->firstOrFail();
 
     $html = $this->get("/user/order/{$order->id}")->assertOk()->getContent();
-    expect($html)->toContain('立即叠加 50GB 到当前套餐');
 
     // `[!]` 只看【订单详情卡片】，不看整页。
     // 整页会命中布局里的"账号到期时间"—— 那说的是账号，不是这个流量包。
-    // 拿整页断言会把一条无关的字当成"页面已经说明了有效期"，结论就反了。
+    // 拿整页断言会把一条无关的字当成"页面已经说明了"，结论就反了。
     preg_match('/<div class="card-body co-summary">(.*?)<\/div>\s*<\/div>/s', $html, $m);
     $card = $m[1] ?? '';
     expect($card)->not->toBe('');
+
     expect($card)->toContain('立即叠加 50GB 到当前套餐');
-    foreach (['有效期', '到期', '重置', '次月', '失效', '收回'] as $word) {
-        expect($card)->not->toContain($word);
-    }
+    // 逐字钉住 —— 这是 owner 定的对外口径，改动要有人明确决定
+    expect($card)->toContain(
+        '购买的流量包将会在您的会员到期日或流量重置日自动清零，请根据您的实际使用流量选择合适的流量包。'
+    );
 });
 
-it('L04-3 月度重置跑过之后，用户仪表盘上那 50GB 不见了', function () {
+it('L04-2b 普通套餐不显示这句话 —— 它只对流量包成立', function () {
+    $user = User::factory()->create(['money' => 100]);
+
+    $this->actingAs($user);
+    $this->post('/user/order/create', ['plan_id' => l04Plan()->id])->assertRedirect();
+    $order = Order::where('user_id', $user->id)->latest('id')->firstOrFail();
+
+    $html = $this->get("/user/order/{$order->id}")->assertOk()->getContent();
+    preg_match('/<div class="card-body co-summary">(.*?)<\/div>\s*<\/div>/s', $html, $m);
+    $card = $m[1] ?? '';
+    expect($card)->not->toBe('');
+    expect($card)->not->toContain('自动清零');
+    // 反向对照：确认抓到的确实是订单卡片，不是空串蒙混过关
+    expect($card)->toContain('每月 100GB');
+});
+
+it('L04-3 规格：月度重置把流量包清零（用户仪表盘上可见）', function () {
     $user = User::factory()->create(['money' => 100]);
     l04Buy($this, $user, l04Plan());
     l04Buy($this, $user, l04Plan(['transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0]));
@@ -96,7 +122,7 @@ it('L04-3 月度重置跑过之后，用户仪表盘上那 50GB 不见了', func
     expect(l04RemainGb($this, $user))->toBe('100.0 GB');
 });
 
-it('L04-4 而且用户在系统里找不到任何解释 —— 订单还在，流量没了', function () {
+it('L04-4 购买时已告知，但【事后】系统里仍然没有任何记录（L-09 未解决）', function () {
     $user = User::factory()->create(['money' => 100]);
     l04Buy($this, $user, l04Plan());
     $packOrder = l04Buy($this, $user, l04Plan(['transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0]));
@@ -116,12 +142,13 @@ it('L04-4 而且用户在系统里找不到任何解释 —— 订单还在，�
         expect($traffic)->not->toContain($word);
     }
 
-    // `[!]` 两头都成立才是这条结论的完整形态：
-    // 钱付了、订单在、流量没了、系统里没有一处说得出为什么。
+    // `[!]` 清零本身已经在购买前告知了（L04-2），所以这不再是"没打招呼"。
+    // 仍然成立的是【事后不可追溯】：具体哪一次重置、抹掉了多少，
+    // 系统里没有一处记得住。那是 L-09，尚未解决。
     expect(l04RemainGb($this, $user))->toBe('100.0 GB');
 });
 
-it('L04-5 对照：不跑重置时 50GB 一直在 —— 消失确实是重置造成的', function () {
+it('L04-5 对照：重置日未到时流量包不动 —— 清零确实由重置触发', function () {
     $user = User::factory()->create(['money' => 100]);
     l04Buy($this, $user, l04Plan());
     l04Buy($this, $user, l04Plan(['transfer_gb' => 50, 'is_data_pack' => true, 'class' => 0]));
