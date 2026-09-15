@@ -270,7 +270,13 @@ class SubscriptionService
         // 直连：accept_proxy 的落地【不能】直连 —— 那个端口上每个连接都必须
         // 带 PROXY 头，直连客户端会被全部拒绝。所以这类节点不发直连条目。
         if ((int) $landing->port > 0 && $landing->accept_proxy_protocol !== true) {
-            $push($landing->server, (int) $landing->port, '');
+            // `[!!]` 这里也要走 entryHost() —— 与下面的中转入口同一口径。
+            // 此前这条发的是裸 IP:落地 IP 被墙时只能改节点 + 重发订阅 +
+            // 等客户端更新(默认 24 小时),而用户在这 24 小时里是断的;
+            // 而经中转那条只需改一条 DNS 记录。
+            // 入口域名池的表结构与 entryHost() 都不限制节点角色,
+            // 是这一处调用漏了,不是设计不支持。
+            $push($landing->entryHost(), (int) $landing->port, '');
         }
 
         // 经中转：找出把本落地当作出站目标的规则，取它的入站节点(中转)地址 + 监听端口。
