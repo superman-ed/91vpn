@@ -136,3 +136,69 @@ it('入口域名只给客户端，中转拨落地仍用真实 server —— 这�
     // 而那是静默的(hopKnownDead 匹配不到就当"未知",一律保留入口)。
     expect($dials)->not->toContain('client-facing.example.com:'.$landing->port);
 });
+
+// ─────────────────────────────────────────────────────────────────
+// D-4：入口域名必须与面板域名分属不同的可注册域
+// ─────────────────────────────────────────────────────────────────
+function edReady(): array
+{
+    foreach (app(\App\Services\ServiceReadiness::class)->check() as $c) {
+        if ($c['title'] === '入口域名') {
+            return $c;
+        }
+    }
+    throw new RuntimeException('上线自检里没有「入口域名」这一项');
+}
+
+it('入口域名与面板同域时报红 —— 主域被封会一起死', function () {
+    config(['app.url' => 'https://app.91app.shop']);
+    $n = edNode('relay');
+    EntryDomain::create([
+        'domain' => 'entry.91app.shop', 'node_id' => $n->id, 'status' => 'active',
+    ]);
+
+    $r = edReady();
+    expect($r['level'])->toBe('bad');
+    expect($r['detail'])->toContain('91app.shop');
+    expect($r['detail'])->toContain('进不了后台');
+});
+
+it('换成单独注册的域名就转绿', function () {
+    config(['app.url' => 'https://app.91app.shop']);
+    $n = edNode('relay');
+    EntryDomain::create([
+        'domain' => 'entry.some-other-domain.com', 'node_id' => $n->id, 'status' => 'active',
+    ]);
+
+    expect(edReady()['level'])->toBe('ok');
+});
+
+it('子域深一层也要认得出同域 —— 判据是可注册域不是完整主机名', function () {
+    config(['app.url' => 'https://app.91app.shop']);
+    $n = edNode('relay');
+    EntryDomain::create([
+        'domain' => 'a.b.c.91app.shop', 'node_id' => $n->id, 'status' => 'active',
+    ]);
+
+    // `[!!]` 只比完整主机名的话,a.b.c.91app.shop ≠ app.91app.shop 会被判成"不同域",
+    // 而它们其实同生共死。必须比【最后两段】。
+    expect(edReady()['level'])->toBe('bad');
+});
+
+it('一个都没配时是 warn —— 说清后果但不拦路', function () {
+    config(['app.url' => 'https://app.91app.shop']);
+
+    $r = edReady();
+    expect($r['level'])->toBe('warn');
+    expect($r['detail'])->toContain('24 小时');
+});
+
+it('standby 的同域域名不报警 —— 只有 active 的才对外', function () {
+    config(['app.url' => 'https://app.91app.shop']);
+    $n = edNode('relay');
+    EntryDomain::create([
+        'domain' => 'entry.91app.shop', 'node_id' => $n->id, 'status' => 'standby',
+    ]);
+
+    expect(edReady()['level'])->toBe('warn');   // 等同于"没有启用中的"
+});

@@ -175,6 +175,11 @@ it('首页:有问题时显示自检,全绿时不显示', function () {
         \Cache::forever("task_hb:{$sig}", ['at' => now()->timestamp, 'ok' => true]);
     }
     rdBackupOk();   // 同理：测试里没有备份记录，而"从来没备过"是 bad
+    // 入口域名：没配是 warn，配了同域是 bad —— 全绿要求配一个【不同注册域】的
+    $edNode = rdNode();
+    \App\Models\EntryDomain::create([
+        'domain' => 'entry.some-other-domain.com', 'node_id' => $edNode->id, 'status' => 'active',
+    ]);
     \App\Models\Setting::put('support_tg', 'https://t.me/x');   // 忘密码的唯一出路
     // `[!]` 支付现在按证据判：光填配置不算，要有一笔带网关交易号的支付
     $payer = User::factory()->create();

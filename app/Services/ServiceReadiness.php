@@ -35,7 +35,53 @@ class ServiceReadiness
             $this->scheduler(),
             $this->backup(),
             $this->support(),
+            $this->entryDomainSeparation(),
         ];
+    }
+
+    /**
+     * 入口域名与面板域名是不是分属不同的可注册域（D-4）。
+     *
+     * `[!!]` 域名污染与封禁通常作用在【整个可注册域】上。
+     * entry.91app.shop 与 app.91app.shop 同属 91app.shop —— 主域被打时
+     * 面板与入口一起死，而那时你连后台都进不去，没法改任何东西。
+     *
+     * 更要命的是反方向：入口域名被封是【常态、预期内】的事件，
+     * 你本来就准备好了换 A 记录；但若它与面板同域，
+     * 一次例行的封锁就会把后台一起带走。
+     */
+    private function entryDomainSeparation(): array
+    {
+        $panel = $this->registrable((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+        if ($panel === '') {
+            return $this->x('warn', '入口域名', 'APP_URL 解析不出主机名，无法比对', null);
+        }
+
+        $same = \App\Models\EntryDomain::where('status', 'active')->get()
+            ->filter(fn ($d) => $this->registrable((string) $d->domain) === $panel);
+
+        if ($same->isNotEmpty()) {
+            return $this->x('bad', '入口域名',
+                '入口域名 '.$same->pluck('domain')->implode('、')
+                ."与面板同属 {$panel} —— 主域被封时面板和入口一起死，"
+                .'而那时你进不了后台、改不了任何东西。换一个单独注册的域名',
+                '/admin/entry-domains');
+        }
+
+        $n = \App\Models\EntryDomain::where('status', 'active')->count();
+
+        return $n === 0
+            ? $this->x('warn', '入口域名', '还没有启用中的入口域名 —— 订阅目前发的是节点裸 IP，'
+                .'IP 被封只能重发订阅并等客户端更新（默认 24 小时）', '/admin/entry-domains')
+            : $this->x('ok', '入口域名', "{$n} 个启用中，且与面板域名分开");
+    }
+
+    /** 取可注册域（最后两段）。够用即可：这里只判"是不是同一个域"。 */
+    private function registrable(string $host): string
+    {
+        $p = array_filter(explode('.', strtolower(trim($host))));
+
+        return count($p) >= 2 ? implode('.', array_slice($p, -2)) : implode('.', $p);
     }
 
     /**
