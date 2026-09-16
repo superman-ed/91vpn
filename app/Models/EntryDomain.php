@@ -9,13 +9,32 @@ use Illuminate\Database\Eloquent\Model;
  */
 class EntryDomain extends Model
 {
-    protected $fillable = ['domain', 'node_id', 'status', 'pointed_ip', 'note', 'last_rotated_at'];
+    protected $fillable = ['domain', 'node_id', 'status', 'pointed_ip', 'cname_target', 'note', 'last_rotated_at'];
 
     protected $casts = ['last_rotated_at' => 'datetime'];
 
     public function node()
     {
         return $this->belongsTo(Node::class);
+    }
+
+    /**
+     * 要去 DNS 服务商改 A 记录的那个主机名。
+     *
+     * 两层结构时改的是【标签】，不是门牌 —— 门牌是 CNAME，动它就把整层拆了。
+     * 见 docs/decisions/entry-dispatch.md · D-5。
+     */
+    public function dnsRecordHost(): string
+    {
+        return $this->cname_target !== null && $this->cname_target !== ''
+            ? $this->cname_target
+            : $this->domain;
+    }
+
+    /** 是否启用了 CNAME 两层结构。 */
+    public function isLayered(): bool
+    {
+        return $this->dnsRecordHost() !== $this->domain;
     }
 
     /**

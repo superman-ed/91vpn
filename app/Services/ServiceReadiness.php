@@ -57,14 +57,24 @@ class ServiceReadiness
             return $this->x('warn', '入口域名', 'APP_URL 解析不出主机名，无法比对', null);
         }
 
-        $same = \App\Models\EntryDomain::where('status', 'active')->get()
-            ->filter(fn ($d) => $this->registrable((string) $d->domain) === $panel);
+        // `[!!]` CNAME 标签也要查。门牌换了域名、标签还留在面板主域上，
+        // 等于没分离 —— 封的是【可注册域】，整条 CNAME 链一起死。
+        $offenders = [];
+        foreach (\App\Models\EntryDomain::where('status', 'active')->get() as $d) {
+            foreach (array_filter([(string) $d->domain, (string) $d->cname_target]) as $host) {
+                if ($this->registrable($host) === $panel) {
+                    $offenders[] = $host;
+                }
+            }
+        }
+        $offenders = array_values(array_unique($offenders));
 
-        if ($same->isNotEmpty()) {
+        if ($offenders !== []) {
             return $this->x('bad', '入口域名',
-                '入口域名 '.$same->pluck('domain')->implode('、')
+                '入口域名 '.implode('、', $offenders)
                 ."与面板同属 {$panel} —— 主域被封时面板和入口一起死，"
-                .'而那时你进不了后台、改不了任何东西。换一个单独注册的域名',
+                .'而那时你进不了后台、改不了任何东西。换一个单独注册的域名'
+                .'（CNAME 标签也算在内：封的是整个可注册域）',
                 '/admin/entry-domains');
         }
 

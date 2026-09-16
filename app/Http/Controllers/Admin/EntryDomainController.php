@@ -36,6 +36,8 @@ class EntryDomainController extends Controller
             'domain' => ['required', 'string', 'max:253', 'regex:/^(?=.{1,253}$)([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/', 'unique:entry_domains,domain'],
             'node_id' => ['required', 'integer', Rule::exists('nodes', 'id')],
             'pointed_ip' => ['nullable', 'ip'],
+            // 门牌 CNAME 到的线路池标签（选填）。`[!]` 必须与门牌不同 —— 自指是 CNAME 环。
+            'cname_target' => ['nullable', 'string', 'max:253', 'regex:/^(?=.{1,253}$)([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/', 'different:domain'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
         $relay = Node::findOrFail($data['node_id']);
@@ -56,7 +58,8 @@ class EntryDomainController extends Controller
         $entryDomain->update(['status' => 'active']);
         audit('entry_domain.activate', "入口域名「{$entryDomain->domain}」设为在用", $entryDomain);
 
-        return back()->with('status', "{$entryDomain->domain} 已设为在用。订阅从此发它,别忘了它的 A 记录要指向中转当前 IP。");
+        return back()->with('status', "{$entryDomain->domain} 已设为在用。订阅从此发它,别忘了 "
+            .$entryDomain->dnsRecordHost().' 的 A 记录要指向中转当前 IP。');
     }
 
     /** 标记被墙:仅改状态、不动订阅(在用被墙时你去轮换 IP 或切备用域名)。 */
@@ -80,9 +83,25 @@ class EntryDomainController extends Controller
             'last_rotated_at' => now(),
             'status' => 'active',
         ]);
-        audit('entry_domain.rotate', "入口域名「{$entryDomain->domain}」轮换指向 {$data['pointed_ip']}", $entryDomain);
 
-        return back()->with('status', "已登记:去 DNS 服务商把 {$entryDomain->domain} 的 A 记录改成 {$data['pointed_ip']}（面板不会替你改）。");
+        // `[!!]` 共用同一个 CNAME 标签的其它门牌,在 DNS 上会跟着一起变 ——
+        // 它们的 pointed_ip 必须同步,否则面板会亮出一批【假的】「该改 DNS」告警,
+        // 而真正要改的只有标签那一条 A 记录。只同步指向,不动 status:
+        // 被墙的门牌不该因为别人轮换就自动复活。
+        $siblings = 0;
+        if ($entryDomain->isLayered()) {
+            $siblings = EntryDomain::where('cname_target', $entryDomain->cname_target)
+                ->where('id', '!=', $entryDomain->id)
+                ->update(['pointed_ip' => $data['pointed_ip'], 'last_rotated_at' => now()]);
+        }
+
+        audit('entry_domain.rotate', "入口域名「{$entryDomain->domain}」轮换指向 {$data['pointed_ip']}"
+            .($siblings > 0 ? "（同标签「{$entryDomain->cname_target}」的另 {$siblings} 个门牌一并同步）" : ''), $entryDomain);
+
+        $host = $entryDomain->dnsRecordHost();
+
+        return back()->with('status', "已登记:去 DNS 服务商把 {$host} 的 A 记录改成 {$data['pointed_ip']}（面板不会替你改）。"
+            .($entryDomain->isLayered() ? " {$entryDomain->domain} 是 CNAME 到它的,不用动。" : ''));
     }
 
     public function destroy(EntryDomain $entryDomain)

@@ -280,3 +280,36 @@ it('邮件没配只是 warn —— 它挡不住注册（注册走客户端、不
     expect($r['level'])->toBe('warn');
     expect($r['detail'])->toContain('不挡任何人');
 });
+
+// ─────────────────────────────────────────────────────────────────
+// 入口域名分离：CNAME 标签也算在内
+//
+// `[!!]` 门牌换成了别的域名、标签还留在面板主域上 —— 等于没分离。
+// 封的是【可注册域】，整条 CNAME 链一起死，而那时你连后台都进不去。
+// ─────────────────────────────────────────────────────────────────
+it('门牌不同域但 CNAME 标签落在面板主域上，仍然判红', function () {
+    $panel = parse_url((string) config('app.url'), PHP_URL_HOST);
+    $reg = implode('.', array_slice(explode('.', (string) $panel), -2));
+
+    \App\Models\EntryDomain::create([
+        'domain' => 'entry.some-other-domain.com',
+        'cname_target' => 'label.'.$reg,          // ← 标签回到了面板主域
+        'node_id' => rdNode()->id,
+        'status' => 'active',
+    ]);
+
+    $r = rd()['入口域名'];
+    expect($r['level'])->toBe('bad');
+    expect($r['detail'])->toContain('label.'.$reg);
+});
+
+it('门牌与标签都在面板主域之外时判绿', function () {
+    \App\Models\EntryDomain::create([
+        'domain' => 'entry.some-other-domain.com',
+        'cname_target' => 'label.yet-another-domain.net',
+        'node_id' => rdNode()->id,
+        'status' => 'active',
+    ]);
+
+    expect(rd()['入口域名']['level'])->toBe('ok');
+});

@@ -9,6 +9,9 @@
       你只改这域名的 <strong>A 记录</strong>指到新 IP，客户端<strong>无感</strong>跟过去（不用重发订阅）。
       <br>面板<strong>只登记 + 提醒</strong>——真正改 DNS 仍由你在域名服务商那边做。
       一台中转<strong>只有一个「在用」</strong>域名会被订阅发出；其余是备用，被墙了切过去。
+      <br><strong>CNAME 标签（选填，推荐）</strong>：门牌 CNAME 到一个标签、A 记录挂在标签上。
+      多个门牌共用一个标签时，<strong>换 IP 只改标签那一条</strong>，全部门牌一起跟；
+      按运营商分流的付费 DNS 也只需买在标签那个域名上。
     </p>
 
     <form method="POST" action="/admin/entry-domains" class="form-row align-items-end mb-4">
@@ -26,11 +29,15 @@
           @endforeach
         </select>
       </div>
-      <div class="form-group col-md-2 mb-2">
+      <div class="form-group col-md-3 mb-2">
+        <label>CNAME 标签<small class="text-muted">（选填）</small></label>
+        <input name="cname_target" class="form-control" placeholder="hk1.example.net" value="{{ old('cname_target') }}">
+      </div>
+      <div class="form-group col-md-3 mb-2">
         <label>当前指向 IP<small class="text-muted">（选填）</small></label>
         <input name="pointed_ip" class="form-control" placeholder="A 记录指的 IP" value="{{ old('pointed_ip') }}">
       </div>
-      <div class="form-group col-md-2 mb-2">
+      <div class="form-group col-md-4 mb-2">
         <label>备注<small class="text-muted">（选填）</small></label>
         <input name="note" class="form-control" placeholder="如 DNS 在 Cloudflare" value="{{ old('note') }}">
       </div>
@@ -39,6 +46,7 @@
     </form>
     @error('domain')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
     @error('pointed_ip')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
+    @error('cname_target')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
 
     <div class="table-responsive">
       <table class="table table-striped">
@@ -48,7 +56,11 @@
         <tbody>
         @forelse($domains as $d)
           <tr>
-            <td style="word-break:break-all"><i class="fas fa-globe text-muted"></i> {{ $d->domain }}</td>
+            <td style="word-break:break-all"><i class="fas fa-globe text-muted"></i> {{ $d->domain }}
+              @if($d->isLayered())
+                <br><small class="text-muted">CNAME → <span class="mono">{{ $d->cname_target }}</span></small>
+              @endif
+            </td>
             <td>{{ $d->node->name ?? '—' }}<br><small class="text-muted">{{ $d->node->server ?? '' }}</small></td>
             <td>
               @if($d->status === 'active')<span class="adm-pill ok">在用</span>
@@ -59,7 +71,7 @@
               @if($d->pointed_ip)<span class="mono">{{ $d->pointed_ip }}</span>@else<span class="text-muted">未登记</span>@endif
               @if($d->dnsStale())
                 <br><span class="adm-pill" style="background:#fff3cd;color:#664d03" title="A 记录指的 IP 和中转当前真实 IP 对不上">
-                  ⚠ 该改 DNS → {{ $d->node->server }}</span>
+                  ⚠ 改 {{ $d->dnsRecordHost() }} 的 A 记录 → {{ $d->node->server }}</span>
               @endif
             </td>
             <td class="text-muted">{{ $d->last_rotated_at?->diffForHumans() ?? '—' }}</td>

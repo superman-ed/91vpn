@@ -207,6 +207,44 @@ dns:
 
 ---
 
+## 我们的实现（已落地）
+
+`entry_domains` 加了一列 `cname_target`（`2026_09_16_210000` 迁移）：
+
+```
+EntryDomain.domain         门牌  —— 订阅发它（entryHost()），永不变
+EntryDomain.cname_target   标签  —— 选填；A 记录挂在它上面
+EntryDomain.pointed_ip     标签当前指向的 IP（人工登记）
+```
+
+| 方法 | 作用 |
+|---|---|
+| `dnsRecordHost()` | 该去改哪条 A 记录 —— 有标签发标签，没标签发门牌 |
+| `isLayered()` | 是否启用了两层 |
+
+三条行为，都有测试钉住（`tests/Feature/EntryDomainTest.php` 末尾）：
+
+1. **提示指向标签** —— 指错了管理员会去动门牌的 A 记录，而门牌是 CNAME，动它整层就拆了
+2. **标签不得等于门牌** —— `different:domain`，挡 CNAME 环
+3. `[!!]` **轮换时同标签的兄弟一起同步 `pointed_ip`** —— DNS 上它们本来就一起变了；
+   不同步，面板会亮出一批**假的**「该改 DNS」告警。
+   只同步指向，**不动 status**：被墙的门牌不该因为别人轮换就自动复活。
+
+### 分离性检查扩到了标签
+
+`[!!]` `ServiceReadiness::entryDomainSeparation()` 现在同时检查 `domain` 和 `cname_target`。
+
+**门牌换成了别的域名、标签还留在面板主域上 —— 等于没分离。**
+封禁作用在**整个可注册域**上，整条 CNAME 链一起死，而那时你连后台都进不去。
+
+三条注入反证跑过，全部变红，不是空真。
+
+### 代价
+
+冷缓存时多一次 DNS 往返。**换来的是换 IP 时永远不碰用户看得见的那个名字。**
+
+---
+
 ## 边界
 
 - **分流规则不进代码库。** 它在 DNS 服务商控制台，面板不读也不写。
