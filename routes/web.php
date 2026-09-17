@@ -39,6 +39,10 @@ Route::view('/terms', 'legal', ['title' => '服务条款'])->name('terms');
 Route::view('/privacy', 'legal', ['title' => '隐私政策'])->name('privacy');
 Route::view('/refund', 'legal', ['title' => '退款政策'])->name('refund');
 
+// 公开帮助中心(游客可看已发布文章),官网下载/FAQ 链到这里
+Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help');
+Route::get('/help/{article}', [App\Http\Controllers\HelpController::class, 'show'])->name('help.show');
+
 // 支付网关回调（易支付，机器对机器，无需登录）
 Route::match(['get', 'post'], '/pay/epay/notify', [App\Http\Controllers\PaymentController::class, 'notify']);
 Route::match(['get', 'post'], '/pay/epay/return', [App\Http\Controllers\PaymentController::class, 'epayReturn']);

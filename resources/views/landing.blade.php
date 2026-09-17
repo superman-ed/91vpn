@@ -346,6 +346,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
       <a class="gate" href="/register"><span class="g">全平台</span><b>Android · Windows</b><span>iOS · macOS · 注册后下载</span></a>
       @endforelse
     </div>
+    <p style="font-family:var(--mono);font-size:13px;color:var(--faint);margin-top:16px;letter-spacing:.04em">不会用?<a href="/help" style="color:var(--amber)">查看各平台安装教程 →</a></p>
   </div>
 </section>
 
@@ -407,8 +408,9 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     <div class="shead"><h2>旅客须知</h2><span class="m">PASSENGER INFO</span></div>
     <details class="qa" open><summary><span class="no">Q1</span><span class="q">能解锁 Netflix 和 ChatGPT 吗?</span><span class="pm">+</span></summary><p class="ans">能。多地区节点针对主流流媒体与 AI 服务做了解锁优化——ChatGPT / Claude / Gemini 注册订阅、Netflix 各区片库都可直达。个别服务风控严格时,切到对应地区的原生 IP 节点即可。</p></details>
     <details class="qa"><summary><span class="no">Q2</span><span class="q">速度和稳定性怎么样?晚高峰会误点吗?</span><span class="pm">+</span></summary><p class="ans">采用香港就近入口 + 多地区高速落地的中转航线:过境那一跳最短,其余走海外骨干。客户端持续测速自动选最快节点,某个节点异常会自动改签,晚高峰体验更稳。</p></details>
-    <details class="qa"><summary><span class="no">Q3</span><span class="q">支持哪些设备?一张票能用几台?</span><span class="pm">+</span></summary><p class="ans">提供 Android、Windows、iOS、macOS 客户端,一个账号全平台通用。同时在线设备数按舱位:经济 2 台、商务 4 台、头等 6 台。</p></details>
+    <details class="qa"><summary><span class="no">Q3</span><span class="q">支持哪些设备?一张票能用几台?</span><span class="pm">+</span></summary><p class="ans">提供 Android、Windows、iOS、macOS 客户端,一个账号全平台通用。同时在线设备数因套餐而异,详见各套餐说明。</p></details>
     <details class="qa"><summary><span class="no">Q4</span><span class="q">怎么付款?可以退票吗?</span><span class="pm">+</span></summary><p class="ans">付款后订阅即时开通,支持多种在线支付方式。新用户 3 天内不满意可无理由退票。</p></details>
+    <p style="font-family:var(--mono);font-size:13px;color:var(--faint);margin-top:20px;letter-spacing:.04em">更多问题?<a href="/help" style="color:var(--amber)">查看帮助中心 →</a></p>
   </div>
 </section>
 
@@ -450,6 +452,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
       </div>
       <div class="fcol">
         <div class="ft">帮助与支持</div>
+        <a href="/help">帮助中心</a>
         <a href="#notice">常见问题</a>
         <a href="/user/ticket">在线客服 / 工单</a>
         <a href="https://t.me/" rel="noopener">Telegram 社群</a>

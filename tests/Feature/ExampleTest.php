@@ -45,3 +45,18 @@ it('serves legal placeholder pages', function () {
     $this->get('/privacy')->assertOk()->assertSee('隐私政策');
     $this->get('/refund')->assertOk()->assertSee('退款政策');
 });
+
+// 公开帮助中心
+it('serves the public help center', function () {
+    \App\Models\HelpArticle::create(['category' => '安装', 'platform' => 'windows', 'title' => 'Windows 安装教程', 'content' => "第一步\n第二步", 'published' => true, 'sort' => 1]);
+    \App\Models\HelpArticle::create(['category' => '安装', 'platform' => 'all', 'title' => '草稿未发布', 'content' => 'x', 'published' => false]);
+
+    $this->get('/help')->assertOk()->assertSee('Windows 安装教程')->assertDontSee('草稿未发布');
+    $id = \App\Models\HelpArticle::where('published', true)->first()->id;
+    $this->get('/help/'.$id)->assertOk()->assertSee('第一步');
+});
+
+it('hides unpublished help articles (404)', function () {
+    $a = \App\Models\HelpArticle::create(['category' => 'x', 'platform' => 'all', 'title' => '隐藏', 'content' => 'x', 'published' => false]);
+    $this->get('/help/'.$a->id)->assertNotFound();
+});
