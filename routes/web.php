@@ -31,9 +31,15 @@ use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+// 官网首页(门户):游客看营销落地页,已登录用户直接进用户中心。
 Route::get('/', function () {
-    return redirect(Auth::check() ? '/user' : '/login');
+    return Auth::check() ? redirect('/user') : view('landing');
 });
+
+// 条款页(占位:内容后台/人工补;先保证链接不 404)
+Route::view('/terms', 'legal', ['title' => '服务条款'])->name('terms');
+Route::view('/privacy', 'legal', ['title' => '隐私政策'])->name('privacy');
+Route::view('/refund', 'legal', ['title' => '退款政策'])->name('refund');
 
 // 支付网关回调（易支付，机器对机器，无需登录）
 Route::match(['get', 'post'], '/pay/epay/notify', [App\Http\Controllers\PaymentController::class, 'notify']);
