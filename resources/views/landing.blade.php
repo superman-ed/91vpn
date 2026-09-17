@@ -1,4 +1,3 @@
-@verbatim
 <!doctype html>
 <html lang="zh">
 <head>
@@ -21,6 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+@verbatim
 <style>
 :root{
   color-scheme: light;
@@ -157,7 +157,7 @@ section{padding:66px 0;border-top:1px solid var(--rule)}
 /* fares — a timetable, not pricing cards */
 .fares-scroll{overflow-x:auto}
 .fares{border:1px solid var(--rule);min-width:640px}
-.frow{display:grid;grid-template-columns:1.3fr .85fr .7fr .7fr .9fr auto;gap:14px;align-items:center;padding:20px 22px;border-bottom:1px solid var(--rule-soft)}
+.frow{display:grid;grid-template-columns:1.6fr 1fr 1fr auto;gap:16px;align-items:center;padding:20px 22px;border-bottom:1px solid var(--rule-soft)}
 .frow:last-child{border-bottom:0}
 .fhead{background:var(--board);border-bottom:1px solid var(--rule)}
 .fhead span{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
@@ -235,6 +235,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
   .rg{grid-template-columns:1fr}.rg .cont{border-right:0;border-bottom:1px solid var(--rule-soft)}
 }
 </style>
+@endverbatim
 </head>
 <body>
 
@@ -278,8 +279,8 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     </div>
 
     <div class="ticker">
-      <div class="it"><span class="v">25+</span><span class="k">覆盖地区</span></div>
-      <div class="it"><span class="v">60+</span><span class="k">高速节点</span></div>
+      <div class="it"><span class="v">{{ $regionCount }}</span><span class="k">覆盖地区</span></div>
+      <div class="it"><span class="v">{{ $nodeCount }}</span><span class="k">高速节点</span></div>
       <div class="it"><span class="v">99.9%</span><span class="k">在线率</span></div>
       <div class="it"><span class="v">30+</span><span class="k">解锁服务</span></div>
     </div>
@@ -318,29 +319,25 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
   <div class="wrap">
     <div class="shead"><h2>值机 · 下载客户端</h2><span class="m">CHECK-IN</span></div>
     <div class="gates">
-      <a class="gate" href="/register"><span class="g">GATE A</span><b>Android</b><span>APK · Play</span></a>
-      <a class="gate" href="/register"><span class="g">GATE B</span><b>Windows</b><span>.exe · 10/11</span></a>
-      <a class="gate" href="/register"><span class="g">GATE C</span><b>iOS</b><span>App Store</span></a>
-      <a class="gate" href="/register"><span class="g">GATE D</span><b>macOS</b><span>Intel · Apple 芯片</span></a>
+      @forelse($downloads as $dl)
+      <a class="gate" href="{{ $dl->url ?: '/register' }}"@if($dl->url) target="_blank" rel="noopener"@endif>
+        <span class="g">{{ $dl->platform }}</span>
+        <b>{{ $dl->label ?: $dl->platform }}</b>
+        <span>{{ $dl->url ? ($dl->version ?: '点击下载') : '即将推出' }}</span>
+      </a>
+      @empty
+      <a class="gate" href="/register"><span class="g">全平台</span><b>Android · Windows</b><span>iOS · macOS · 注册后下载</span></a>
+      @endforelse
     </div>
   </div>
 </section>
 
 <section id="regions">
   <div class="wrap">
-    <div class="shead"><h2>通航地区</h2><span class="m">DESTINATIONS · 25+</span></div>
+    <div class="shead"><h2>通航地区</h2><span class="m">DESTINATIONS · {{ $regionCount }}</span></div>
     <div class="regions">
-      <div class="rg"><div class="cont">亚太</div><div class="list">
-        <span class="rc"><b>HKG</b>香港</span><span class="rc"><b>JPN</b>日本</span><span class="rc"><b>SGP</b>新加坡</span><span class="rc"><b>TWN</b>台湾</span><span class="rc"><b>KOR</b>韩国</span><span class="rc"><b>VNM</b>越南</span><span class="rc"><b>THA</b>泰国</span><span class="rc"><b>MYS</b>马来西亚</span><span class="rc"><b>PHL</b>菲律宾</span><span class="rc"><b>IDN</b>印尼</span><span class="rc"><b>IND</b>印度</span>
-      </div></div>
-      <div class="rg"><div class="cont">北美</div><div class="list">
-        <span class="rc"><b>USA</b>美国</span><span class="rc"><b>CAN</b>加拿大</span>
-      </div></div>
-      <div class="rg"><div class="cont">欧洲</div><div class="list">
-        <span class="rc"><b>GBR</b>英国</span><span class="rc"><b>DEU</b>德国</span><span class="rc"><b>FRA</b>法国</span><span class="rc"><b>ITA</b>意大利</span><span class="rc"><b>ESP</b>西班牙</span><span class="rc"><b>NLD</b>荷兰</span><span class="rc"><b>TUR</b>土耳其</span>
-      </div></div>
-      <div class="rg"><div class="cont">其他</div><div class="list">
-        <span class="rc"><b>AUS</b>澳大利亚</span><span class="rc"><b>BRA</b>巴西</span><span class="rc"><b>ARG</b>阿根廷</span><span class="rc"><b>CHL</b>智利</span>
+      <div class="rg"><div class="cont">覆盖地区</div><div class="list">
+        @foreach($regions as $r)<span class="rc">{{ $r }}</span>@endforeach
       </div></div>
     </div>
     <p style="font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px;letter-spacing:.04em">* 地区持续增加 · 具体可用节点以客户端为准</p>
@@ -352,11 +349,19 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     <div class="shead"><h2>舱位与票价</h2><span class="m">FARES</span></div>
     <div class="fares-scroll">
     <div class="fares">
-      <div class="frow fhead"><span>舱位 CLASS</span><span>流量 DATA</span><span>月付 /MO</span><span>季付 −15%</span><span>年付 −30%</span><span></span></div>
-      <div class="frow"><div class="fclass"><b>经济舱</b><span>ECONOMY</span><span class="dev">2 台设备</span></div><div class="fq">50 GB / 月</div><div class="fp">¥9<small>/月</small></div><div class="fp2">¥23<span class="save">/季</span></div><div class="fp2">¥76<span class="save">/年 省30%</span></div><a class="btn btn-line" href="/register">选择</a></div>
-      <div class="frow feat"><div class="fclass"><b>商务舱</b><span>BUSINESS · 最受欢迎</span><span class="dev">4 台设备</span></div><div class="fq">300 GB / 月</div><div class="fp">¥25<small>/月</small></div><div class="fp2">¥64<span class="save">/季</span></div><div class="fp2">¥210<span class="save">/年 省30%</span></div><a class="btn btn-solid" href="/register">选择</a></div>
-      <div class="frow"><div class="fclass"><b>头等舱</b><span>FIRST</span><span class="dev">6 台设备</span></div><div class="fq">1 TB / 月</div><div class="fp">¥45<small>/月</small></div><div class="fp2">¥115<span class="save">/季</span></div><div class="fp2">¥378<span class="save">/年 省30%</span></div><a class="btn btn-line" href="/register">选择</a></div>
-      <div class="fnote">全舱位含全部地区节点 · 流媒体 + AI 解锁 · 3 天无理由退票 · 价格为示例,以下单页为准</div>
+      <div class="frow fhead"><span>套餐 PLAN</span><span>流量 DATA</span><span>价格 FARE</span><span></span></div>
+      @forelse($plans as $p)
+      @php $per = ['month' => '/月', 'quarter' => '/季', 'year' => '/年']; @endphp
+      <div class="frow">
+        <div class="fclass"><b>{{ $p->name }}</b><span class="dev">{{ $p->ip_limit ? $p->ip_limit.' 台设备' : '设备不限' }}</span></div>
+        <div class="fq">{{ (int) $p->transfer_gb }} GB{{ $p->resetsMonthly() ? ' / 月' : ' 总量' }}</div>
+        <div class="fp">¥{{ rtrim(rtrim(number_format($p->price, 2), '0'), '.') }}<small>{{ $per[$p->period] ?? '' }}</small></div>
+        <a class="btn btn-line" href="/register">选择</a>
+      </div>
+      @empty
+      <div class="frow"><div class="fclass"><b>套餐即将上线</b></div><div class="fq">—</div><div class="fp">—</div><a class="btn btn-solid" href="/register">先免费试用</a></div>
+      @endforelse
+      <div class="fnote">全部套餐含全部地区节点 · 流媒体 + AI 解锁 · 3 天无理由退票 · 注册后在用户中心下单</div>
     </div>
     </div>
   </div>
@@ -473,4 +478,3 @@ qas.forEach(function(q){q.querySelector('summary').addEventListener('click',func
 </script>
 </body>
 </html>
-@endverbatim
