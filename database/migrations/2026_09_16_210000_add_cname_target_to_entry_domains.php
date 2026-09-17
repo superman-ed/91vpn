@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  *
  *   门牌         entry.example.com     CNAME →  ← 订阅发这个，永不变
  *   线路池标签    hk1.example.net       A     →  ← 改 A 记录改这个
- *   中转 IP       191.223.216.236
+ *   中转 IP       <中转当前的公网 IP>
  *
  * `[D]` SoCloud 就是两层：cp.paeadiy.com 是 CNAME，指向 gy1.paeadiy.com。
  *
