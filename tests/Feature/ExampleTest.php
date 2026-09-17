@@ -60,3 +60,12 @@ it('hides unpublished help articles (404)', function () {
     $a = \App\Models\HelpArticle::create(['category' => 'x', 'platform' => 'all', 'title' => '隐藏', 'content' => 'x', 'published' => false]);
     $this->get('/help/'.$a->id)->assertNotFound();
 });
+
+// SEO:robots / sitemap 动态
+it('serves robots.txt and sitemap.xml', function () {
+    \App\Models\HelpArticle::create(['category' => 'x', 'platform' => 'all', 'title' => 't', 'content' => 'c', 'published' => true]);
+    $this->get('/robots.txt')->assertOk()->assertSee('Sitemap:')->assertSee('Disallow: /admin');
+    $r = $this->get('/sitemap.xml')->assertOk();
+    expect($r->headers->get('Content-Type'))->toContain('xml');
+    $r->assertSee('/help', false);
+});

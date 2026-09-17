@@ -5,18 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>91VPN</title>
 <meta name="description" content="解锁全球流媒体与 AI 的加速服务——像机场一样，直达你到不了的目的地">
-<link rel="canonical" href="https://91vpn.com/">
+<link rel="canonical" href="{{ url('/') }}">
+<link rel="icon" href="{{ asset('favicon.ico') }}">
 <meta name="theme-color" content="#F1EEE4">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="91VPN">
 <meta property="og:title" content="91VPN — 解锁全球互联网">
 <meta property="og:description" content="Netflix、YouTube、ChatGPT 一键畅连。香港就近入口，多地区高速直达，晚高峰也不卡。">
-<meta property="og:url" content="https://91vpn.com/">
-<meta property="og:image" content="https://91vpn.com/og.png">
+<meta property="og:url" content="{{ url('/') }}">
+<meta property="og:image" content="{{ asset('og.png') }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="91VPN — 解锁全球互联网">
 <meta name="twitter:description" content="Netflix、YouTube、ChatGPT 一键畅连。香港就近入口，多地区高速直达。">
-<meta name="twitter:image" content="https://91vpn.com/og.png">
+<meta name="twitter:image" content="{{ asset('og.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">

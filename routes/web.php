@@ -43,6 +43,10 @@ Route::view('/refund', 'legal', ['title' => '退款政策'])->name('refund');
 Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help');
 Route::get('/help/{article}', [App\Http\Controllers\HelpController::class, 'show'])->name('help.show');
 
+// SEO:robots.txt / sitemap.xml(动态取 config('app.url'),域名切换自动正确)
+Route::get('/robots.txt', [App\Http\Controllers\SeoController::class, 'robots']);
+Route::get('/sitemap.xml', [App\Http\Controllers\SeoController::class, 'sitemap']);
+
 // 支付网关回调（易支付，机器对机器，无需登录）
 Route::match(['get', 'post'], '/pay/epay/notify', [App\Http\Controllers\PaymentController::class, 'notify']);
 Route::match(['get', 'post'], '/pay/epay/return', [App\Http\Controllers\PaymentController::class, 'epayReturn']);
