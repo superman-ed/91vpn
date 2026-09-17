@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ClientDownload;
 use App\Models\Node;
-use App\Models\Plan;
+use App\Services\PlanCatalog;
 
 /**
  * 官网首页(门户)。游客看营销落地页,已登录进用户中心。
@@ -36,6 +36,8 @@ class HomeController extends Controller
 
     private const FALLBACK_REGIONS = ['香港', '日本', '新加坡', '美国', '台湾', '韩国'];
 
+    public function __construct(private PlanCatalog $catalog) {}
+
     public function index()
     {
         if (auth()->check()) {
@@ -45,8 +47,9 @@ class HomeController extends Controller
         $regions = $this->regionsFromNodes();
 
         return view('landing', [
-            'plans' => Plan::where('on_sale', true)->where('is_data_pack', false)
-                ->orderBy('sort')->orderBy('price')->get(),
+            // 套餐同源于 PlanCatalog:与用户商店同样的"同名归组 + 时长切换"结构
+            'groups' => $this->catalog->groups(),
+            'catalog' => $this->catalog,
             'downloads' => ClientDownload::visible()->get(),
             'regions' => $regions,
             'regionCount' => count($regions),

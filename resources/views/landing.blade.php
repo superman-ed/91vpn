@@ -180,6 +180,23 @@ section{padding:66px 0;border-top:1px solid var(--rule)}
 .rc b{color:var(--amber);font-weight:700;margin-right:8px}
 .frow .btn{padding:9px 18px;font-size:13px;white-space:nowrap}
 .fnote{font-family:var(--mono);font-size:12.5px;color:var(--faint);letter-spacing:.04em;padding:14px 22px;border-top:1px solid var(--rule);text-align:center}
+/* 套餐卡(商店同结构:时长切换 + 权益清单),纸白时刻表皮 */
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));border:1px solid var(--rule)}
+.plan{padding:26px 24px;border-right:1px solid var(--rule-soft);display:flex;flex-direction:column}
+.plan:last-child{border-right:0}
+.plan .pname{font-family:var(--sign);font-weight:800;font-size:18px;letter-spacing:-.01em}
+.plan .pprice{font-family:var(--mono);font-weight:800;font-size:34px;color:var(--ink);letter-spacing:-.02em;margin:14px 0 2px;line-height:1}
+.plan .pprice small{font-size:14px;color:var(--faint);font-weight:400}
+.plan .pdays{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.04em}
+.durs{display:flex;border:1px solid var(--rule);margin:16px 0 4px}
+.dur{flex:1;padding:7px 4px;background:transparent;border:0;border-right:1px solid var(--rule-soft);font-family:var(--mono);font-size:12px;color:var(--dim);cursor:pointer;letter-spacing:.02em}
+.dur:last-child{border-right:0}
+.dur.active{background:var(--amber);color:#FBF6EC;font-weight:700}
+.pfeat{list-style:none;padding:0;margin:16px 0 22px;display:flex;flex-direction:column;gap:9px}
+.pfeat li{display:flex;gap:8px;font-size:13.5px;color:var(--dim);line-height:1.5}
+.pfeat li svg{width:14px;height:14px;flex:0 0 14px;stroke:var(--amber);margin-top:3px;fill:none;stroke-width:2.4}
+.plan .btn{margin-top:auto;width:100%}
+@media (max-width:640px){.plans{grid-template-columns:1fr}.plan{border-right:0;border-bottom:1px solid var(--rule-soft)}}
 
 /* trust — ruled row */
 .trust{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule)}
@@ -347,23 +364,41 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 <section id="fares">
   <div class="wrap">
     <div class="shead"><h2>舱位与票价</h2><span class="m">FARES</span></div>
-    <div class="fares-scroll">
-    <div class="fares">
-      <div class="frow fhead"><span>套餐 PLAN</span><span>流量 DATA</span><span>价格 FARE</span><span></span></div>
-      @forelse($plans as $p)
-      @php $per = ['month' => '/月', 'quarter' => '/季', 'year' => '/年']; @endphp
-      <div class="frow">
-        <div class="fclass"><b>{{ $p->name }}</b><span class="dev">{{ $p->ip_limit ? $p->ip_limit.' 台设备' : '设备不限' }}</span></div>
-        <div class="fq">{{ (int) $p->transfer_gb }} GB{{ $p->resetsMonthly() ? ' / 月' : ' 总量' }}</div>
-        <div class="fp">¥{{ rtrim(rtrim(number_format($p->price, 2), '0'), '.') }}<small>{{ $per[$p->period] ?? '' }}</small></div>
-        <a class="btn btn-line" href="/register">选择</a>
-      </div>
+    @php $check = '<svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>'; @endphp
+    <div class="plans">
+      @forelse($groups as $g)
+        @php $b = $g['benefits']; $first = $g['durations']->first(); @endphp
+        <div class="plan" data-plan-card>
+          <div class="pname">{{ $b->name }}</div>
+          <div class="pprice">¥<span data-price-out>{{ $first['price'] }}</span></div>
+          <div class="pdays">有效期 <span data-days-out>{{ $first['days'] }}</span> 天</div>
+          @if($g['durations']->count() > 1)
+          <div class="durs">
+            @foreach($g['durations'] as $d)
+            <button type="button" class="dur {{ $loop->first ? 'active' : '' }}"
+              data-price="{{ $d['price'] }}" data-days="{{ $d['days'] }}"
+              data-traffic="{{ $catalog->trafficText($d) }}">{{ $d['label'] }}</button>
+            @endforeach
+          </div>
+          @endif
+          <ul class="pfeat">
+            <li>{!! $check !!}<span data-traffic-out>{{ $catalog->trafficText($first) }}</span></li>
+            <li>{!! $check !!}多地区高速中转，自动选最快节点</li>
+            <li>{!! $check !!}稳定解锁 Netflix / YouTube / ChatGPT</li>
+            <li>{!! $check !!}同时在线设备 {{ $b->ip_limit > 0 ? $b->ip_limit.' 台' : '不限' }}</li>
+            <li>{!! $check !!}{{ $b->speed_limit > 0 ? '端口限速 '.$b->speed_limit.' Mbps' : '端口不限速' }}</li>
+          </ul>
+          <a class="btn btn-solid" href="/register">注册开通</a>
+        </div>
       @empty
-      <div class="frow"><div class="fclass"><b>套餐即将上线</b></div><div class="fq">—</div><div class="fp">—</div><a class="btn btn-solid" href="/register">先免费试用</a></div>
+        <div class="plan">
+          <div class="pname">套餐即将上线</div>
+          <div class="pdays" style="margin-top:12px">先注册免费试用，开放后第一时间通知你。</div>
+          <a class="btn btn-solid" href="/register" style="margin-top:20px">免费试用</a>
+        </div>
       @endforelse
-      <div class="fnote">全部套餐含全部地区节点 · 流媒体 + AI 解锁 · 3 天无理由退票 · 注册后在用户中心下单</div>
     </div>
-    </div>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px;letter-spacing:.04em">* 全部套餐含全部地区节点 · 流媒体 + AI 解锁 · 3 天无理由退票 · 注册后在用户中心下单</p>
   </div>
 </section>
 
@@ -472,6 +507,20 @@ function tick(){var d=new Date(),p=function(n){return(n<10?'0':'')+n;};
   var c=document.getElementById('clk');if(c)c.textContent=hh+':'+mm+':'+ss;
   var b=document.getElementById('board-clk');if(b)b.textContent='TERMINAL 91 · '+hh+':'+mm;}
 tick();setInterval(tick,1000);
+
+// 套餐时长切换:点 1/3/6/12月,更新本卡的价格/有效期/流量(与商店一致)
+document.querySelectorAll('[data-plan-card]').forEach(function(card){
+  var price=card.querySelector('[data-price-out]'),days=card.querySelector('[data-days-out]'),traf=card.querySelector('[data-traffic-out]');
+  card.querySelectorAll('.dur').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      card.querySelectorAll('.dur').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      if(price)price.textContent=btn.dataset.price;
+      if(days)days.textContent=btn.dataset.days;
+      if(traf)traf.textContent=btn.dataset.traffic;
+    });
+  });
+});
 var qas=[].slice.call(document.querySelectorAll('.qa'));
 qas.forEach(function(q){q.querySelector('summary').addEventListener('click',function(e){
   e.preventDefault();var open=q.open;qas.forEach(function(o){o.open=false;});q.open=!open;});});

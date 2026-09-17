@@ -7,65 +7,23 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Services\BillingService;
 use App\Services\OrderService;
+use App\Services\PlanCatalog;
 use Illuminate\Http\Request;
 
 class ShopController extends Controller
 {
-    public function __construct(private OrderService $orders) {}
+    public function __construct(private OrderService $orders, private PlanCatalog $catalog) {}
 
     /** GET /user/shop */
     public function index()
     {
-        $periodLabels = ['month' => '1月', 'quarter' => '3月', 'half_year' => '6月', 'year' => '12月'];
-        $periodMonths = ['month' => 1, 'quarter' => 3, 'half_year' => 6, 'year' => 12];
+        // `[!]` 分组/时长逻辑统一走 PlanCatalog —— 与官网首页同源,价格权益不会各说各话。
+        $onSale = $this->catalog->onSale();
 
-        $onSale = Plan::where('on_sale', true)->orderBy('sort')->get();
-
-        // 流量包(加油包)单独成区
-        $dataPacks = $onSale->where('is_data_pack', true)->map(fn ($p) => [
-            'plan_id' => $p->id,
-            'name' => $p->name,
-            'transfer_gb' => (int) $p->transfer_gb,
-            'price' => rtrim(rtrim(number_format($p->price, 2), '0'), '.'),
-            'stock' => $p->stock,
-            'sold_out' => $p->stock === 0,
-        ])->values();
-
-        // 普通套餐同名归组，组内按 1/3/6/12 月排列各时长
-        $groups = $onSale->where('is_data_pack', false)
-            ->groupBy('name')
-            ->map(function ($rows) use ($periodLabels, $periodMonths) {
-                $gb = (int) $rows->first()->transfer_gb;
-                $durations = collect($periodLabels)
-                    ->map(function ($label, $period) use ($rows, $periodMonths, $gb) {
-                        $row = $rows->firstWhere('period', $period);
-                        if (! $row) {
-                            return null;
-                        }
-
-                        $months = $periodMonths[$period];
-
-                        return [
-                            'plan_id' => $row->id,
-                            'label' => $label,
-                            'price' => rtrim(rtrim(number_format($row->price, 2), '0'), '.'),
-                            'days' => $row->duration_days,
-                            'months' => $months,
-                            'monthly_reset' => $row->resetsMonthly(),
-                            // monthly：X个月总计=月配额×月数；none：总量就是 transfer_gb
-                            'total_gb' => $row->resetsMonthly() ? $gb * $months : $gb,
-                            'stock' => $row->stock,
-                            'sold_out' => $row->stock === 0,
-                        ];
-                    })
-                    ->filter()->values();
-
-                return ['benefits' => $rows->first(), 'durations' => $durations];
-            })
-            ->filter(fn ($g) => $g['durations']->isNotEmpty())
-            ->values();
-
-        return view('user.shop', ['groups' => $groups, 'dataPacks' => $dataPacks]);
+        return view('user.shop', [
+            'groups' => $this->catalog->groups($onSale),
+            'dataPacks' => $this->catalog->dataPacks($onSale),
+        ]);
     }
 
     /** POST /user/order/create —— 下单（生成 pending 订单，跳收银台结算） */
