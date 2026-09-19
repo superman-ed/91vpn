@@ -38,7 +38,15 @@ cat "$DIR/tools/repro-guard.php" > "$TMP"
 # `[!]` 去掉被拼进来的脚本自己的 <?php，否则 PHP 会把它当字面量输出。
 sed '1{/^<?php[[:space:]]*$/d;}' "$SCRIPT" >> "$TMP"
 
+# `[!!]` mktemp 建出来是 0600,属主是【跑这个脚本的人】。docker cp 按数字保留
+# UID 和权限位,于是容器里的 php 进程(非 root)读不到 root 建的那份 ——
+# 报的是 "include_once(/tmp/repro.php): Failed to open stream: Permission denied",
+# 看起来像 PHP 的问题,实际是谁跑决定的。放宽到 644 让 root 和普通用户都能用。
+chmod 644 "$TMP"
 docker cp "$TMP" "$CONTAINER:/tmp/repro.php" >/dev/null
+# `[!]` 既然放宽了权限,容器里那份跑完就删 —— 否则一份 world-readable 的
+# 脚本会一直留在容器的 /tmp 里,直到下次运行被覆盖。
+trap 'rm -f "$TMP"; docker exec "$CONTAINER" rm -f /tmp/repro.php 2>/dev/null' EXIT
 ENVS=(-e XDG_CONFIG_HOME=/tmp -e HOME=/tmp)
 if [[ $REAL == 1 ]]; then
   ENVS+=(-e REPRO_ALLOW_REAL=1)
