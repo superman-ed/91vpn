@@ -96,7 +96,28 @@
             <div class="row">
                 <div class="form-group col-md-8" data-when="reality"><label>dest 候选清单（换行/逗号分隔，节点上筛查）</label>
                     <textarea name="dest_scan_candidates" rows="3" class="form-control" placeholder="www.a.example&#10;www.b.example">{{ old('dest_scan_candidates', $node->dest_scan_candidates) }}</textarea>
-                    <small class="text-muted">保存后由【该节点】去扫（可达与延迟是节点到那个站的关系，面板扫没有意义）。内容不变不会重扫。</small></div>
+                    <small class="text-muted">保存后由【该节点】去扫（可达与延迟是节点到那个站的关系，面板扫没有意义）。内容不变不会重扫。</small>
+                    @if($node->exists)
+                    {{-- `[!]` 这是【独立的一张表单】—— 嵌套 form 是非法 HTML，浏览器会把内层丢掉，
+                         按钮点了没反应。它也会【立即保存】候选清单，所以文案要说清楚。 --}}
+                    <div class="mt-2">
+                        <button type="submit" form="genDestForm" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-magic mr-1"></i>自动生成候选
+                        </button>
+                        <small class="text-muted ml-2">从全球访问量排名里按地区与排名中段随机采样，剔掉 CDN 与全球品牌。
+                            <strong>会立即保存并覆盖上面的清单</strong>（本表单其它未保存的改动不会一起保存）。</small>
+                        <div class="alert alert-warning py-2 px-2 mt-2 mb-0" style="font-size:.85rem">
+                            <strong>生成之后请自己扫一眼再定：</strong>
+                            <ul class="mb-0 pl-3">
+                                <li><strong>金融 / 保险 / 支付</strong> —— 脚本剔不掉。反直觉但确凿：银行的全球母域排名反而很低（客户都去本地站），按排名过滤抓不到它们。</li>
+                                <li><strong>政府 / 公营机构</strong> —— 只按 <code>.gov</code> 这个 TLD 剔，剔不掉不在该 TLD 下的（实跑里漏出过香港邮政、香港电台）。</li>
+                                <li><strong>站还活着吗</strong> —— TLS 通不代表还在运营，浏览器打开看一眼。</li>
+                                <li><strong>自然度</strong> —— 这域名的服务器，本来就该在你节点那种地方吗？本地主机商／本地电商 ≫ 全球公司的地区站。</li>
+                            </ul>
+                        </div>
+                    </div>
+                    @endif
+                </div>
                 <div class="form-group col-md-4" data-when="reality"><label>强制重扫（清单没变时）</label>
                     <select name="dest_scan_rerun" class="form-control"><option value="0">否</option><option value="1">是</option></select>
                     <small class="text-muted">节点两轮之间最少间隔 15 分钟。</small></div>
@@ -289,3 +310,9 @@
 })();
 </script>
 @endsection
+
+@if($node->exists)
+{{-- `[!!]` 必须放在主表单【之外】：嵌套 form 非法，浏览器会静默丢掉内层，
+     表现是按钮点了没任何反应。上面的按钮用 form="genDestForm" 关联到这里。 --}}
+<form id="genDestForm" method="POST" action="{{ route('admin.nodes.dest-candidates', $node) }}" class="d-none">@csrf</form>
+@endif

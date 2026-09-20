@@ -8,6 +8,7 @@ use App\Models\Node;
 use App\Models\NodeDailyTraffic;
 use App\Models\NodeNetTraffic;
 use App\Models\RuleTraffic;
+use App\Services\DestCandidates;
 use App\Services\NodeDiagnosis;
 use App\Services\Reality;
 use Illuminate\Http\Request;
@@ -172,6 +173,43 @@ class NodeController extends Controller
         audit('node.update', "更新节点「{$node->name}」", $node);
 
         return redirect('/admin/nodes')->with('status', '节点已更新');
+    }
+
+    /**
+     * 生成 dest 候选,直接填进本节点的候选清单(下一轮 nodeInfo 就带给节点去扫)。
+     *
+     * `[!!]` 这里【只做纯计算 + 被动 DNS】,一个字节都不往第三方发。四关(TLS1.3/
+     * X25519/非CDN/h2)和延迟交给【节点】测 —— 可达性与延迟是"节点到候选"的关系,
+     * 面板机房的视角给不出答案;而面板主动连几百个第三方 443,自己就成了一台可被
+     * 指挥的扫描器(正是节点侧那套护栏要防的)。见 DestCandidates 的类注释。
+     */
+    public function destCandidates(Request $request, Node $node)
+    {
+        // `[!]` 首次要下 10MB 排名表,默认 30 秒不够。缓存 7 天,之后都是两秒级。
+        @set_time_limit(240);
+
+        try {
+            $r = app(DestCandidates::class)->generate('.hk', 25);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['dest_scan_candidates' => '候选生成失败：'.$e->getMessage()]);
+        }
+        if ($r['candidates'] === []) {
+            return back()->withErrors(['dest_scan_candidates' => '这一轮没筛出候选 —— 稍后重试（每次是随机采样，结果不同）']);
+        }
+
+        // 候选变了要把上一轮结果一并清掉:两份结果长得一模一样,
+        // 留着旧的会让运维以为新清单已经扫完了(与 update() 同一口径)。
+        $node->update([
+            'dest_scan_candidates' => implode("\n", $r['candidates']),
+            'dest_scan_id' => Node::destScanIdFor($r['candidates']),
+            'dest_scan_result' => null,
+            'dest_scan_at' => null,
+        ]);
+        audit('node.dest_candidates', "为节点「{$node->name}」生成 ".count($r['candidates']).' 个 dest 候选', $node);
+
+        return back()->with('status', '已生成 '.count($r['candidates'])
+            .' 个候选并填入清单。节点会在下一轮拉取时开始筛查（约 60 秒）。'
+            .'`[!]` 金融/保险与公营机构脚本剔不掉，请自己扫一眼再定。');
     }
 
     public function destroy(Node $node)

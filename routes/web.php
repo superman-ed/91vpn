@@ -1,38 +1,66 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\AcquisitionController;
+use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
-use App\Http\Controllers\Admin\HelpArticleController as AdminHelpArticleController;
-use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\ClientDownloadController;
 use App\Http\Controllers\Admin\CouponController as AdminCouponController;
-use App\Http\Controllers\Admin\TicketController as AdminTicketController;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\CrashLogController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DeviceStatController;
+use App\Http\Controllers\Admin\DocsController;
+use App\Http\Controllers\Admin\EmailLogController;
+use App\Http\Controllers\Admin\EntryDomainController;
+use App\Http\Controllers\Admin\FinanceController;
+use App\Http\Controllers\Admin\HealthController;
+use App\Http\Controllers\Admin\HelpArticleController as AdminHelpArticleController;
+use App\Http\Controllers\Admin\LoginLogController;
+use App\Http\Controllers\Admin\NodeController;
 use App\Http\Controllers\Admin\NodeController as AdminNodeController;
+use App\Http\Controllers\Admin\OnlineUserController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\PlanController as AdminPlanController;
+use App\Http\Controllers\Admin\PromoController;
+use App\Http\Controllers\Admin\RebateController;
+use App\Http\Controllers\Admin\RelayDeployController;
+use App\Http\Controllers\Admin\RelayMonitorController;
+use App\Http\Controllers\Admin\RelayOnlineIpController;
+use App\Http\Controllers\Admin\RelayRuleController;
+use App\Http\Controllers\Admin\RelayWizardController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Admin\TopologyController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\ModMu\ForwardController as ModMuForwardController;
 use App\Http\Controllers\Api\ModMu\UserController as ModMuUserController;
 use App\Http\Controllers\Api\SubController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\HelpController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\User\AccountController;
-use App\Http\Controllers\User\DownloadController;
-use App\Http\Controllers\User\SubscribeLogController;
-use App\Http\Controllers\User\ServerListController;
-use App\Http\Controllers\User\TrafficLogController;
 use App\Http\Controllers\User\CheckinController;
 use App\Http\Controllers\User\DashboardController;
-use App\Http\Controllers\User\InviteController;
-use App\Http\Controllers\User\TicketController as UserTicketController;
-use App\Http\Controllers\User\NodeSettingController;
 use App\Http\Controllers\User\DeviceController as UserDeviceController;
+use App\Http\Controllers\User\DownloadController;
+use App\Http\Controllers\User\InviteController;
+use App\Http\Controllers\User\NodeSettingController;
+use App\Http\Controllers\User\NotificationController;
+use App\Http\Controllers\User\ServerListController;
 use App\Http\Controllers\User\ShopController;
+use App\Http\Controllers\User\SubscribeLogController;
+use App\Http\Controllers\User\TicketController as UserTicketController;
+use App\Http\Controllers\User\TrafficLogController;
 use App\Http\Controllers\User\WalletController;
-use App\Http\Controllers\Auth\RegisterController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // 官网首页(门户):游客看营销落地页(价格/地区/下载读真实数据),已登录用户进用户中心。
-Route::get('/', [App\Http\Controllers\HomeController::class, 'index']);
+Route::get('/', [HomeController::class, 'index']);
 
 // 条款页(占位:内容后台/人工补;先保证链接不 404)
 Route::view('/terms', 'legal', ['title' => '服务条款'])->name('terms');
@@ -40,16 +68,16 @@ Route::view('/privacy', 'legal', ['title' => '隐私政策'])->name('privacy');
 Route::view('/refund', 'legal', ['title' => '退款政策'])->name('refund');
 
 // 公开帮助中心(游客可看已发布文章),官网下载/FAQ 链到这里
-Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help');
-Route::get('/help/{article}', [App\Http\Controllers\HelpController::class, 'show'])->name('help.show');
+Route::get('/help', [HelpController::class, 'index'])->name('help');
+Route::get('/help/{article}', [HelpController::class, 'show'])->name('help.show');
 
 // SEO:robots.txt / sitemap.xml(动态取 config('app.url'),域名切换自动正确)
-Route::get('/robots.txt', [App\Http\Controllers\SeoController::class, 'robots']);
-Route::get('/sitemap.xml', [App\Http\Controllers\SeoController::class, 'sitemap']);
+Route::get('/robots.txt', [SeoController::class, 'robots']);
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap']);
 
 // 支付网关回调（易支付，机器对机器，无需登录）
-Route::match(['get', 'post'], '/pay/epay/notify', [App\Http\Controllers\PaymentController::class, 'notify']);
-Route::match(['get', 'post'], '/pay/epay/return', [App\Http\Controllers\PaymentController::class, 'epayReturn']);
+Route::match(['get', 'post'], '/pay/epay/notify', [PaymentController::class, 'notify']);
+Route::match(['get', 'post'], '/pay/epay/return', [PaymentController::class, 'epayReturn']);
 
 // 认证（游客）
 Route::middleware('guest')->group(function () {
@@ -90,9 +118,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/order/{order}/cancel', [ShopController::class, 'cancelOrder']);
     Route::post('/user/subscription/end', [ShopController::class, 'endSubscription']);
     Route::post('/user/order/{order}/mock-pay', [ShopController::class, 'mockPay']);
-    Route::get('/user/messages', [App\Http\Controllers\User\NotificationController::class, 'index'])->name('user.messages');
-    Route::post('/user/messages/read-all', [App\Http\Controllers\User\NotificationController::class, 'readAll']);
-    Route::post('/user/messages/{notification}/read', [App\Http\Controllers\User\NotificationController::class, 'read']);
+    Route::get('/user/messages', [NotificationController::class, 'index'])->name('user.messages');
+    Route::post('/user/messages/read-all', [NotificationController::class, 'readAll']);
+    Route::post('/user/messages/{notification}/read', [NotificationController::class, 'read']);
     Route::get('/user/wallet', [WalletController::class, 'index'])->name('user.wallet');
     Route::post('/user/wallet/recharge', [WalletController::class, 'recharge']);
     Route::post('/user/order/{order}/pay-balance', [WalletController::class, 'payBalance']);
@@ -133,47 +161,50 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     Route::resource('nodes', AdminNodeController::class)->except('show')->names('admin.nodes');
     // 一键诊断:向外探端口,故限流(见 NodeController::diagnose)
-    Route::get('nodes/{node}/diagnose', [\App\Http\Controllers\Admin\NodeController::class, 'diagnose'])
+    Route::get('nodes/{node}/diagnose', [NodeController::class, 'diagnose'])
         ->middleware('throttle:20,1')->name('admin.nodes.diagnose');
     Route::post('nodes/{node}/regenerate-secret', [AdminNodeController::class, 'regenerateSecret'])->name('admin.nodes.regenerate-secret');
+    // dest 候选生成:纯计算 + 被动 DNS,不连第三方。首次会下 10MB 排名表,故限流。
+    Route::post('nodes/{node}/dest-candidates', [AdminNodeController::class, 'destCandidates'])
+        ->middleware('throttle:10,1')->name('admin.nodes.dest-candidates');
     // 中转（ADR-008：从 relaypanel 并入）
-    Route::get('rules', [\App\Http\Controllers\Admin\RelayRuleController::class, 'index'])->name('admin.rules.index');
+    Route::get('rules', [RelayRuleController::class, 'index'])->name('admin.rules.index');
     // 中转链路向导：常见形态一次配好，并自动让落地收 PROXY 头（成对的那一步）
-    Route::get('rules/wizard', [\App\Http\Controllers\Admin\RelayWizardController::class, 'create'])->name('admin.rules.wizard');
-    Route::post('rules/wizard', [\App\Http\Controllers\Admin\RelayWizardController::class, 'store']);
-    Route::get('rules/create', [\App\Http\Controllers\Admin\RelayRuleController::class, 'create'])->name('admin.rules.create');
-    Route::post('rules', [\App\Http\Controllers\Admin\RelayRuleController::class, 'store'])->name('admin.rules.store');
-    Route::get('rules/{rule}/edit', [\App\Http\Controllers\Admin\RelayRuleController::class, 'edit'])->name('admin.rules.edit');
-    Route::put('rules/{rule}', [\App\Http\Controllers\Admin\RelayRuleController::class, 'update'])->name('admin.rules.update');
-    Route::delete('rules/{rule}', [\App\Http\Controllers\Admin\RelayRuleController::class, 'destroy'])->name('admin.rules.destroy');
+    Route::get('rules/wizard', [RelayWizardController::class, 'create'])->name('admin.rules.wizard');
+    Route::post('rules/wizard', [RelayWizardController::class, 'store']);
+    Route::get('rules/create', [RelayRuleController::class, 'create'])->name('admin.rules.create');
+    Route::post('rules', [RelayRuleController::class, 'store'])->name('admin.rules.store');
+    Route::get('rules/{rule}/edit', [RelayRuleController::class, 'edit'])->name('admin.rules.edit');
+    Route::put('rules/{rule}', [RelayRuleController::class, 'update'])->name('admin.rules.update');
+    Route::delete('rules/{rule}', [RelayRuleController::class, 'destroy'])->name('admin.rules.destroy');
     // 把写死的出站地址转成落地节点引用（下发内容不变，面板从此认得回来）
-    Route::post('rules/{rule}/adopt-targets', [\App\Http\Controllers\Admin\RelayRuleController::class, 'adoptTargets']);
-    Route::post('rules/{rule}/regenerate-cred', [\App\Http\Controllers\Admin\RelayRuleController::class, 'regenerateCred']);
-    Route::post('rules/{rule}/reality-keypair', [\App\Http\Controllers\Admin\RelayRuleController::class, 'realityKeypair']);
-    Route::post('nodes/{node}/deploy', [\App\Http\Controllers\Admin\RelayDeployController::class, 'start']);
-    Route::get('nodes/{node}/deploy/{run}', [\App\Http\Controllers\Admin\RelayDeployController::class, 'log']);
+    Route::post('rules/{rule}/adopt-targets', [RelayRuleController::class, 'adoptTargets']);
+    Route::post('rules/{rule}/regenerate-cred', [RelayRuleController::class, 'regenerateCred']);
+    Route::post('rules/{rule}/reality-keypair', [RelayRuleController::class, 'realityKeypair']);
+    Route::post('nodes/{node}/deploy', [RelayDeployController::class, 'start']);
+    Route::get('nodes/{node}/deploy/{run}', [RelayDeployController::class, 'log']);
     // 落地部署的 91vpn 身份(面板即 91vpn,自动带入;secret 按需取不洒进列表页)
-    Route::get('nodes/{node}/deploy-identity', [\App\Http\Controllers\Admin\RelayDeployController::class, 'identity']);
+    Route::get('nodes/{node}/deploy-identity', [RelayDeployController::class, 'identity']);
     // 入口域名池：给中转挂稳定域名,订阅发域名不发裸 IP;IP 被墙只改 A 记录、客户端无感。
-    Route::get('entry-domains', [\App\Http\Controllers\Admin\EntryDomainController::class, 'index'])->name('admin.entry-domains.index');
-    Route::post('entry-domains', [\App\Http\Controllers\Admin\EntryDomainController::class, 'store'])->name('admin.entry-domains.store');
-    Route::post('entry-domains/{entryDomain}/activate', [\App\Http\Controllers\Admin\EntryDomainController::class, 'activate'])->name('admin.entry-domains.activate');
-    Route::post('entry-domains/{entryDomain}/block', [\App\Http\Controllers\Admin\EntryDomainController::class, 'block'])->name('admin.entry-domains.block');
-    Route::post('entry-domains/{entryDomain}/rotate', [\App\Http\Controllers\Admin\EntryDomainController::class, 'rotate'])->name('admin.entry-domains.rotate');
-    Route::delete('entry-domains/{entryDomain}', [\App\Http\Controllers\Admin\EntryDomainController::class, 'destroy'])->name('admin.entry-domains.destroy');
+    Route::get('entry-domains', [EntryDomainController::class, 'index'])->name('admin.entry-domains.index');
+    Route::post('entry-domains', [EntryDomainController::class, 'store'])->name('admin.entry-domains.store');
+    Route::post('entry-domains/{entryDomain}/activate', [EntryDomainController::class, 'activate'])->name('admin.entry-domains.activate');
+    Route::post('entry-domains/{entryDomain}/block', [EntryDomainController::class, 'block'])->name('admin.entry-domains.block');
+    Route::post('entry-domains/{entryDomain}/rotate', [EntryDomainController::class, 'rotate'])->name('admin.entry-domains.rotate');
+    Route::delete('entry-domains/{entryDomain}', [EntryDomainController::class, 'destroy'])->name('admin.entry-domains.destroy');
 
     // 拓扑：按【路径】看 —— 哪条路存在、断在哪一段、用户实际拿得到哪几条
-    Route::get('topology', [\App\Http\Controllers\Admin\TopologyController::class, 'index'])->name('admin.topology');
-    Route::get('relay/monitor', [\App\Http\Controllers\Admin\RelayMonitorController::class, 'index'])->name('admin.relay.monitor');
-    Route::get('relay/online-ip', [\App\Http\Controllers\Admin\RelayOnlineIpController::class, 'index'])->name('admin.relay.online-ip');
+    Route::get('topology', [TopologyController::class, 'index'])->name('admin.topology');
+    Route::get('relay/monitor', [RelayMonitorController::class, 'index'])->name('admin.relay.monitor');
+    Route::get('relay/online-ip', [RelayOnlineIpController::class, 'index'])->name('admin.relay.online-ip');
 
     Route::resource('plans', AdminPlanController::class)->except('show')->names('admin.plans');
     Route::post('plans/{plan}/toggle-sale', [AdminPlanController::class, 'toggleSale'])->name('admin.plans.toggle-sale');
     Route::post('plans/{plan}/move', [AdminPlanController::class, 'move'])->name('admin.plans.move');
     // 内容：客户端下载 / 首页 Banner —— 改文案和链接不该找开发
-    Route::resource('downloads', \App\Http\Controllers\Admin\ClientDownloadController::class)
+    Route::resource('downloads', ClientDownloadController::class)
         ->except('show')->names('admin.downloads')->parameters(['downloads' => 'download']);
-    Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class)
+    Route::resource('banners', BannerController::class)
         ->except('show')->names('admin.banners');
     Route::resource('announcements', AdminAnnouncementController::class)->except('show')->names('admin.announcements');
     Route::resource('help', AdminHelpArticleController::class)->except('show')->names('admin.help')->parameters(['help' => 'help']);
@@ -186,34 +217,34 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('users/{user}/reset-password', [AdminUserController::class, 'resetPassword'])->name('admin.users.reset-password');
     Route::get('users/{user}/grant', [AdminUserController::class, 'grant'])->name('admin.users.grant');
     Route::post('users/{user}/grant', [AdminUserController::class, 'doGrant']);
-    Route::get('admins', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('admin.admins.index');
-    Route::get('admins/create', [App\Http\Controllers\Admin\AdminController::class, 'create']);
-    Route::post('admins', [App\Http\Controllers\Admin\AdminController::class, 'store']);
-    Route::post('admins/{user}/role', [\App\Http\Controllers\Admin\AdminController::class, 'updateRole']);
-    Route::delete('admins/{user}', [App\Http\Controllers\Admin\AdminController::class, 'destroy']);
+    Route::get('admins', [AdminController::class, 'index'])->name('admin.admins.index');
+    Route::get('admins/create', [AdminController::class, 'create']);
+    Route::post('admins', [AdminController::class, 'store']);
+    Route::post('admins/{user}/role', [AdminController::class, 'updateRole']);
+    Route::delete('admins/{user}', [AdminController::class, 'destroy']);
     // 管理员自助改密
     Route::get('account', [App\Http\Controllers\Admin\AccountController::class, 'edit'])->name('admin.account');
     Route::post('account/password', [App\Http\Controllers\Admin\AccountController::class, 'updatePassword'])->name('admin.account.password');
-    Route::get('finance/export', [App\Http\Controllers\Admin\FinanceController::class, 'export'])->name('admin.finance.export');
-    Route::get('finance', [App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
-    Route::get('rebates', [App\Http\Controllers\Admin\RebateController::class, 'index'])->name('admin.rebates.index');
-    Route::get('promo', [App\Http\Controllers\Admin\PromoController::class, 'index'])->name('admin.promo.index');
-    Route::post('promo', [App\Http\Controllers\Admin\PromoController::class, 'store'])->name('admin.promo.store');
-    Route::get('promo/{channel}', [App\Http\Controllers\Admin\PromoController::class, 'show'])->name('admin.promo.show');
-    Route::put('promo/{channel}', [App\Http\Controllers\Admin\PromoController::class, 'update'])->name('admin.promo.update');
-    Route::delete('promo/{channel}', [App\Http\Controllers\Admin\PromoController::class, 'destroy'])->name('admin.promo.destroy');
-    Route::get('online', [App\Http\Controllers\Admin\OnlineUserController::class, 'index'])->name('admin.online.index');
-    Route::get('system/login-logs', [App\Http\Controllers\Admin\LoginLogController::class, 'index'])->name('admin.system.login-logs');
-    Route::get('system/devices', [App\Http\Controllers\Admin\DeviceStatController::class, 'index'])->name('admin.system.devices');
-    Route::get('system/crashes', [App\Http\Controllers\Admin\CrashLogController::class, 'index'])->name('admin.system.crashes');
-    Route::get('system/crashes/{fingerprint}', [App\Http\Controllers\Admin\CrashLogController::class, 'show'])->name('admin.system.crashes.show');
-    Route::get('system/acquisition', [App\Http\Controllers\Admin\AcquisitionController::class, 'index'])->name('admin.system.acquisition');
+    Route::get('finance/export', [FinanceController::class, 'export'])->name('admin.finance.export');
+    Route::get('finance', [FinanceController::class, 'index'])->name('admin.finance.index');
+    Route::get('rebates', [RebateController::class, 'index'])->name('admin.rebates.index');
+    Route::get('promo', [PromoController::class, 'index'])->name('admin.promo.index');
+    Route::post('promo', [PromoController::class, 'store'])->name('admin.promo.store');
+    Route::get('promo/{channel}', [PromoController::class, 'show'])->name('admin.promo.show');
+    Route::put('promo/{channel}', [PromoController::class, 'update'])->name('admin.promo.update');
+    Route::delete('promo/{channel}', [PromoController::class, 'destroy'])->name('admin.promo.destroy');
+    Route::get('online', [OnlineUserController::class, 'index'])->name('admin.online.index');
+    Route::get('system/login-logs', [LoginLogController::class, 'index'])->name('admin.system.login-logs');
+    Route::get('system/devices', [DeviceStatController::class, 'index'])->name('admin.system.devices');
+    Route::get('system/crashes', [CrashLogController::class, 'index'])->name('admin.system.crashes');
+    Route::get('system/crashes/{fingerprint}', [CrashLogController::class, 'show'])->name('admin.system.crashes.show');
+    Route::get('system/acquisition', [AcquisitionController::class, 'index'])->name('admin.system.acquisition');
     // 技术文档（sogacore/docs/guide 的副本，php artisan docs:sync 同步）
-    Route::get('docs/{slug?}', [\App\Http\Controllers\Admin\DocsController::class, 'index'])
+    Route::get('docs/{slug?}', [DocsController::class, 'index'])
         ->name('admin.docs');
-    Route::get('system/audit', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('admin.system.audit');
-    Route::get('system/emails', [App\Http\Controllers\Admin\EmailLogController::class, 'index'])->name('admin.system.emails');
-    Route::get('system/health', [App\Http\Controllers\Admin\HealthController::class, 'index'])->name('admin.system.health');
+    Route::get('system/audit', [AuditLogController::class, 'index'])->name('admin.system.audit');
+    Route::get('system/emails', [EmailLogController::class, 'index'])->name('admin.system.emails');
+    Route::get('system/health', [HealthController::class, 'index'])->name('admin.system.health');
     Route::get('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('admin.notifications.index');
     Route::post('notifications', [App\Http\Controllers\Admin\NotificationController::class, 'store'])->name('admin.notifications.store');
     Route::put('notifications/{batch}', [App\Http\Controllers\Admin\NotificationController::class, 'update'])->name('admin.notifications.update');
@@ -221,7 +252,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('orders/export', [AdminOrderController::class, 'export'])->name('admin.orders.export');
     Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
     Route::post('orders/{order}/mark-paid', [AdminOrderController::class, 'markPaid'])->name('admin.orders.mark-paid');
-    Route::post('orders/{order}/refund', [\App\Http\Controllers\Admin\OrderController::class, 'refund']);
+    Route::post('orders/{order}/refund', [OrderController::class, 'refund']);
     Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.orders.cancel');
     Route::get('tickets', [AdminTicketController::class, 'index'])->name('admin.tickets.index');
     Route::get('tickets/{ticket}', [AdminTicketController::class, 'show'])->name('admin.tickets.show');

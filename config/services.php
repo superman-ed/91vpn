@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // dest 候选生成的排名表缓存位置。留空走 storage/app/tranco-top1m.csv。
+    // `[!]` 测试会覆盖它 —— 不能让测试去写真实那份缓存。
+    'dest_candidates' => [
+        'ranking_path' => env('DEST_RANKING_PATH'),
+    ],
+
 ];
