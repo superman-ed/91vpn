@@ -3,18 +3,26 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ForwardRule;
 use App\Models\Node;
+use App\Models\NodeDailyTraffic;
+use App\Models\NodeNetTraffic;
+use App\Models\RuleTraffic;
+use App\Services\NodeDiagnosis;
+use App\Services\Reality;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class NodeController extends Controller
 {
     public function index()
     {
-        $todayByNode = \App\Models\NodeDailyTraffic::whereDate('date', today())
+        $todayByNode = NodeDailyTraffic::whereDate('date', today())
             ->selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
             ->groupBy('node_id')->get()->keyBy('node_id');
-        $totalByNode = \App\Models\NodeDailyTraffic::selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
+        $totalByNode = NodeDailyTraffic::selectRaw('node_id, sum(u + d) as raw, sum(billed) as billed')
             ->groupBy('node_id')->get()->keyBy('node_id');
 
         // `[!]` 预加载上游状态:视图里每个中转都要判"到落地"那一层,
@@ -39,8 +47,8 @@ class NodeController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int,Node>  $nodes
-     * @return array<int,array<int,string>>  landing node id => [中转 server IP...]
+     * @param  Collection<int,Node>  $nodes
+     * @return array<int,array<int,string>> landing node id => [中转 server IP...]
      */
     /**
      * 哪些 dest 被多于一台落地用着 —— 返回 dest => 用它的落地数。
@@ -49,7 +57,7 @@ class NodeController extends Controller
      * 多台落地都声称是同一个站本身就异常，识别一台就摸到全部）；
      * ② 负载叠加（每条用户新连接都要连一次 dest，共用时承受的是几台之和）。
      *
-     * @param  \Illuminate\Support\Collection<int,Node>  $nodes
+     * @param  Collection<int,Node>  $nodes
      * @return array<string,int>
      */
     private function sharedDests($nodes): array
@@ -75,7 +83,7 @@ class NodeController extends Controller
      * 但可以按"最早的那个起点"一次拉回来，再在内存里按各自起点求和 ——
      * 换来的是常数次查询而不是 O(节点数)。
      *
-     * @param  \Illuminate\Support\Collection<int,Node>  $nodes
+     * @param  Collection<int,Node>  $nodes
      * @return array<int,int> node_id => 周期内字节数
      */
     private function periodBytesFor($nodes): array
@@ -95,7 +103,7 @@ class NodeController extends Controller
             $starts[$n->id] = $start->toDateString();
         }
 
-        $rows = \App\Models\NodeNetTraffic::whereIn('node_id', array_keys($starts))
+        $rows = NodeNetTraffic::whereIn('node_id', array_keys($starts))
             ->where('date', '>=', min($starts))
             ->get(['node_id', 'date', 'up', 'down']);
 
@@ -112,7 +120,7 @@ class NodeController extends Controller
     private function landingSourcesFor($nodes): array
     {
         $serverById = $nodes->pluck('server', 'id');
-        $rules = \App\Models\ForwardRule::with('outbounds')->get();
+        $rules = ForwardRule::with('outbounds')->get();
         $out = [];
         foreach ($nodes as $n) {
             if ($n->role !== 'landing') {
@@ -170,7 +178,7 @@ class NodeController extends Controller
     {
         // node_daily_traffic.node_id 是 cascadeOnDelete 且无软删:直接删会连带抹除该节点历史流量账(对账凭据丢失)。
         // 有流量记录的节点不允许删除,引导改用「禁用」(enabled=false)。
-        if (\App\Models\NodeDailyTraffic::where('node_id', $node->id)->exists()) {
+        if (NodeDailyTraffic::where('node_id', $node->id)->exists()) {
             return redirect('/admin/nodes')->with('status', '该节点已有流量记录,不能删除(会连带删除历史流量账)。请改为「禁用」。');
         }
 
@@ -178,8 +186,8 @@ class NodeController extends Controller
         // 根本不产生。也就是说中转可以被直接删掉,而 rule_traffic /
         // node_net_traffic 的 node_id 都是 cascadeOnDelete:它的中转流量账
         // 会跟着一起消失,和落地节点被挡住的正是同一件事。
-        if (\App\Models\RuleTraffic::where('node_id', $node->id)->exists()
-            || \App\Models\NodeNetTraffic::where('node_id', $node->id)->exists()) {
+        if (RuleTraffic::where('node_id', $node->id)->exists()
+            || NodeNetTraffic::where('node_id', $node->id)->exists()) {
             return redirect('/admin/nodes')->with('status',
                 '该节点已有中转流量记录,不能删除(会连带删除历史账)。请改为「禁用」。');
         }
@@ -212,7 +220,7 @@ class NodeController extends Controller
     private function rulesReferencing(int $nodeId): array
     {
         $names = [];
-        foreach (\App\Models\ForwardRule::with('outbounds')->get() as $rule) {
+        foreach (ForwardRule::with('outbounds')->get() as $rule) {
             $hit = in_array($nodeId, $rule->inbound_node_set ?? [], false);
             foreach ($rule->outbounds as $ob) {
                 $hit = $hit || in_array($nodeId, $ob->target_node_set ?? [], false);
@@ -232,7 +240,7 @@ class NodeController extends Controller
      * 就成了从面板发起扫描的入口 —— 对我们自己的节点无所谓,但请求里的
      * 地址来自节点表,而节点表是可编辑的。
      */
-    public function diagnose(Node $node, \App\Services\NodeDiagnosis $dx)
+    public function diagnose(Node $node, NodeDiagnosis $dx)
     {
         return response()->json([
             'node' => $node->label(),
@@ -266,7 +274,7 @@ class NodeController extends Controller
             'accept_proxy_protocol' => ['nullable', 'boolean'],
             // [!!] role 必须是白名单里的值:打错一个字母就会落到 DB 默认(landing),
             // 而一台本该只透传的中转会因此【拿到全部用户名单与凭据】。
-            'role' => ['nullable', 'in:'.implode(',', \App\Models\Node::ROLES)],
+            'role' => ['nullable', 'in:'.implode(',', Node::ROLES)],
             'quota_gb' => ['nullable', 'integer', 'min:0'],
             'quota_reset_day' => ['nullable', 'integer', 'min:1', 'max:28'],
             'dest_scan_candidates' => ['nullable', 'string', 'max:2000'],
@@ -291,7 +299,7 @@ class NodeController extends Controller
         // 留着旧的会让运维以为新清单已经扫完了。
         $cands = collect(preg_split('/[\s,]+/', mb_strtolower((string) ($data['dest_scan_candidates'] ?? ''))))
             ->filter()->unique()->values()->all();
-        $newId = $cands === [] ? null : \App\Models\Node::destScanIdFor($cands);
+        $newId = $cands === [] ? null : Node::destScanIdFor($cands);
         if ($newId !== null && $request->boolean('dest_scan_rerun')) {
             $newId .= '-'.now()->timestamp;   // 同一份清单要重扫:换个 id
         }
@@ -307,6 +315,18 @@ class NodeController extends Controller
         // REALITY:type=vless 且勾了启用才配置;否则清空(切回 vmess/普通 vless 不残留旧密钥)
         $realityOn = $data['type'] === 'vless' && $request->boolean('reality_enabled') && ! empty($data['reality_dest']);
 
+        // `[!!]` 勾了启用、却因为 dest 为空而被上面这行判成 false —— 那不是"没启用",
+        // 是【填漏了】。静默清空的后果是:管理员以为开了抗封锁,实际存成了明文 vless,
+        // 而页面提示"保存成功"。REALITY 是安全属性,静默降级比报错危险得多。
+        //
+        // `[!]` 只在 type=vless 时拦。改成 vmess 时表单只是用 CSS 把 REALITY 下拉藏起来、
+        // 值照样提交,那时管理员的意图就是关掉它 —— 那种情况静默清空是对的,不能拦。
+        if ($data['type'] === 'vless' && $request->boolean('reality_enabled') && empty($data['reality_dest'])) {
+            throw ValidationException::withMessages([
+                'reality_dest' => '启用了 REALITY 就必须填 dest —— 不填会被静默存成明文 vless',
+            ]);
+        }
+
         // [!!] vision 组合校验(与前端 check() 同一口径,做服务端硬拦)。
         // 前端只是"选的时候提醒",绕过表单直接 POST 仍能存下坏组合,而
         // vision 选错组合是"装完才连不上"那种难查的失败(agent 拒整节点)。
@@ -314,12 +334,12 @@ class NodeController extends Controller
         // (flow 上面已保证只有 vless 才非空,故这里不必再判 vless。)
         if ($data['flow'] === 'xtls-rprx-vision') {
             if (($data['net'] ?? 'tcp') !== 'tcp') {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'flow' => 'vision 流控只能用在 TCP 传输上（ws/grpc 都不行）',
                 ]);
             }
             if (! $data['tls'] && ! $realityOn) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'flow' => 'vision 流控需要 TLS 或 REALITY —— 两个都没开，客户端会连不上',
                 ]);
             }
@@ -333,19 +353,28 @@ class NodeController extends Controller
                 $dest .= ':443';
             }
             if (! preg_match('/^[A-Za-z0-9.\-]+:\d{1,5}$/', $dest)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'reality_dest' => 'REALITY dest 需为 host:port(如 www.apple.com:443)',
                 ]);
             }
             $data['reality_dest'] = $dest;
             $data['reality_server_names'] = array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', (string) $data['reality_server_names']))));
+            // `[!!]` server_names 为空 = agent 的 ErrRealityIncomplete,【整个节点被拒】——
+            // 落地上内核根本不起,同时订阅里那条会带 servername: '' 发给用户,
+            // 客户端得到一个点了没反应、也没有任何报错的条目(#101 当初就是这样)。
+            // agent 侧规则:len(Reality.ServerNames)==0 即拒(node.go Validate)。
+            if ($data['reality_server_names'] === []) {
+                throw ValidationException::withMessages([
+                    'reality_server_names' => 'REALITY 必须填 server_names(SNI)—— 留空会让 agent 拒绝整个节点,通常填 dest 的域名即可',
+                ]);
+            }
             // 密钥面板生成(与 xray x25519 对拍一致);仅当缺失或运维勾了"重新生成"才铸造,避免每次保存都换密钥使全员掉线
             $needKey = $request->boolean('reality_regen') || empty($node?->reality_private_key);
             if ($needKey) {
-                $kp = \App\Services\Reality::keypair();
+                $kp = Reality::keypair();
                 $data['reality_private_key'] = $kp['private_key'];
                 $data['reality_public_key'] = $kp['public_key'];
-                $data['reality_short_ids'] = [\App\Services\Reality::shortId()];
+                $data['reality_short_ids'] = [Reality::shortId()];
             } else {
                 // 保留旧密钥(避免每次保存换密钥使全员掉线);只更新 dest/server_names
                 $data['reality_private_key'] = $node->reality_private_key;
@@ -366,7 +395,7 @@ class NodeController extends Controller
         // 用户只看到"连不上"。所以在这里挡住。
         $role = $data['role'] ?? $node?->role ?? 'landing';
         if ((int) ($data['port'] ?? 0) === 0 && in_array($role, ['landing', 'both'], true)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'port' => '落地节点必须有端口（只有中转/跳板/入口可以是 0，它们的监听来自转发规则）',
             ]);
         }
