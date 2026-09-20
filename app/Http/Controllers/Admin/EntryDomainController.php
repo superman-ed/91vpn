@@ -11,8 +11,11 @@ use Illuminate\Validation\Rule;
 /**
  * 入口域名池管理（v1：纯登记 + 提醒）。
  *
- * 作用 = 复刻 SoCloud 的 cp.paeadiy.com：给中转挂一个稳定域名,订阅发域名不发裸 IP;
+ * 作用：给【订阅里会发出去的那台节点】挂一个稳定域名,订阅发域名不发裸 IP;
  * IP 被墙,只改这域名的 A 记录、客户端无感。本面板【只登记 + 提醒改 DNS】,不自己调 DNS。
+ *
+ * `[!]` 灵感来自 SoCloud 的 cp.paeadiy.com —— 但那只是【他们的拓扑】恰好把门牌
+ *   挂在中转上。本面板不限节点角色:直连落地同样在订阅里发自己的地址,同样需要门牌。
  *
  * `[!]` 面板不碰真实 DNS —— 改 A 记录仍由你在域名服务商那边做。这里维护的是
  *   "哪个域名在用、指向哪台中转的哪个 IP、被墙没、该不该改 DNS" 这套账 + 提醒。
@@ -22,9 +25,11 @@ class EntryDomainController extends Controller
     public function index()
     {
         $domains = EntryDomain::with('node')->orderBy('node_id')->orderByDesc('status')->get();
-        // 只有会转发的节点（中转/前置）能当入口域名的前置目标。
-        $relays = Node::whereIn('role', Node::RELAY_ROLES)
-            ->orderBy('name')->get(['id', 'name', 'server', 'role']);
+        // `[!!]` 不按角色过滤。门牌要解决的是「订阅里发的是会变的 IP」,这件事
+        // 与本节点转不转发【无关】—— 直连落地也在订阅里发自己的地址,IP 被墙时
+        // 一样只想改一条 A 记录。曾经这里只列 RELAY_ROLES,于是直连落地根本
+        // 选不中(见 store() 上方那段)。
+        $relays = Node::orderBy('name')->get(['id', 'name', 'server', 'role']);
 
         return view('admin.entry_domains.index', compact('domains', 'relays'));
     }
@@ -40,11 +45,18 @@ class EntryDomainController extends Controller
             'cname_target' => ['nullable', 'string', 'max:253', 'regex:/^(?=.{1,253}$)([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/', 'different:domain'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
-        $relay = Node::findOrFail($data['node_id']);
-        abort_unless($relay->forwards(), 422, '入口域名只能前置会转发的中转节点');
+        $node = Node::findOrFail($data['node_id']);
 
+        // `[!!]` 这里【曾经】有一道 `abort_unless($node->forwards(), 422, ...)`,
+        // 理由写的是"挂到落地没意义"。那句是错的,它把 SoCloud 的拓扑(入口域名
+        // 恰好挂在中转上)当成了机制的定义。门牌解决的是"订阅发的是会变的 IP",
+        // 与转不转发无关 —— 直连落地的 IP 被墙时,问题和代价完全一样。
+        //
+        // 订阅端 SubscriptionService 早已按"不限角色"实现(那次只修了下游、
+        // 没回头修这里),于是管理端建不了、订阅端却准备好发 —— 两边口径对不上,
+        // 表现是 L-19 永远配不上。别再加回来。
         $ed = EntryDomain::create($data + ['status' => 'standby']);
-        audit('entry_domain.create', "新增入口域名「{$ed->domain}」→ 中转「{$relay->name}」", $ed);
+        audit('entry_domain.create', "新增入口域名「{$ed->domain}」→ 节点「{$node->name}」", $ed);
 
         return redirect('/admin/entry-domains')->with('status', "已新增 {$ed->domain}（备用）。设为在用后订阅才会发它。");
     }

@@ -7,7 +7,7 @@ use App\Models\User;
 /**
  * 入口域名池(v1:纯登记+提醒)。守四件事:
  *   · 只管理员能进、能改;
- *   · 入口域名只能前置【会转发的中转】(挂到落地没意义);
+ *   · 入口域名【不限节点角色】—— 直连落地也在订阅里发自己的地址,同样需要门牌;
  *   · 一台中转至多一个「在用」—— 激活一个,其余降备用(订阅只发在用那个);
  *   · dnsStale 只在"指向 IP ≠ 中转真 IP"时告警,别误报;
  *   · CNAME 两层:改 A 记录要指到【标签】、标签不得自指、同标签的兄弟一起同步（见文件末尾）。
@@ -50,16 +50,35 @@ it('新增入口域名,默认备用', function () {
     expect($ed->status)->toBe('standby');   // 新增默认备用,设为在用后订阅才发
 });
 
-// `[!!]` 入口域名只能前置会转发的中转;挂到落地节点上没有意义,必须挡。
-it('不能把入口域名挂到落地节点', function () {
+// `[!!]` 直连落地【也能】挂入口域名 —— 这里曾经断言它返回 422,理由写的是
+// "挂到落地没意义"。那句把 SoCloud 的拓扑当成了机制的定义:门牌解决的是
+// "订阅发的是会变的 IP",与转不转发无关。
+//
+// 当时的症状:EntryDomainCoverageTest 直接用 model 给落地建门牌、断言订阅发域名(绿),
+// 本文件断言管理端拒绝同一件事(也绿) —— 两个文件立场相反却都不报错,
+// 于是"管理端根本建不了"这件事没有任何信号。下面这条就是用来锁住缺口的。
+it('直连落地也能登记入口域名', function () {
     $landing = Node::create([
         'name' => '落地', 'server' => '9.9.9.9', 'port' => 443, 'type' => 'vless',
         'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'L', 'role' => 'landing',
     ]);
+    expect($landing->forwards())->toBeFalse();   // 前提:它确实不转发
+
     $this->actingAs(edAdmin())->post('/admin/entry-domains', [
-        'domain' => 'cp.example.com', 'node_id' => $landing->id,
-    ])->assertStatus(422);
-    expect(EntryDomain::count())->toBe(0);
+        'domain' => 'cp.example.com', 'node_id' => $landing->id, 'pointed_ip' => '9.9.9.9',
+    ])->assertRedirect('/admin/entry-domains');
+
+    expect(EntryDomain::first()->node_id)->toBe($landing->id);
+});
+
+// 下拉框里必须列得出落地,否则管理员在页面上根本选不中它(旧实现只列 RELAY_ROLES)。
+it('列表页的节点下拉列得出落地节点', function () {
+    Node::create([
+        'name' => '香港落地', 'server' => '9.9.9.9', 'port' => 443, 'type' => 'vless',
+        'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 'L', 'role' => 'landing',
+    ]);
+
+    $this->actingAs(edAdmin())->get('/admin/entry-domains')->assertOk()->assertSee('香港落地');
 });
 
 it('重复域名被拒', function () {
