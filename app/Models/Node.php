@@ -3,7 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class Node extends Model
 {
@@ -14,6 +18,7 @@ class Node extends Model
         'flow', 'reality_dest', 'reality_server_names', 'reality_private_key',
         'reality_public_key', 'reality_short_ids', 'accept_proxy_protocol',
         'reported_accept_proxy', 'accept_proxy_reported_at',
+        'reported_server_type', 'server_type_reported_at',
         'dest_scan_candidates', 'dest_scan_id', 'dest_scan_result', 'dest_scan_at',
         'reported_dest', 'reported_dest_up', 'reported_dest_failures', 'reported_dest_latency_ms', 'reported_dest_degraded', 'dest_reported_at',
         // 中转相关（ADR-008 从 relaypanel 并入）
@@ -48,6 +53,7 @@ class Node extends Model
         'reported_dest_degraded' => 'boolean',
         'dest_reported_at' => 'datetime',
         'accept_proxy_reported_at' => 'datetime',
+        'server_type_reported_at' => 'datetime',
     ];
 
     /** 这台中转的入口域名（域名池）。见 EntryDomain。 */
@@ -91,8 +97,29 @@ class Node extends Model
         return $this->reported_dest_up ? 'ok' : 'down';
     }
 
+    /**
+     * 节点【实际在跑】的协议与面板配的不一致。
+     *
+     * `[!!]` 协议不来自面板 —— sspanel/mod_mu 的契约是节点从本机 agent.conf 读
+     * server_type（soga、XrayR 同样如此）。在这里把 vmess 改成 vless 保存成功、
+     * 订阅也立刻发 vless，而节点【继续跑 vmess】：它每轮 pull 都失败，但那只是
+     * 节点日志里的一行 WARN，面板一切正常、心跳照常、在线标着绿的。
+     * 修法是去机器上改 agent.conf 再重启 agent —— 面板此前对此零提示。
+     *
+     * `[!]` 刻意不做过期判定（与 destHealth 不同）：这是【配置】事实不是存活事实，
+     * 节点离线时最后报的值依然成立 —— 它回来还是会跑那个协议。离线本身由
+     * 在线/离线那一列表达，不该在这里重复。
+     */
+    public function protocolMismatch(): bool
+    {
+        $reported = (string) ($this->reported_server_type ?? '');
+
+        // 空 = 这台还没报过（旧 agent 不带这个字段）。没报过不等于不一致。
+        return $reported !== '' && $reported !== (string) $this->type;
+    }
+
     /** 本节点作为【中转】时，它到各下游落地那一跳的上报状态。 */
-    public function outboundStatuses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function outboundStatuses(): HasMany
     {
         return $this->hasMany(RuleOutboundStatus::class, 'node_id');
     }
@@ -148,7 +175,7 @@ class Node extends Model
      * [!] ADR-008 合并之后这是【本地一次查询】。拆分时它要跨面板走内部 API
      * （LandingPosture + 两侧 token + 宿主网关地址），那套已随合并删掉。
      *
-     * @return array{expected:bool,reported:?bool,reported_at:?\Illuminate\Support\Carbon}
+     * @return array{expected:bool,reported:?bool,reported_at:?Carbon}
      */
     public function acceptProxyPosture(): array
     {
@@ -236,7 +263,7 @@ class Node extends Model
 
         return (int) NodeNetTraffic::where('node_id', $this->id)
             ->where('date', '>=', $start->toDateString())
-            ->sum(\Illuminate\Support\Facades\DB::raw('up + down'));
+            ->sum(DB::raw('up + down'));
     }
 
     /** 额度用了百分之多少。没设额度返回 null。 */
@@ -290,12 +317,12 @@ class Node extends Model
      *
      * `[!]` 只算落地类角色：中转不跑 REALITY，它的 reality_dest 没有意义。
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int,Node>
+     * @return Collection<int,Node>
      */
     public function sharingDest()
     {
         if (! $this->usesReality() || (string) $this->reality_dest === '') {
-            return new \Illuminate\Database\Eloquent\Collection;
+            return new Collection;
         }
 
         return static::query()

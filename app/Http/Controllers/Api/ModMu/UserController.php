@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\ModMu;
 
 use App\Http\Controllers\Controller;
+use App\Models\NodeNetTraffic;
 use App\Services\AliveIpService;
 use App\Services\NodeUserService;
 use App\Services\TrafficService;
@@ -122,7 +123,7 @@ class UserController extends Controller
         $nu = max(0, (int) $request->input('net_up', 0));
         $nd = max(0, (int) $request->input('net_down', 0));
         if ($nu || $nd) {
-            $row = \App\Models\NodeNetTraffic::firstOrNew([
+            $row = NodeNetTraffic::firstOrNew([
                 'node_id' => $node->id, 'date' => now()->toDateString(),
             ]);
             $row->up += $nu;
@@ -134,6 +135,18 @@ class UserController extends Controller
         if ($request->has('accept_proxy')) {
             $patch['reported_accept_proxy'] = $request->boolean('accept_proxy');
             $patch['accept_proxy_reported_at'] = now();
+        }
+        // 节点报回它【实际在跑】的协议。
+        // [!!] 协议不来自面板 —— mod_mu 的契约是节点从本机 agent.conf 读 server_type
+        // (soga/XrayR 同样如此),我们下发的 nodeInfo 里根本没有这一项。于是在后台
+        // 把协议改掉、保存成功、订阅立刻改口,而节点【继续跑旧协议】:它每轮 pull
+        // 都失败,但那只是节点日志里一行 WARN,面板这边心跳照常、在线标着绿的。
+        // [D] 实测踩中,排查十四分钟。存下来,列表页才能把"你配的"和"它在跑的"摆一起。
+        // [!] has() 判有没有带这个键:旧 agent 不带,保持 null="从没报过",
+        // 而不是写成空串 —— 空串会让"没报过"看起来像"报了个空值"。
+        if ($request->has('server_type')) {
+            $patch['reported_server_type'] = mb_substr((string) $request->input('server_type', ''), 0, 16) ?: null;
+            $patch['server_type_reported_at'] = now();
         }
         // REALITY dest 探活(sogacore bfd8740)。dest 失效是静默的:节点照常监听、
         // 面板一切正常,而没人能完成握手 —— agent 一直在探,这里把它存下来。
@@ -295,10 +308,10 @@ class UserController extends Controller
         // reality 由 custom_config.security 覆盖)。串这里只保留 path/host。
         $params = [];
         if ($node->path !== '' && $node->path !== null) {
-            $params[] = 'path=' . $node->path;
+            $params[] = 'path='.$node->path;
         }
         if ($node->host !== '' && $node->host !== null) {
-            $params[] = 'host=' . $node->host;
+            $params[] = 'host='.$node->host;
         }
 
         return implode(';', [

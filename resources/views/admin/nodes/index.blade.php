@@ -24,7 +24,17 @@
                     {{-- `[!]` 中转的 port 恒为 0(监听来自转发规则)。写成 "1.2.3.4:0"
                          看着像配错了，实际是对的 —— 所以干脆不显示那个 0。 --}}
                     @if((int) $n->port === 0)<span class="text-muted" style="font-size:12px">端口见转发规则</span>@endif</td>
-                <td><span class="adm-pill primary">{{ strtoupper($n->type) }}</span> <span class="adm-pill muted">{{ strtoupper($n->net) }}</span></td>
+                {{-- `[!!]` 协议那一格要同时显示"你配的"和"它在跑的"：协议取自节点本机的
+                     agent.conf（mod_mu 契约，面板下发的 nodeInfo 里没有这一项），
+                     在后台改完保存成功、订阅立刻改口，而节点【继续跑旧协议】。
+                     节点那边每轮 pull 都失败，但只是它自己日志里一行 WARN —— 这里不
+                     摆出来，面板上看到的就是一片正常。 --}}
+                <td><span class="adm-pill primary">{{ strtoupper($n->type) }}</span> <span class="adm-pill muted">{{ strtoupper($n->net) }}</span>
+                    @if($n->protocolMismatch())
+                        <br><span class="adm-pill danger"
+                              title="节点 {{ $n->server_type_reported_at?->diffForHumans() }}报告它实际在跑 {{ strtoupper($n->reported_server_type) }}，而这里配的是 {{ strtoupper($n->type) }}。协议读的是节点本机 /etc/agent/agent.conf 的 server_type，面板改不动它 —— 去机器上改那一行再 systemctl restart agent。">实际在跑 {{ strtoupper($n->reported_server_type) }}</span>
+                    @endif
+                </td>
                 <td><span class="adm-pill {{ $n->traffic_rate <= 1 ? 'ok' : 'warn' }}">{{ rtrim(rtrim(number_format($n->traffic_rate, 2), '0'), '.') }}x</span></td>
                 <td>
                     @php $tt = $todayByNode->get($n->id); $tot = $totalByNode->get($n->id); @endphp

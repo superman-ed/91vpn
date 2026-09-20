@@ -47,6 +47,15 @@ function suGroups(): array
             'cols' => ['dest_scan_candidates', 'dest_scan_id', 'dest_scan_result'],
             'at' => 'dest_scan_at',
         ],
+        // `[!]` 【配置】事实，不是存活信号 —— 与 dest_scan 同类：节点离线时它最后
+        // 报的协议依然成立（它回来还是会跑那个）。所以刻意不按 unknown 处理。
+        // 但同样受那条约束:展示时必须带上【什么时候报的】，否则会被当成现状 ——
+        // 节点列表的徽章 title 里带了 diffForHumans()。
+        // 存活由"在线/离线"那一列表达，不在这里重复。
+        'server_type' => [
+            'cols' => ['reported_server_type'],
+            'at' => 'server_type_reported_at',
+        ],
         // 心跳自己就是时间戳
         'heartbeat' => ['cols' => ['last_heartbeat'], 'at' => 'last_heartbeat'],
     ];
