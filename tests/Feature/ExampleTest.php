@@ -69,3 +69,22 @@ it('serves robots.txt and sitemap.xml', function () {
     expect($r->headers->get('Content-Type'))->toContain('xml');
     $r->assertSee('/help', false);
 });
+
+// 面板可设置:OG 图 / 条款正文
+it('landing og image and legal content come from settings', function () {
+    \App\Models\Setting::put('og_image', 'https://cdn.example/og-real.png');
+    \App\Models\Setting::put('terms_content', "第一条 测试条款\n第二条 xyz");
+
+    $this->get('/')->assertOk()->assertSee('https://cdn.example/og-real.png', false);
+    $this->get('/terms')->assertOk()->assertSee('第一条 测试条款')->assertDontSee('本页内容整理中');
+    $this->get('/refund')->assertOk()->assertSee('本页内容整理中');   // 未设 → 兜底
+});
+
+it('admin can save og_image and refund_content', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $this->actingAs($admin)->from('/admin/settings')->put('/admin/settings', [
+        'og_image' => 'https://cdn.example/x.png', 'refund_content' => '七天退款',
+    ])->assertRedirect('/admin/settings');
+    expect(setting('og_image'))->toBe('https://cdn.example/x.png');
+    expect(setting('refund_content'))->toBe('七天退款');
+});

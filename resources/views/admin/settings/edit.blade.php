@@ -125,6 +125,16 @@
                 <div class="row">
                     <div class="form-group col-md-12"><label>用户协议</label><textarea name="terms_content" rows="12" class="form-control" style="font-size:13px" placeholder="填写用户协议正文（纯文本，段落之间空一行）。留空则 App 使用内置草稿。">{{ old('terms_content', $termsContent) }}</textarea><small class="text-muted">展示于 App / 网页的「用户协议」。建议纯文本,段与段之间空一行分隔。</small></div>
                     <div class="form-group col-md-12"><label>隐私政策</label><textarea name="privacy_content" rows="12" class="form-control" style="font-size:13px" placeholder="填写隐私政策正文（纯文本，段落之间空一行）。留空则 App 使用内置草稿。">{{ old('privacy_content', $privacyContent) }}</textarea><small class="text-muted">展示于 App / 网页的「隐私政策」。</small></div>
+                    <div class="form-group col-md-12"><label>退款政策</label><textarea name="refund_content" rows="8" class="form-control" style="font-size:13px" placeholder="填写退款政策正文（纯文本，段落之间空一行）。留空则网页显示「整理中」。">{{ old('refund_content', $refundContent) }}</textarea><small class="text-muted">展示于网页 /refund。</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card adm-form-card">
+            <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#d8442a,#b23a20)"><i class="fas fa-image"></i></span><h4>官网首页</h4></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="form-group col-md-12"><label>分享图 URL（OG image）</label><input name="og_image" value="{{ old('og_image', $ogImage) }}" class="form-control" placeholder="https://你的域名/og.png（1200×630）"><small class="text-muted">把链接发到微信 / TG / X 时预览卡片用的缩略图。填一个图片的完整网址(建议 1200×630)。留空则用站内 /og.png。本项目不做上传,请填托管好的图片地址。</small></div>
                 </div>
             </div>
         </div>

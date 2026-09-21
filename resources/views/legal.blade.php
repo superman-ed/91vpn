@@ -20,7 +20,11 @@ hr{border:0;border-top:1px solid #C4BCA8;margin:22px 0}
   <p><a href="/">← 返回 91VPN</a></p>
   <h1>{{ $title }}</h1>
   <hr>
-  <p class="mut">本页内容整理中。如有疑问，请通过<a href="/user/ticket">在线客服 / 工单</a>联系我们。</p>
+  @if(trim($content ?? '') !== '')
+    <div style="white-space:pre-line">{{ $content }}</div>
+  @else
+    <p class="mut">本页内容整理中。如有疑问，请通过<a href="/user/ticket">在线客服 / 工单</a>联系我们。<br><small>（管理员可在 后台 → 站点设置 → 法务条款 填写正文）</small></p>
+  @endif
 </div>
 </body>
 </html>

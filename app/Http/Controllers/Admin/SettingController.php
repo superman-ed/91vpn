@@ -33,6 +33,8 @@ class SettingController extends Controller
             'supportWidget' => setting('support_widget', ''),
             'termsContent' => setting('terms_content', ''),
             'privacyContent' => setting('privacy_content', ''),
+            'refundContent' => setting('refund_content', ''),
+            'ogImage' => setting('og_image', ''),
             'apiHosts' => setting('api_hosts', ''),
         ]);
     }
@@ -61,6 +63,8 @@ class SettingController extends Controller
             'support_widget' => ['nullable', 'string', 'max:8000'],
             'terms_content' => ['nullable', 'string', 'max:20000'],
             'privacy_content' => ['nullable', 'string', 'max:20000'],
+            'refund_content' => ['nullable', 'string', 'max:20000'],
+            'og_image' => ['nullable', 'url', 'max:500'],
             'api_hosts' => ['nullable', 'string', 'max:4000'],
         ]);
 
@@ -86,6 +90,8 @@ class SettingController extends Controller
         Setting::put('support_widget', $data['support_widget'] ?? '');
         Setting::put('terms_content', $data['terms_content'] ?? '');
         Setting::put('privacy_content', $data['privacy_content'] ?? '');
+        Setting::put('refund_content', $data['refund_content'] ?? '');
+        Setting::put('og_image', $data['og_image'] ?? '');
         Setting::put('api_hosts', $data['api_hosts'] ?? '');
 
         audit('setting.update', '更新站点设置');

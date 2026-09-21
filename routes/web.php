@@ -62,10 +62,10 @@ use Illuminate\Support\Facades\Route;
 // 官网首页(门户):游客看营销落地页(价格/地区/下载读真实数据),已登录用户进用户中心。
 Route::get('/', [HomeController::class, 'index']);
 
-// 条款页(占位:内容后台/人工补;先保证链接不 404)
-Route::view('/terms', 'legal', ['title' => '服务条款'])->name('terms');
-Route::view('/privacy', 'legal', ['title' => '隐私政策'])->name('privacy');
-Route::view('/refund', 'legal', ['title' => '退款政策'])->name('refund');
+// 条款页:正文读站点设置(后台 → 站点设置 → 法务条款);为空则显示"整理中"
+Route::get('/terms', fn () => view('legal', ['title' => '服务条款', 'content' => setting('terms_content', '')]))->name('terms');
+Route::get('/privacy', fn () => view('legal', ['title' => '隐私政策', 'content' => setting('privacy_content', '')]))->name('privacy');
+Route::get('/refund', fn () => view('legal', ['title' => '退款政策', 'content' => setting('refund_content', '')]))->name('refund');
 
 // 公开帮助中心(游客可看已发布文章),官网下载/FAQ 链到这里
 Route::get('/help', [HelpController::class, 'index'])->name('help');

@@ -14,11 +14,11 @@
 <meta property="og:title" content="91VPN — 解锁全球互联网">
 <meta property="og:description" content="Netflix、YouTube、ChatGPT 一键畅连。香港就近入口，多地区高速直达，晚高峰也不卡。">
 <meta property="og:url" content="{{ url('/') }}">
-<meta property="og:image" content="{{ asset('og.png') }}">
+<meta property="og:image" content="{{ setting('og_image') ?: asset('og.png') }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="91VPN — 解锁全球互联网">
 <meta name="twitter:description" content="Netflix、YouTube、ChatGPT 一键畅连。香港就近入口，多地区高速直达。">
-<meta name="twitter:image" content="{{ asset('og.png') }}">
+<meta name="twitter:image" content="{{ setting('og_image') ?: asset('og.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -457,7 +457,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
         <a href="/help">帮助中心</a>
         <a href="#notice">常见问题</a>
         <a href="/user/ticket">在线客服 / 工单</a>
-        <a href="https://t.me/" rel="noopener">Telegram 社群</a>
+        <a href="{{ setting('support_group') ?: (setting('support_tg') ?: 'https://t.me/') }}" rel="noopener">Telegram 社群</a>
         <a href="mailto:support@91vpn.com">support@91vpn.com</a>
       </div>
       <div class="fcol">
