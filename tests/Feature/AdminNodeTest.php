@@ -137,3 +137,55 @@ it('节点表单带渐进显示的标记和脚本', function () {
     // 显隐函数与"加载即先算一次"都在,否则打开页面时初始状态是错的
     expect($html)->toContain('function toggle()');
 });
+
+// `[!!]` SNI 与 dest 必须是同一个站。对不上时【未必连不上】——REALITY 对已认证
+// 的客户端会替换证书，连接可能照样建立。坏掉的是【伪装】：探测者拿你公布的那个
+// SNI 连过来，转发到 dest 之后得到的是 dest 对未知名字的回应。
+// `[D]` 真机实测：dest=hkust.edu.hk:443、SNI=www.apple.com 时探测者拿到
+// "CN=TRAEFIK DEFAULT CERT" 自签证书 —— 真的 apple.com 永远不会这样。
+// 这个配置就是这么在面板上存下来的（追加而非替换），无人拦。
+it('拒绝 SNI 与 dest 对不上', function () {
+    $this->actingAs($this->admin)->post('/admin/nodes', [
+        'name' => 'bad-sni-mismatch', 'server' => 'x.com', 'port' => 443,
+        'type' => 'vless', 'net' => 'tcp', 'tls' => 1,
+        'reality_enabled' => 1, 'reality_dest' => 'hkust.edu.hk:443',
+        'reality_server_names' => 'www.apple.com',
+        'traffic_rate' => 1, 'node_class' => 0,
+    ])->assertSessionHasErrors('reality_server_names');
+    expect(Node::where('name', 'bad-sni-mismatch')->exists())->toBeFalse();
+});
+
+// 多个 SNI 时，【任何一个】对不上都要拦 —— 订阅只发第一个，但白名单里的每一个
+// 都是探测者可以拿来试的。混进一个不相干的，伪装就有一条缝。
+it('多个 SNI 时任一对不上也拒绝', function () {
+    $this->actingAs($this->admin)->post('/admin/nodes', [
+        'name' => 'bad-sni-mixed', 'server' => 'x.com', 'port' => 443,
+        'type' => 'vless', 'net' => 'tcp', 'tls' => 1,
+        'reality_enabled' => 1, 'reality_dest' => 'hkust.edu.hk:443',
+        'reality_server_names' => "hkust.edu.hk\nwww.apple.com",
+        'traffic_rate' => 1, 'node_class' => 0,
+    ])->assertSessionHasErrors('reality_server_names');
+});
+
+it('同站的子域与 www 变体都放行', function () {
+    $this->actingAs($this->admin)->post('/admin/nodes', [
+        'name' => 'ok-sni', 'server' => 'x.com', 'port' => 443,
+        'type' => 'vless', 'net' => 'tcp', 'tls' => 1, 'flow' => 'xtls-rprx-vision',
+        'reality_enabled' => 1, 'reality_dest' => 'hkust.edu.hk:443',
+        'reality_server_names' => "hkust.edu.hk\nwww.hkust.edu.hk\ncdn.hkust.edu.hk",
+        'traffic_rate' => 1, 'node_class' => 0,
+    ])->assertRedirect('/admin/nodes');
+
+    expect(Node::where('name', 'ok-sni')->first()->reality_server_names)->toHaveCount(3);
+});
+
+// `[!]` dest 填 IP 时无从比较，且那是有意为之的高级用法 —— 不能拦。
+it('dest 是 IP 时跳过这项校验', function () {
+    $this->actingAs($this->admin)->post('/admin/nodes', [
+        'name' => 'ok-ip-dest', 'server' => 'x.com', 'port' => 443,
+        'type' => 'vless', 'net' => 'tcp', 'tls' => 1,
+        'reality_enabled' => 1, 'reality_dest' => '1.2.3.4:443',
+        'reality_server_names' => 'anything.example',
+        'traffic_rate' => 1, 'node_class' => 0,
+    ])->assertRedirect('/admin/nodes');
+});

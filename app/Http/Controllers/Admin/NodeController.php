@@ -212,6 +212,33 @@ class NodeController extends Controller
             .'`[!]` 金融/保险与公营机构脚本剔不掉，请自己扫一眼再定。');
     }
 
+    /**
+     * 两个主机名是否属于同一个站点。
+     *
+     * `[!]` 与 agent 侧 internal/destscan 的 sameSite() 同一口径：不引入公共后缀表，
+     * 只做"去掉开头的 www. 后相等，或一个是另一个的点边界后缀"。
+     * 放行 example.com ↔ www.example.com 与 cdn.example.com ↔ example.com，
+     * 挡住 example.com ↔ other.com。
+     */
+    private static function sameSite(string $a, string $b): bool
+    {
+        $norm = function (string $h): string {
+            $h = mb_strtolower(rtrim(trim($h), '.'));
+
+            return str_starts_with($h, 'www.') ? substr($h, 4) : $h;
+        };
+        $a = $norm($a);
+        $b = $norm($b);
+        if ($a === '' || $b === '') {
+            return false;
+        }
+        if ($a === $b) {
+            return true;
+        }
+
+        return str_ends_with($a, '.'.$b) || str_ends_with($b, '.'.$a);
+    }
+
     public function destroy(Node $node)
     {
         // node_daily_traffic.node_id 是 cascadeOnDelete 且无软删:直接删会连带抹除该节点历史流量账(对账凭据丢失)。
@@ -401,6 +428,28 @@ class NodeController extends Controller
             // 落地上内核根本不起,同时订阅里那条会带 servername: '' 发给用户,
             // 客户端得到一个点了没反应、也没有任何报错的条目(#101 当初就是这样)。
             // agent 侧规则:len(Reality.ServerNames)==0 即拒(node.go Validate)。
+            // `[!!]` server_names 必须与 dest 是【同一个站】。
+            //
+            // 对不上时未必连不上 —— REALITY 对已认证的客户端会替换证书，连接可能
+            // 照样建立。真正坏掉的是【伪装】：探测者拿你公布的那个 SNI 来试，
+            // 转发到 dest 之后得到的是 dest 对未知 SNI 的回应。
+            // `[D]` 实测：dest=hkust.edu.hk:443、SNI=www.apple.com 时，探测者拿到
+            //   "CN=TRAEFIK DEFAULT CERT" 的自签证书 —— 而真的 apple.com 永远不会
+            //   这样。那正是 REALITY 存在的意义所要消除的异常。
+            //
+            // `[!]` dest 填 IP 时跳过：无从比较，且那是有意为之的高级用法。
+            $destHost = explode(':', $data['reality_dest'])[0];
+            if (! filter_var($destHost, FILTER_VALIDATE_IP)) {
+                foreach ($data['reality_server_names'] as $sni) {
+                    if (! self::sameSite($destHost, $sni)) {
+                        throw ValidationException::withMessages([
+                            'reality_server_names' => "SNI「{$sni}」与 dest「{$destHost}」不是同一个站 —— "
+                                .'探测者用这个 SNI 连过来时，拿到的会是 dest 对未知名字的回应'
+                                .'（常常是一张自签证书），伪装当场失效。通常填 dest 的域名即可。',
+                        ]);
+                    }
+                }
+            }
             if ($data['reality_server_names'] === []) {
                 throw ValidationException::withMessages([
                     'reality_server_names' => 'REALITY 必须填 server_names(SNI)—— 留空会让 agent 拒绝整个节点,通常填 dest 的域名即可',
