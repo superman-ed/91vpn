@@ -205,3 +205,29 @@ it('部署表单预填二进制根地址', function () {
     expect($html)->toContain('id="dpBase"');
     expect($html)->toContain('value="'.rtrim(url('/agent/v1'), '/').'"');
 });
+
+// `[!!]`「用最优」必须把 dest 和 server_names【一起】换掉。
+//
+// 早先它写成"server_names 空着才填"，而正常节点的 server_names 永远不是空的
+// （现在还是必填项）—— 于是这个按钮每次都只改一半：dest 换了、SNI 留着旧的。
+// 那正是我们刚加校验要挡的那种配置，结果按钮自己在生产它：管理员点一下、保存，
+// 看到一个不是自己造成的错误。
+it('用最优按钮把 dest 与 server_names 一起换', function () {
+    $node = dcNode();
+    $node->update([
+        'dest_scan_at' => now(),
+        'dest_scan_result' => ['scan_id' => 'x', 'results' => [
+            ['host' => 'good.example', 'verdict' => 'pass', 'latency_ms' => 10,
+                'tls13' => true, 'x25519' => true, 'h2' => true],
+        ]],
+    ]);
+
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->toContain('id="useBest"');
+    // 无条件替换。`[!]` 这里【不】用 not->toContain('!sn.value.trim()') 反着断言 ——
+    //   那个字符串也出现在解释旧写法的注释里，会假阳性。正向断言已经够：
+    //   改回"空着才填"的写法，下面这行就不在了。
+    expect($html)->toContain('if (sn) { sn.value = h; }');
+});

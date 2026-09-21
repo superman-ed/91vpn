@@ -279,7 +279,12 @@ destprobe -vps {{ $node->server }} -d 30s -c 6 域名1 域名2 …@endif
             var h = best.dataset.host;
             get('reality_dest').value = h + ':443';
             var sn = get('reality_server_names');
-            if (sn && !sn.value.trim()) { sn.value = h; }   // SNI 通常就是 dest 的域名
+            // `[!!]` 【整个替换】，不是"空着才填"。旧 SNI 属于【旧 dest】——
+            //   换了 dest 之后它们没有一个还有效：探测者拿旧 SNI 连过来，
+            //   新 dest 不服务那个名字，回的是默认证书（常常是自签），伪装当场失效。
+            //   早先写成 `if (!sn.value.trim())`，而正常节点的 server_names 永远
+            //   不是空的（现在还是必填项），于是这个按钮【每次都只改一半】。
+            if (sn) { sn.value = h; }
             check();
         });
     }
