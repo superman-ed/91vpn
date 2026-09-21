@@ -14,11 +14,12 @@
 <meta property="og:title" content="91VPN — 解锁全球互联网">
 <meta property="og:description" content="Netflix、YouTube、ChatGPT 一键畅连。香港就近入口，多地区高速直达，晚高峰也不卡。">
 <meta property="og:url" content="{{ url('/') }}">
-<meta property="og:image" content="{{ setting('og_image') ?: asset('og.png') }}">
+<meta property="og:image" content="{{ setting('og_image') ?: asset('og.jpg') }}">
+<meta property="og:image:type" content="image/jpeg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="91VPN — 解锁全球互联网">
 <meta name="twitter:description" content="Netflix、YouTube、ChatGPT 一键畅连。香港就近入口，多地区高速直达。">
-<meta name="twitter:image" content="{{ setting('og_image') ?: asset('og.png') }}">
+<meta name="twitter:image" content="{{ setting('og_image') ?: asset('og.jpg') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
