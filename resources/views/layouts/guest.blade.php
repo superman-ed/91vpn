@@ -108,6 +108,12 @@ document.querySelectorAll('button[data-send-code]').forEach(function(btn){
     });
 });
 </script>
+{{-- `[!!]` 客服挂件必须在【未登录】的页面上。站在登录页却进不去的人，正是最需要
+     联系客服的那个 —— 而工单要登录，那是个死循环（L-20）。
+     `[D]` 9eba712 加了这一行并配了守卫测试；93c343a 重做样式时把它删了，
+     而那条测试没有当场变红（最可能是编译后的视图缓存没失效）。
+     删它之前先想清楚：登不进去的人还剩哪条路。 --}}
+@include('partials.support')
 @yield('scripts')
 </body>
 </html>
