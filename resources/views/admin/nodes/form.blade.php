@@ -175,7 +175,16 @@ destprobe -vps {{ $node->server }} -d 30s -c 6 域名1 域名2 …@endif
                                  还得回节点上再查一遍。 --}}
                             <td class="text-muted">@if(($r['verdict'] ?? '') === 'redirect')
                                     跳转到 {{ $r['redirect_to'] ?? '(未记录)' }}
-                                @else{{ $r['cdn_hint'] ?? ($r['error'] ?? '') }}@endif</td>
+                                @else{{ $r['cdn_hint'] ?? ($r['error'] ?? '') }}@endif
+                                {{-- `[!!]` 指纹表是黑名单，永远会漏下一个没见过的 CDN。
+                                     `[D]` blast.hk（DDoS-Guard）与 pns.hk（Akamai）都曾判 pass，
+                                     而 blast.hk 已经被拿去当过生产 dest。
+                                     server 头不像常见源站软件时摆出来 —— CDN 几乎总把自己的
+                                     牌子写在这里。只是提示，不否决判定。 --}}
+                                @if($r['server_unknown'] ?? false)
+                                    <br><span class="adm-pill warn"
+                                          title="CDN 几乎总把自己的牌子写进 server 头。这个值不像常见源站软件（nginx/Apache/IIS…），值得查一眼再用 —— 判定本身不因此改变">server: {{ $r['server'] ?? '?' }} ?</span>
+                                @endif</td>
                         </tr>
                     @endforeach
                     </tbody>

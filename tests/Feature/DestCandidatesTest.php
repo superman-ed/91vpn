@@ -231,3 +231,43 @@ it('用最优按钮把 dest 与 server_names 一起换', function () {
     //   改回"空着才填"的写法，下面这行就不在了。
     expect($html)->toContain('if (sn) { sn.value = h; }');
 });
+
+// `[!!]` 指纹表是黑名单，永远会漏下一个没见过的 CDN。
+// `[D]` blast.hk（DDoS-Guard）与 pns.hk（Akamai）都曾被判 pass，而 blast.hk
+// 已经被拿去当过生产 dest。节点现在会报 server 头像不像常见源站软件 ——
+// 面板必须把它【摆出来】，否则这个信号等于没有。
+it('结果表把不认识的 server 头摆出来', function () {
+    $node = dcNode();
+    $node->update([
+        'dest_scan_at' => now(),
+        'dest_scan_result' => ['scan_id' => 'x', 'results' => [
+            ['host' => 'a.example', 'verdict' => 'pass', 'latency_ms' => 5,
+                'tls13' => true, 'x25519' => true, 'h2' => true,
+                'server' => 'ddos-guard', 'server_unknown' => true],
+        ]],
+    ]);
+
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->toContain('server: ddos-guard');
+    expect($html)->toContain('判定本身不因此改变');   // 说清它只是提示
+});
+
+// 认得出的源站不该被标 —— 每个 pass 都挂个黄牌，等于没有信号
+it('常见源站的 server 头不标警告', function () {
+    $node = dcNode();
+    $node->update([
+        'dest_scan_at' => now(),
+        'dest_scan_result' => ['scan_id' => 'x', 'results' => [
+            ['host' => 'b.example', 'verdict' => 'pass', 'latency_ms' => 5,
+                'tls13' => true, 'x25519' => true, 'h2' => true,
+                'server' => 'nginx', 'server_unknown' => false],
+        ]],
+    ]);
+
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->not->toContain('server: nginx ?');
+});
