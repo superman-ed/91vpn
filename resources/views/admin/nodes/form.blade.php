@@ -97,6 +97,36 @@
                 <div class="form-group col-md-8" data-when="reality"><label>dest 候选清单（换行/逗号分隔，节点上筛查）</label>
                     <textarea name="dest_scan_candidates" rows="3" class="form-control" placeholder="www.a.example&#10;www.b.example">{{ old('dest_scan_candidates', $node->dest_scan_candidates) }}</textarea>
                     <small class="text-muted">保存后由【该节点】去扫（可达与延迟是节点到那个站的关系，面板扫没有意义）。内容不变不会重扫。</small>
+                    {{-- `[!!]` 有两条扫描路径，而页面此前只提了一句"由该节点去扫"，
+                         没说清第一条【不需要你登录服务器】。运维会以为必须手动跑。
+                         第二条的命令也散在文档里，每次要去翻 —— 直接在这儿生成好。 --}}
+                    <div class="alert alert-light border py-2 px-2 mt-2 mb-0" style="font-size:.85rem;background:#f8f9fc">
+                        <strong style="color:#34395e">两种扫描，第一种不用你动手</strong>
+                        <div class="mt-2">
+                            <span class="adm-pill ok">自动</span>
+                            <strong>保存这个清单就行。</strong>本节点在下一轮拉取（约 60 秒）时自己扫完并回报，
+                            结果见下方表格。<span class="text-muted">不需要登录服务器。</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="adm-pill">手动</span>
+                            <strong>深度探测（可选）</strong> —— 多测 DNS 稳定性、v4/v6 分别计时、证书到期、
+                            OCSP、ASN 邻近度，并给出 REJECT / PASS / PREFERRED。
+                            <span class="text-muted">它不接面板指令（采样时间长，footprint 超出下发扫描那套护栏），所以要在节点上跑：</span>
+                        </div>
+@php
+    $agentBase = rtrim(url('/agent/v1'), '/');
+    $cands = collect(preg_split('/[\s,]+/', (string) $node->dest_scan_candidates))->filter()->values();
+@endphp
+                        <pre class="mt-2 mb-0 p-2" style="background:#fff;border:1px solid #e3e6f0;border-radius:4px;overflow-x:auto;font-size:.8rem">curl -fsSL {{ $agentBase }}/destprobe-linux-amd64 -o /usr/local/bin/destprobe && chmod +x /usr/local/bin/destprobe
+@if($cands->isNotEmpty())
+destprobe -vps {{ $node->server }} -d 30s -c 6 {{ $cands->implode(' ') }}@else
+destprobe -vps {{ $node->server }} -d 30s -c 6 域名1 域名2 …@endif
+</pre>
+                        <div class="text-muted mt-1">
+                            `[!]` 两者判据互相印证，<strong>冲突时以节点上的测量为准</strong>。
+                            arm64 机器把命令里的 <code>amd64</code> 换成 <code>arm64</code>。
+                        </div>
+                    </div>
                     @if($node->exists)
                     {{-- `[!]` 这是【独立的一张表单】—— 嵌套 form 是非法 HTML，浏览器会把内层丢掉，
                          按钮点了没反应。它也会【立即保存】候选清单，所以文案要说清楚。 --}}

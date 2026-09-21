@@ -154,3 +154,42 @@ it('结果表里显示跳转去了哪', function () {
     expect($html)->toContain('redirect');
     expect($html)->toContain('跳转到 somewhere-else.example');
 });
+
+// `[!!]` 有两条扫描路径，而页面此前只写了一句"由该节点去扫" —— 没说清
+// 第一条【不需要登录服务器】。运维会以为必须手动跑，或者压根不知道有第二条。
+// 判据存在、结果能显示，都不等于运维知道怎么让它跑起来。
+it('清单下方写明两条扫描路径', function () {
+    $node = dcNode();
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->toContain('不需要登录服务器');   // 自动那条
+    expect($html)->toContain('destprobe');          // 手动那条
+});
+
+// 命令要【带上这台节点的 IP 和它当前的候选】，直接可复制 ——
+// 让人自己去拼 IP 和二十几个域名，等于没给。
+it('深度探测命令带上本节点的 IP 与当前候选', function () {
+    $node = dcNode();
+    $node->update([
+        'server' => '203.0.113.9',
+        'dest_scan_candidates' => "a.example.hk\nb.example.hk",
+    ]);
+
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->toContain('destprobe -vps 203.0.113.9');
+    expect($html)->toContain('a.example.hk b.example.hk');
+    // 二进制地址由面板自己算出来 —— 它本来就在发这个文件，不该让人去记
+    expect($html)->toContain('/agent/v1/destprobe-linux-amd64');
+});
+
+// 还没填候选时给占位符，不能吐出一条缺参数的命令让人照抄
+it('没有候选时命令给占位符', function () {
+    $node = dcNode();
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->toContain('域名1 域名2');
+});
