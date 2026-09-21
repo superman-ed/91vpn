@@ -2,11 +2,11 @@
 @section('title', '注册')
 @section('content')
 <div style="text-align:center; padding: 6px 4px 4px">
-    <div style="width:64px;height:64px;border-radius:18px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c6ffbf,#feffa5)">
-        <i class="fas fa-mobile-screen-button" style="font-size:28px;color:#3aa14a"></i>
+    <div style="width:60px;height:60px;border-radius:4px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:#F1EEE4;border:1px solid #C4BCA8">
+        <i class="fas fa-mobile-screen-button" style="font-size:26px;color:#D8442A"></i>
     </div>
-    <h4 style="color:#34395e;margin-bottom:12px">请在客户端中注册</h4>
-    <div style="font-size:14px;color:#7a869a;line-height:1.9">
+    <h4 style="color:#1A160F;margin-bottom:12px;font-weight:800">请在客户端中注册</h4>
+    <div style="font-size:14px;color:#5E5849;line-height:1.9">
         暂时不支持在网站上注册账户,<br>请您在客户端中进行注册。<br>
         如果没有客户端,请返回官网首页下载。
     </div>

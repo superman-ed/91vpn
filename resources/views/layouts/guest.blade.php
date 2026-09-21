@@ -4,47 +4,58 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>@yield('title', '账户') — 91VPN</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/stisla/assets/modules/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/stisla/assets/modules/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="/stisla/assets/css/style.css">
     <link rel="stylesheet" href="/stisla/assets/css/components.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <meta name="turbo-prefetch" content="true">
     <script src="/js/turbo.min.js" defer></script>
     <style>
-        body.auth-body { min-height: 100vh; margin: 0; background: linear-gradient(135deg, #eef1ff 0%, #f6f7fb 45%, #eaf6ff 100%); display: flex; align-items: center; justify-content: center; padding: 24px 16px; font-family: 'Nunito', -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
-        .auth-wrap { width: 100%; max-width: 440px; }
-        .auth-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px rgba(103,119,239,.20); }
-        .auth-brand { background: linear-gradient(135deg, #6777ef 0%, #5a67e8 55%, #7c4ddb 100%); color: #fff; text-align: center; padding: 30px 24px 26px; position: relative; }
-        .auth-brand .logo { font-size: 30px; font-weight: 800; letter-spacing: 1px; }
-        .auth-brand .logo i { margin-right: 6px; }
-        .auth-brand .tagline { font-size: 13px; opacity: .9; margin-top: 4px; letter-spacing: 2px; }
-        .auth-inner { padding: 28px 30px 30px; }
-        .auth-inner .auth-title { font-size: 18px; font-weight: 700; color: #34395e; margin: 0 0 18px; }
-        .auth-inner label { font-size: 13px; color: #7a869a; font-weight: 600; margin-bottom: 5px; }
-        .auth-inner .input-group-text { background: #f6f7fb; border-color: #eef0f5; color: #98a6ad; border-radius: 10px 0 0 10px; }
-        .auth-inner .form-control { border-color: #eef0f5; border-radius: 10px; height: auto; padding: 11px 14px; }
-        .auth-inner .input-group .form-control { border-radius: 0 10px 10px 0; }
-        .auth-inner .form-control:focus { border-color: #6777ef; box-shadow: 0 0 0 3px rgba(103,119,239,.12); }
-        .auth-inner .btn-auth { background: linear-gradient(135deg, #6777ef, #5a67e8); border: none; border-radius: 10px; font-weight: 700; padding: 12px; color: #fff; }
-        .auth-inner .btn-auth:hover { filter: brightness(1.05); color: #fff; }
-        .auth-links { text-align: center; font-size: 13.5px; color: #7a869a; margin-top: 4px; }
-        .auth-links a { color: #6777ef; font-weight: 600; }
-        .auth-foot { text-align: center; color: #b0bac5; font-size: 12px; margin-top: 18px; }
-        .auth-inner .alert { border-radius: 10px; font-size: 13.5px; }
-        .auth-toast { position: fixed; top: 22px; left: 50%; transform: translateX(-50%) translateY(-14px); z-index: 9999;
-            padding: 11px 20px; border-radius: 11px; font-size: 14px; font-weight: 600; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.16);
-            opacity: 0; pointer-events: none; transition: opacity .22s, transform .22s; max-width: 90vw; }
-        .auth-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .auth-toast.ok { background: linear-gradient(135deg, #47c363, #3aae55); }
-        .auth-toast.warn { background: linear-gradient(135deg, #fc784b, #f36c3d); }
+        :root{--paper:#F1EEE4;--card:#F7F4EC;--ink:#1A160F;--dim:#5E5849;--faint:#928B78;--rule:#C4BCA8;--sig:#D8442A;--sig2:#EA4E2E;
+            --sign:"Archivo","Noto Sans SC",sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;--body:"Noto Sans SC","Archivo",sans-serif}
+        body.auth-body{min-height:100vh;margin:0;background:var(--paper);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px 16px;font-family:var(--body)}
+        .auth-wrap{width:100%;max-width:400px}
+        .auth-card{background:var(--card);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+        .auth-brand{border-bottom:2px solid var(--ink);padding:26px 28px 18px;position:relative}
+        .auth-brand::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--sig)}
+        .auth-brand .logo{font-family:var(--sign);font-weight:900;font-size:26px;letter-spacing:-.01em;color:var(--ink);display:flex;align-items:center;gap:9px}
+        .auth-brand .logo .sq{width:14px;height:14px;background:var(--sig)}
+        .auth-brand .logo .vpn{color:var(--sig)}
+        .auth-brand .tagline{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--faint);margin-top:8px;text-transform:uppercase}
+        .auth-inner{padding:24px 28px 28px}
+        .auth-inner .auth-title{font-family:var(--sign);font-size:17px;font-weight:800;color:var(--ink);margin:0 0 18px}
+        .auth-inner label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--faint);font-weight:400;margin-bottom:6px;text-transform:uppercase}
+        .auth-inner .form-control{border:1px solid var(--rule);border-radius:3px;height:auto;padding:11px 13px;background:#FCFAF4;color:var(--ink);font-family:var(--body)}
+        .auth-inner .input-group .form-control{border-radius:0 3px 3px 0}
+        .auth-inner .form-control:focus{border-color:var(--sig);box-shadow:0 0 0 3px rgba(216,68,42,.12);background:#fff}
+        .auth-inner .input-group-text{background:var(--paper);border:1px solid var(--rule);color:var(--faint);border-radius:3px 0 0 3px}
+        .auth-inner .btn-auth{background:var(--sig);border:1px solid var(--sig);border-radius:3px;font-family:var(--sign);font-weight:800;padding:12px;color:#FBF6EC;letter-spacing:.02em}
+        .auth-inner .btn-auth:hover{background:var(--sig2);color:#FBF6EC}
+        .auth-links{text-align:center;font-size:13.5px;color:var(--dim);margin-top:6px}
+        .auth-links a{color:var(--sig);font-weight:700}
+        .auth-foot{text-align:center;color:var(--faint);font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;margin-top:16px}
+        .auth-inner .alert{border-radius:3px;font-size:13.5px;border:1px solid}
+        .auth-inner .alert-danger{background:#fbe9e5;border-color:#e7b3a6;color:#8a2c17}
+        .auth-inner .alert-success{background:#e7f2ea;border-color:#a9d3b7;color:#245c39}
+        .auth-inner .custom-control-label{font-family:var(--body)}
+        .auth-toast{position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-14px);z-index:9999;
+            padding:11px 20px;border-radius:3px;font-family:var(--mono);font-size:13px;font-weight:700;color:#FBF6EC;
+            opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;max-width:90vw}
+        .auth-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .auth-toast.ok{background:var(--ink)}
+        .auth-toast.warn{background:var(--sig)}
     </style>
 </head>
 <body class="auth-body">
 <div class="auth-wrap">
     <div class="auth-card">
         <div class="auth-brand">
-            <div class="logo"><i class="fas fa-shield-alt"></i>91VPN</div>
-            <div class="tagline">安全 · 稳定 · 高速</div>
+            <a href="/" class="logo" style="text-decoration:none"><span class="sq"></span>91<span class="vpn">VPN</span></a>
+            <div class="tagline">Global Access · 全球加速</div>
         </div>
         <div class="auth-inner">
             <div class="auth-title">@yield('title', '账户')</div>
@@ -73,7 +84,6 @@ window.authToast = function(msg, type){
 };
 
 // 统一的"发送验证码"处理:按钮标 data-send-code data-endpoint,含 60 秒倒计时冷却
-// (收敛注册/找回两页原本各写一份的近似脚本)
 document.querySelectorAll('button[data-send-code]').forEach(function(btn){
     var label = btn.textContent;
     btn.addEventListener('click', async function(){
@@ -98,9 +108,6 @@ document.querySelectorAll('button[data-send-code]').forEach(function(btn){
     });
 });
 </script>
-{{-- `[!!]` 客服挂件也要出现在登录/注册页。
-     忘记密码的唯一找回途径就是联系客服(见 docs/LAUNCH-CHECKLIST.md),
-     而挂件此前只挂在 layouts/user 上 —— 也就是【只有进得去的人看得到】。 --}}
-@include('partials.support')
+@yield('scripts')
 </body>
 </html>
