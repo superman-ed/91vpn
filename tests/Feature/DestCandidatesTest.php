@@ -134,3 +134,23 @@ it('页面把人工要复核的几件事写出来', function () {
     expect($html)->toContain('公营机构');    // 剔不掉的类别二
     expect($html)->toContain('自然度');
 });
+
+// `[!!]` 判定名本身说不出"为什么不合格"。redirect 这一关尤其:管理员要看的是
+// 【跳去哪】—— 跳自己 www 子域是官方允许的,跳到别人家才是跳转器。
+// 只显示 "redirect" 的话,人工复核还得回节点上再查一遍。
+it('结果表里显示跳转去了哪', function () {
+    $node = dcNode();
+    $node->update([
+        'dest_scan_at' => now(),
+        'dest_scan_result' => ['scan_id' => 'x', 'results' => [
+            ['host' => 'shortener.example', 'verdict' => 'redirect',
+                'redirect' => true, 'redirect_to' => 'somewhere-else.example'],
+        ]],
+    ]);
+
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get("/admin/nodes/{$node->id}/edit")->assertOk()->getContent();
+
+    expect($html)->toContain('redirect');
+    expect($html)->toContain('跳转到 somewhere-else.example');
+});

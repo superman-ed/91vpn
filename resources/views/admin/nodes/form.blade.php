@@ -140,7 +140,12 @@
                             <td>{{ ($r['h2'] ?? false) ? '✓' : '✗' }}</td>
                             <td>{{ $r['key_group'] ?? '' }}</td>
                             <td>{{ ($r['latency_ms'] ?? 0) ?: '-' }}{{ ($r['latency_ms'] ?? 0) ? 'ms' : '' }}</td>
-                            <td class="text-muted">{{ $r['cdn_hint'] ?? ($r['error'] ?? '') }}</td>
+                            {{-- `[!]` 备注列要带上"为什么不合格"的那个具体值：CDN 命中的响应头、
+                                 跳转去了哪、或连不上的原因。只显示判定名的话，人工复核时
+                                 还得回节点上再查一遍。 --}}
+                            <td class="text-muted">@if(($r['verdict'] ?? '') === 'redirect')
+                                    跳转到 {{ $r['redirect_to'] ?? '(未记录)' }}
+                                @else{{ $r['cdn_hint'] ?? ($r['error'] ?? '') }}@endif</td>
                         </tr>
                     @endforeach
                     </tbody>
