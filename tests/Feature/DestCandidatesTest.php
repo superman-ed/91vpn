@@ -193,3 +193,15 @@ it('没有候选时命令给占位符', function () {
 
     expect($html)->toContain('域名1 域名2');
 });
+
+// `[!]` 一键部署的"二进制根地址"此前是空的，要运维自己填 —— 而 agent 二进制与
+// install.sh 就放在本面板的 public/agent/v1，是这个面板在发它们。
+// 让人去记一个面板自己知道的值，是白白制造一次出错机会。
+it('部署表单预填二进制根地址', function () {
+    $node = dcNode();
+    $html = $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get('/admin/nodes')->assertOk()->getContent();   // 部署面板在节点列表页
+
+    expect($html)->toContain('id="dpBase"');
+    expect($html)->toContain('value="'.rtrim(url('/agent/v1'), '/').'"');
+});

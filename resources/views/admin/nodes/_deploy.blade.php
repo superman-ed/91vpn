@@ -38,7 +38,10 @@
         </div>
         <div class="form-group">
           <label>二进制根地址 <span class="hint">（目标机自己 curl：<code>&lt;根&gt;/agent-linux-&lt;arch&gt;</code> 与 <code>&lt;根&gt;/install.sh</code>）</span></label>
-          <input id="dpBase" class="form-control form-control-sm" placeholder="https://dl.example.com/agent/v1">
+          {{-- `[!]` 预填本面板自己的地址：agent 二进制与 install.sh 就放在 public/agent/v1，
+     是这个面板在发它们 —— 没道理让运维去记一个面板自己知道的值。
+     仍然可改：二进制放在别处（CDN、内网镜像）是合理用法。 --}}
+<input id="dpBase" class="form-control form-control-sm" value="{{ rtrim(url('/agent/v1'), '/') }}" placeholder="https://dl.example.com/agent/v1">
         </div>
 
         {{-- 落地专属：连 91vpn 的身份 + accept_proxy 防火墙。中转不显示。 --}}
