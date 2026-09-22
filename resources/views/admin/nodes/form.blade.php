@@ -23,7 +23,13 @@
                         简单节点<small class="d-block text-muted">VMess + TCP · 先跑通用这个</small>
                     </button>
                     <button type="button" class="btn btn-outline-success btn-sm mr-2 js-preset"
-                            data-p='{"type":"vless","net":"tcp","tls":"1","flow":"xtls-rprx-vision","reality_enabled":"1"}'>
+                            {{-- `[!!]` 【不要】把 tls 设成 1。REALITY 与 TLS 是两种安全层，
+                                 securityLayer() 的口径是 reality > tls > none —— 开着 REALITY 时
+                                 tls 那个开关【读都不读】，订阅里给 Clash 发的 tls:true 也是硬编码的。
+                                 早先这里设了 tls:"1"，结果点完预设，表单自己的组合校验立刻弹一条
+                                 "REALITY 与 TLS 同时开……TLS 那项可以关掉" —— 预设在生产它自己会报的警告。
+                                 `[!]` vision 流控不受影响:它要的是"TLS 或 REALITY"，REALITY 已满足。 --}}
+                            data-p='{"type":"vless","net":"tcp","tls":"0","flow":"xtls-rprx-vision","reality_enabled":"1"}'>
                         抗封锁节点<small class="d-block text-muted">VLESS + REALITY + vision · 还需填 dest</small>
                     </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm js-preset"

@@ -189,3 +189,19 @@ it('dest 是 IP 时跳过这项校验', function () {
         'traffic_rate' => 1, 'node_class' => 0,
     ])->assertRedirect('/admin/nodes');
 });
+
+// `[!!]` 「抗封锁节点」预设【不能】把 tls 设成 1。
+//
+// REALITY 与 TLS 是两种安全层，securityLayer() 的口径是 reality > tls > none ——
+// 开着 REALITY 时 tls 那个开关读都不读，订阅里给 Clash 发的 tls:true 也是硬编码的。
+// 早先预设设了 tls:"1"，结果点完预设，表单自己的组合校验立刻弹一条
+// 「REALITY 与 TLS 同时开……TLS 那项可以关掉」—— 预设在生产它自己会报的警告，
+// 而新建的每个抗封锁节点都带着这个不生效的开关。
+it('抗封锁节点预设不开 TLS', function () {
+    $html = $this->actingAs($this->admin)->get('/admin/nodes/create')->assertOk()->getContent();
+
+    expect($html)->toContain('"reality_enabled":"1"');
+    expect($html)->toContain('"tls":"0","flow":"xtls-rprx-vision","reality_enabled":"1"');
+    // vision 不受影响：它要的是"TLS 或 REALITY"，REALITY 已满足
+    expect($html)->toContain('"flow":"xtls-rprx-vision"');
+});
