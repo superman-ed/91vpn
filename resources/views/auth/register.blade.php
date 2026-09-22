@@ -2,8 +2,8 @@
 @section('title', '注册')
 @section('content')
 <div style="text-align:center; padding: 6px 4px 4px">
-    <div style="width:60px;height:60px;border-radius:4px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:#F1EEE4;border:1px solid #C4BCA8">
-        <i class="fas fa-mobile-alt" style="font-size:26px;color:#D8442A"></i>
+    <div style="width:64px;height:64px;border-radius:6px;margin:0 auto 18px;overflow:hidden;border:1px solid #C4BCA8;background:#F1EEE4">
+        <img src="/og.jpg" alt="91VPN" style="width:100%;height:100%;object-fit:cover;display:block">
     </div>
     <h4 style="color:#1A160F;margin-bottom:12px;font-weight:800">请在客户端中注册</h4>
     <div style="font-size:14px;color:#5E5849;line-height:1.9">
