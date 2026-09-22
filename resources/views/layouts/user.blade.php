@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>@yield('title', '用户中心') — 91VPN</title>
+    <link rel="icon" type="image/jpeg" href="/og.jpg">
     <link rel="stylesheet" href="/stisla/assets/modules/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/stisla/assets/modules/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="/stisla/assets/css/style.css">

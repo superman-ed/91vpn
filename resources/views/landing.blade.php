@@ -6,8 +6,7 @@
 <title>91VPN</title>
 <meta name="description" content="解锁全球流媒体与 AI 的加速服务——像机场一样，直达你到不了的目的地">
 <link rel="canonical" href="{{ url('/') }}">
-<link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-<link rel="icon" href="{{ asset('favicon.ico') }}">
+<link rel="icon" type="image/jpeg" href="{{ asset('og.jpg') }}">
 <meta name="theme-color" content="#F1EEE4">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="91VPN">

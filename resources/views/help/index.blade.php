@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>帮助中心 · 91VPN</title>
+<link rel="icon" type="image/jpeg" href="/og.jpg">
 <meta name="theme-color" content="#F1EEE4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

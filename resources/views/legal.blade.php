@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ $title }} · 91VPN</title>
+<link rel="icon" type="image/jpeg" href="/og.jpg">
 <style>
 body{margin:0;background:#F1EEE4;color:#1A160F;line-height:1.75;
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
