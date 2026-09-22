@@ -247,6 +247,10 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 }
 @media (max-width:600px){
   .nav .links,.clock{display:none}
+  .wrap{padding-inline:16px}
+  .nav{gap:12px}
+  .nav .right{gap:10px}
+  .nav .btn{padding:8px 12px;font-size:12.5px}
   .brow{grid-template-columns:1.4fr 1fr}.brow .fno,.brow .via{display:none}
   .legs{grid-template-columns:1fr;gap:12px}.leg .ln{width:1px;height:22px;margin:0 auto;background:repeating-linear-gradient(180deg,var(--amber-dim) 0 6px,transparent 6px 12px)}.leg .p{display:none}
   .rrow{grid-template-columns:1fr;gap:6px}
