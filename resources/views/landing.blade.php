@@ -61,6 +61,7 @@ header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px s
 .brand{font-family:var(--sign);font-weight:900;font-size:19px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
 .brand .n{color:var(--amber)}
 .brand .sq{width:10px;height:10px;background:var(--amber)}
+.brand img{width:24px;height:24px;object-fit:cover;border-radius:3px;display:block}
 .nav .links{display:flex;gap:22px;margin-left:8px}
 .nav .links a{font-family:var(--mono);font-size:12.5px;letter-spacing:.05em;color:var(--dim)}
 .nav .links a:hover{color:var(--amber)}
@@ -260,7 +261,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 
 <header id="hdr">
   <div class="wrap nav">
-    <a class="brand" href="#top"><span class="sq"></span>91<span class="n">VPN</span></a>
+    <a class="brand" href="#top"><img src="/og.jpg" alt="91VPN">91<span class="n">VPN</span></a>
     <nav class="links">
       <a href="#board">航班信息</a>
       <a href="#regions">通航地区</a>
@@ -442,7 +443,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
   <div class="wrap">
     <div class="foot-top">
       <div class="fcol fbrand">
-        <a class="brand" href="#top"><span class="sq"></span>91<span class="n">VPN</span></a>
+        <a class="brand" href="#top"><img src="/og.jpg" alt="91VPN">91<span class="n">VPN</span></a>
         <p class="desc">解锁全球流媒体与 AI 的加速服务。香港就近入口,多地区高速直达。</p>
       </div>
       <div class="fcol">
