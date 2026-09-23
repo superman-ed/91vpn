@@ -73,3 +73,33 @@ it('订阅与面板不同域时自检给 ok', function () {
 
     expect($c['level'])->toBe('ok');
 });
+
+// `[!!]` APP_URL 坏了不能被"订阅另配了域名"掩盖 —— 它还用于邀请链接、邮件、跳转。
+// `[D]` 加 SUB_URL_BASE 时我把整项改成只读订阅 URL，于是 APP_URL=localhost
+// 不再报警；被 ServiceReadinessTest 两条既有用例当场抓到。这条把它钉住。
+it('订阅另配了域名，APP_URL 仍是 localhost 时照样报 bad', function () {
+    config([
+        'app.url' => 'http://localhost:8088',
+        'app.sub_url_base' => 'https://sub.other.net',   // 订阅是好的
+    ]);
+
+    $c = collect(app(ServiceReadiness::class)->check())
+        ->firstWhere('title', '订阅地址');
+
+    expect($c['level'])->toBe('bad');
+    expect($c['detail'])->toContain('APP_URL');
+});
+
+// 反过来:APP_URL 好的,而 SUB_URL_BASE 填坏了,也要报
+it('APP_URL 正常但 SUB_URL_BASE 填成 localhost 时报 bad', function () {
+    config([
+        'app.url' => 'https://app.example.com',
+        'app.sub_url_base' => 'http://localhost:9000',
+    ]);
+
+    $c = collect(app(ServiceReadiness::class)->check())
+        ->firstWhere('title', '订阅地址');
+
+    expect($c['level'])->toBe('bad');
+    expect($c['detail'])->toContain('SUB_URL_BASE');
+});

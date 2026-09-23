@@ -333,26 +333,38 @@ class ServiceReadiness
      */
     private function subUrl(): array
     {
+        // `[!!]` 这里有【两件事】,不能混:
+        //   · APP_URL 本身是否可用 —— 它不只用于订阅,邀请链接/邮件/跳转都用它,
+        //     所以即便订阅另配了域名,APP_URL 是 localhost 仍然是故障。
+        //   · 订阅地址是否与面板分开 —— 那是另一回事,见本方法末尾。
+        // `[D]` 加 SUB_URL_BASE 时我把整项改成只读订阅 URL,结果 APP_URL=localhost
+        //   不再报警 —— 被 ServiceReadinessTest 两条用例当场抓到。
+        $panel = (string) config('app.url');
         $base = rtrim((string) config('app.sub_url_base'), '/');
-        $url = $base !== '' ? $base : (string) config('app.url');
-        if ($url === '' || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
-            return $this->x('bad', '订阅地址',
-                "APP_URL 现在是 {$url} —— 用户拿到的订阅链接会指向这个地址，客户端打不开。"
-                .'改 .env 的 APP_URL 为用户面的公网地址，然后 php artisan config:clear', null);
-        }
-        if (str_contains($url, 'trycloudflare.com')) {
-            return $this->x('warn', '订阅地址',
-                'APP_URL 指向 trycloudflare 的临时域名 —— 它每次隧道重启都会变，'
-                .'变了之后所有人的订阅和所有节点会同时失效', null);
-        }
+        $url = $base !== '' ? $base : $panel;
 
+        // 先判 APP_URL:它坏了,订阅另配域名也救不了邀请链接和邮件
+        foreach ([$panel, $url] as $u) {
+            if ($u === '' || str_contains($u, 'localhost') || str_contains($u, '127.0.0.1')) {
+                $which = $u === $panel ? 'APP_URL' : 'SUB_URL_BASE';
+
+                return $this->x('bad', '订阅地址',
+                    "{$which} 现在是 {$u} —— 用户拿到的链接会指向这个地址，客户端打不开。"
+                    .'改 .env 后 php artisan config:clear', null);
+            }
+            if (str_contains($u, 'trycloudflare.com')) {
+                return $this->x('warn', '订阅地址',
+                    '地址指向 trycloudflare 的临时域名 —— 它每次隧道重启都会变，'
+                    .'变了之后所有人的订阅和所有节点会同时失效', null);
+            }
+        }
         // `[!!]` 订阅域名与面板域名【应当分开】。订阅 URL 是每个用户的客户端每天
         //   都要访问的东西 —— 同域时,面板域名一旦被封或被污染,用户不只是打不开
         //   网页,是【连订阅也拉不了】:换不了节点、加不了新设备。
         // `[!!]` 而订阅 URL 一旦发出去就【收不回来】(嵌在每个人的客户端配置里),
         //   所以这件事要在没有用户时定下来 —— 因此只报 warn 不报 bad:
         //   它不影响现在能不能用,只影响以后改起来贵不贵。
-        $panelHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: '';
+        $panelHost = parse_url($panel, PHP_URL_HOST) ?: '';
         $subHost = parse_url($url, PHP_URL_HOST) ?: '';
         if ($panelHost !== '' && $subHost !== '' && $this->sameRegistrable($panelHost, $subHost)) {
             return $this->x('warn', '订阅地址',

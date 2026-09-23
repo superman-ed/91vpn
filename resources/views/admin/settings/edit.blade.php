@@ -11,6 +11,51 @@
 </style>
 <div class="adm-head"><h4><i class="fas fa-cog text-primary"></i> 站点设置</h4></div>
 
+{{-- `[!!]` 这一块【只读】,故意不给输入框。
+     这三个地址都在 .env 里,不在数据库里 —— 两个原因:
+       ① 订阅是用户唯一的入口,填错一个字符就是全员连不上。
+          让它需要一次部署动作,而不是后台一次手滑。
+       ② 放数据库的话,从旧备份恢复一次会让订阅域名【静默退回旧值】;
+          放 .env 它属于部署状态,不跟着数据走。
+     但"看"和"改"是两件事 —— 自检全绿时整块不显示,那时你在界面上
+     根本无处确认它被配成了什么。所以这里只显示,不可编辑。 --}}
+@php
+    $rdSubBase = rtrim((string) config('app.sub_url_base'), '/');
+    $rdPanel = (string) config('app.url');
+    $rdSame = $rdSubBase === ''
+        || (parse_url($rdPanel, PHP_URL_HOST) ?: 'a') === (parse_url($rdSubBase, PHP_URL_HOST) ?: 'b');
+@endphp
+<div class="card adm-form-card" style="margin-bottom:16px">
+    <div class="card-header"><span class="ic" style="background:linear-gradient(135deg,#8894a8,#6b7a90)"><i class="fas fa-globe"></i></span>
+        <h4>域名与地址 <small class="text-muted font-weight-normal">只读 · 在服务器 .env 里改</small></h4></div>
+    <div class="card-body" style="padding:14px 18px">
+        <table class="table table-sm mb-0" style="font-size:13px">
+            <tr><td style="width:130px;color:#7a869a">面板域名</td>
+                <td><code>{{ $rdPanel ?: '（未配置）' }}</code> <span class="text-muted">APP_URL</span></td></tr>
+            <tr><td style="color:#7a869a">后台域名</td>
+                <td><code>{{ config('app.admin_host') ?: '（未配置 —— 不限制主机名）' }}</code> <span class="text-muted">ADMIN_HOST</span></td></tr>
+            <tr><td style="color:#7a869a">订阅域名</td>
+                <td>
+                    <code>{{ $rdSubBase ?: $rdPanel }}</code>
+                    <span class="text-muted">SUB_URL_BASE</span>
+                    @if($rdSubBase === '')
+                        <span class="adm-pill warn" style="margin-left:6px">未单独配置，跟随面板域名</span>
+                    @elseif($rdSame)
+                        <span class="adm-pill warn" style="margin-left:6px">与面板同域</span>
+                    @else
+                        <span class="adm-pill ok" style="margin-left:6px">已与面板分开</span>
+                    @endif
+                </td></tr>
+        </table>
+        @if($rdSame)
+        <div class="text-muted mt-2" style="font-size:12.5px">
+            `[!]` 订阅链接嵌在每个用户的客户端配置里 —— 面板域名被封时订阅会一起失效，
+            而改它要全员重新导入。<strong>现在没有付费用户，是改这件事最便宜的时刻。</strong>
+        </div>
+        @endif
+    </div>
+</div>
+
 <div class="set-tabs">
     <button type="button" class="active" data-tab="notice"><i class="fas fa-info-circle"></i> 购买须知</button>
     <button type="button" data-tab="pay"><i class="fas fa-credit-card"></i> 支付网关</button>
