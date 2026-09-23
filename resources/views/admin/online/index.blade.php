@@ -24,7 +24,7 @@
 {{-- 实时指标（不随日期变化） --}}
 <div class="ad-stats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
     <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#63c76a,#3fae57)"><div style="font-size:22px;font-weight:800">{{ $onlineUsers }}</div><div style="font-size:12.5px;opacity:.9"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;margin-right:5px;animation:blink 1.4s infinite"></span>当前在线用户</div></div>
-    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#4d5ed0)"><div style="font-size:22px;font-weight:800">{{ $onlineDevices }}</div><div style="font-size:12.5px;opacity:.9">在线设备（去重 IP）</div></div>
+    <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#6777ef,#4d5ed0)"><div style="font-size:22px;font-weight:800">{{ $onlineDevices }}</div><div style="font-size:12.5px;opacity:.9">在线 IP（去重）</div></div>
     <div style="flex:1;min-width:145px;border-radius:13px;padding:16px 20px;color:#fff;background:linear-gradient(135deg,#ffb020,#ff9f1a)"><div style="font-size:22px;font-weight:800">{{ human_bytes($onlineTodayTraffic) }}</div><div style="font-size:12.5px;opacity:.9">在线用户今日流量</div></div>
 </div>
 
@@ -97,20 +97,44 @@
 <div class="card adm-panel">
     <div class="table-responsive">
         <table class="table adm-table">
-            <thead><tr><th>用户</th><th>在线设备 / IP</th><th>所在节点</th><th>今日流量</th><th>总用量 / 配额</th><th>最后活跃</th></tr></thead>
+            <thead><tr><th>用户</th><th>已登记设备</th><th>在线 IP</th><th>所在节点</th><th>今日流量</th><th>总用量 / 配额</th><th>最后活跃</th></tr></thead>
             <tbody>
             @forelse($users as $u)
             @php
                 $rows = $alive->get($u->id) ?? collect();
                 $ips = $rows->pluck('ip')->unique();
+                $devs = $devices->get($u->id) ?? collect();
+            @endphp
+            @php
                 $nodeNames = $rows->pluck('node.name')->filter()->unique()->values();
                 $used = $u->usedTraffic();
                 $pct = $u->usagePercent();
             @endphp
             <tr>
                 <td style="color:#34395e;font-weight:600">{{ $u->ident() }}@if($u->is_admin)<span class="adm-pill primary" style="margin-left:6px">管理员</span>@endif</td>
+                {{-- `[!!]` 设备与 IP 是【两件事】，分成两列。
+                     devices：客户端上报的 device_id —— 身份，不是实时在线状态
+                     alive_ips：节点每分钟上报、120 秒窗口 —— 这才是"此刻在不在线"
+                     此前这两列合成一列、写着"在线设备 / IP"、数的是去重 IP 而单位写"台"，
+                     于是一台手机切个网就显示成 2 台。 --}}
                 <td>
-                    <span class="adm-pill ok">{{ $ips->count() }} 台</span>
+                    @forelse($devs as $d)
+                        @php
+                            $nm = trim(($d->brand ?? '').' '.($d->model ?? '')) ?: ($d->platform ?: mb_substr((string) $d->device_id, 0, 8));
+                            $live = $d->ip && $ips->contains($d->ip);
+                        @endphp
+                        <div style="margin-bottom:3px">
+                            <span class="adm-pill {{ $live ? 'ok' : 'muted' }}"
+                                  title="{{ $live ? '这台的上报 IP 与当前在线 IP 一致' : '已登记，但当前没有匹配的在线 IP（可能已断开，也可能上报 IP 已过时）' }}">{{ $nm }}</span>
+                            <span class="text-muted" style="font-size:11.5px">{{ $d->platform ?: '—' }} · {{ $d->app_version ?: '—' }}</span>
+                        </div>
+                    @empty
+                        {{-- `[!]` 空不代表没在用 —— 第三方客户端不带 device_id，不会登记 --}}
+                        <span class="text-muted" style="font-size:12px" title="第三方客户端（小火箭/Clash 等）不上报设备号，不会出现在这里">—<span style="margin-left:4px">未用官方客户端</span></span>
+                    @endforelse
+                </td>
+                <td>
+                    <span class="adm-pill ok">{{ $ips->count() }} 个</span>
                     <div class="text-muted" style="font-size:12px;font-family:SFMono-Regular,Menlo,Consolas,monospace;margin-top:3px">{{ $ips->take(3)->implode('、') }}@if($ips->count() > 3) …@endif</div>
                 </td>
                 <td>

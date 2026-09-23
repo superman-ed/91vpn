@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AliveIp;
 use App\Models\DailyStat;
+use App\Models\Device;
+use App\Models\NodeDailyTraffic;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class OnlineUserController extends Controller
 {
@@ -31,6 +34,18 @@ class OnlineUserController extends Controller
             ->get()
             ->groupBy('user_id');
 
+        // 当前页用户【已登记的设备】（devices 表 —— 客户端上报的 device_id）。
+        //
+        // `[!!]` 与上面的 alive_ips 是两件事，刻意分开取：
+        //   alive_ips  节点每分钟上报、120 秒窗口 → 这是"此刻在不在线"的唯一来源
+        //   devices    拉订阅/客户端上报时更新     → 这是"有哪些设备"的身份记录
+        // 不能拿 devices 判在线：它的 last_seen 可能是几小时前一次拉订阅。
+        //
+        // `[!]` 第三方客户端不带 device_id，在 devices 里【不会出现】——
+        //   所以这一列为空不代表用户没在用，只代表他没用官方客户端。
+        $devices = Device::whereIn('user_id', $users->pluck('id'))
+            ->orderByDesc('last_seen')->get()->groupBy('user_id');
+
         // 趋势区间（默认近 30 天，可选，最长 180 天）
         $to = $this->parseDate($request->query('to'), today());
         $from = $this->parseDate($request->query('from'), today()->copy()->subDays(29));
@@ -42,7 +57,7 @@ class OnlineUserController extends Controller
         }
 
         $stats = DailyStat::whereBetween('date', [$from->toDateString(), $to->toDateString()])->get()->keyBy(fn ($s) => $s->date->toDateString());
-        $traffic = \App\Models\NodeDailyTraffic::whereBetween('date', [$from->toDateString(), $to->toDateString()])
+        $traffic = NodeDailyTraffic::whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->selectRaw('date, sum(u + d) as raw')->groupBy('date')->get()->keyBy(fn ($s) => $s->date->toDateString());
         $trend = collect();
         for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
@@ -58,6 +73,7 @@ class OnlineUserController extends Controller
 
         return view('admin.online.index', [
             'users' => $users,
+            'devices' => $devices,
             'alive' => $alive,
             'q' => $q,
             'onlineUsers' => $aliveUserIds->count(),
@@ -77,13 +93,13 @@ class OnlineUserController extends Controller
         ]);
     }
 
-    private function parseDate(?string $value, \Illuminate\Support\Carbon $default): \Illuminate\Support\Carbon
+    private function parseDate(?string $value, Carbon $default): Carbon
     {
         if (! $value) {
             return $default;
         }
         try {
-            return \Illuminate\Support\Carbon::parse($value)->startOfDay();
+            return Carbon::parse($value)->startOfDay();
         } catch (\Throwable $e) {
             return $default;
         }
