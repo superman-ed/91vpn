@@ -88,7 +88,7 @@ Route::middleware('guest')->group(function () {
     // 账户体系去邮箱:无邮箱验证码/邮箱找回;忘记密码走在线客服人工重置
 });
 
-// 用户中心（占位，M2 实现）
+// 用户中心（登录后:仪表盘/签到/节点/设备/账户等,均已接真实控制器）
 Route::middleware('auth')->group(function () {
     Route::get('/user', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/user/checkin', [CheckinController::class, 'store'])->name('checkin');
