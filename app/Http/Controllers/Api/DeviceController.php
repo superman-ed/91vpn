@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Exceptions\DeviceLimitException;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Models\DeviceToken;
+use App\Models\PromoChannel;
 use App\Services\DeviceService;
 use Illuminate\Http\Request;
 
@@ -40,9 +42,18 @@ class DeviceController extends Controller
     /** DELETE /api/devices/{id} —— 下线/移除本账号名下的一台设备(仅能删自己的) */
     public function destroy(Request $request, int $id)
     {
-        $deleted = $request->user()->devices()->whereKey($id)->delete();
+        $device = $request->user()->devices()->whereKey($id)->first();
+        if (! $device) {
+            return response()->json(['ret' => 0]);
+        }
 
-        return response()->json(['ret' => $deleted ? 1 : 0]);
+        // 下线=强制登出:吊销该设备的 token(它下次调 API 就 401 → 重登)+ 删除设备记录(释放名额)
+        DeviceToken::where('user_id', $request->user()->id)
+            ->where('device_id', $device->device_id)
+            ->delete();
+        $device->delete();
+
+        return response()->json(['ret' => 1]);
     }
 
     /** POST /api/device/report */
@@ -63,7 +74,7 @@ class DeviceController extends Controller
         // 渠道包归因回填：用户尚未归因 + 推广码有效时才写入（首次来源不被覆盖）
         if (! empty($data['promo_code']) && empty($user->promo_code)) {
             $code = strtoupper($data['promo_code']);
-            if (\App\Models\PromoChannel::where('code', $code)->where('enabled', true)->exists()) {
+            if (PromoChannel::where('code', $code)->where('enabled', true)->exists()) {
                 $user->update(['promo_code' => $code]);
             }
         }

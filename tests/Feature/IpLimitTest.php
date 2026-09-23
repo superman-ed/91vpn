@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AliveIp;
 use App\Models\Node;
 use App\Models\User;
 
@@ -11,7 +12,7 @@ function ipLimitNode(): Node
     ]);
 }
 
-it('returns over-limit ips to block, keeping the earliest', function () {
+it('超限时不再返回 blocked —— 已停用按 IP 踢人', function () {
     $node = ipLimitNode();
     $user = User::factory()->create(['node_ip_limit' => 2]);
 
@@ -23,10 +24,12 @@ it('returns over-limit ips to block, keeping the earliest', function () {
         ],
     ])->assertOk();
 
-    $blocked = $res->json('blocked');
-    expect($blocked)->toHaveCount(1);
-    expect($blocked[0]['user_id'])->toBe($user->id);
-    expect($blocked[0]['ips'])->toBe(['3.3.3.3']);   // 先到先得，踢最后来的
+    // `[!!]` 2026-09-23 起【不再按 IP 踢人】—— 额度改按设备算（DeviceService）。
+    //   本条从"验踢谁"变成"验一个都不踢"。判据本身仍由 AliveIpTest 直接调
+    //   blockedIps() 守着（那个方法保留但已无调用方）。
+    expect($res->json('blocked'))->toBe([]);
+    // 记录照记:alive_ips 仍是共享检测的线索与"异常登录"展示的来源
+    expect(AliveIp::where('user_id', $user->id)->count())->toBe(3);
 });
 
 it('blocks nothing when under the limit', function () {

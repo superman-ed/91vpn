@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeviceToken;
 use App\Models\User;
 use App\Services\RegistrationService;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class AuthApiController extends Controller
         $data = $request->validate([
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
+            'device_id' => ['nullable', 'string', 'max:128'],
         ]);
 
         $user = User::where('username', $data['username'])->first();
@@ -37,7 +39,7 @@ class AuthApiController extends Controller
         return response()->json([
             'ret' => 1,
             'data' => [
-                'token' => $user->api_token,
+                'token' => $this->tokenFor($user, $data['device_id'] ?? null),
                 'user' => UserApiController::payload($user),
             ],
         ]);
@@ -51,6 +53,7 @@ class AuthApiController extends Controller
             'name' => ['nullable', 'string', 'max:32'],
             'invite_code' => ['nullable', 'string', 'max:32'],
             'password' => ['required', 'string', 'min:8'],
+            'device_id' => ['nullable', 'string', 'max:128'],
         ], [], ['username' => '账户名']);
 
         if (User::where('username', $data['username'])->exists()) {
@@ -71,9 +74,17 @@ class AuthApiController extends Controller
         return response()->json([
             'ret' => 1,
             'data' => [
-                'token' => $user->api_token,
+                'token' => $this->tokenFor($user, $data['device_id'] ?? null),
                 'user' => UserApiController::payload($user),
             ],
         ]);
+    }
+
+    /** 带 device_id → 发/取该设备的 token(下线可单独吊销);否则回退账号级 token(旧端/网页兼容)。 */
+    private function tokenFor(User $user, ?string $deviceId): string
+    {
+        $deviceId = trim((string) $deviceId);
+
+        return $deviceId !== '' ? DeviceToken::issue($user, $deviceId) : $user->api_token;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DeviceToken;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -15,8 +16,14 @@ class ClientToken
 {
     public function handle(Request $request, Closure $next)
     {
+        // 先按设备 token 认(Level A:下线删该 token → 这里查不到 → 401 → 重登);
+        // 查不到再回退账号级 users.api_token(旧端/网页/未带 device_id 登录的兼容)。
         $token = $request->bearerToken();
-        $user = $token ? User::where('api_token', $token)->first() : null;
+        $user = null;
+        if ($token) {
+            $user = optional(DeviceToken::where('token', $token)->first())->user
+                ?? User::where('api_token', $token)->first();
+        }
 
         if (! $user) {
             return response()->json(['ret' => 0, 'msg' => '未登录或登录已失效'], 401);

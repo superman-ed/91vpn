@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AliveIp;
 use App\Models\Node;
 use App\Models\User;
 
@@ -53,7 +54,7 @@ function l08Report(object $t, Node $node, string $body): array
 // 2026-09-23 已修（AliveIpService 改为按 last_seen 倒序保留），断言随之翻转 ——
 // 保留它作为回归守卫：改回「先到先得」这里就会红。
 // 旧结论见 git 历史与清单 L-08。
-it('L08-1 节点收到的 blocked 列表里，是用户【已经不在用】的那个 IP', function () {
+it('L08-1 节点收到的 blocked 列表恒为空 —— 不再按 IP 踢人', function () {
     $node = l08Node();
     $user = User::factory()->create(['node_ip_limit' => 1, 'class' => 0]);
 
@@ -65,11 +66,10 @@ it('L08-1 节点收到的 blocked 列表里，是用户【已经不在用】的�
     $this->travel(60)->seconds();
     $r2 = l08Report($this, $node, l08Wire($user->id, ['203.0.113.2']));
 
-    // `[!!]` 这就是节点【实际会去执行】的指令。
-    expect($r2['blocked'])->toHaveCount(1);
-    $ips = $r2['blocked'][0]['ips'] ?? [];
-    expect($ips)->toBe(['203.0.113.1']);       // 被踢的是已经不在用的旧 IP
-    expect($ips)->not->toBe(['203.0.113.2']);  // 当前正在用的那个被保留
+    // `[!!]` 2026-09-23 起【不再按 IP 踢人】—— 额度改按设备算（DeviceService）。
+    //   节点收到的 blocked 恒为空：谁都不会因为换了个 IP 被踢下线。
+    //   这正是本条用例最初要暴露的那个伤害，现在从源头消失了。
+    expect($r2['blocked'])->toBe([]);
 });
 
 it('L08-2 用户面板上那个数字，同一时刻显示「2 台设备」', function () {
@@ -105,7 +105,7 @@ it('L08-3 反过来：一个 IP 后面几台设备，节点和面板都只算一
     // agent 线上根本没有设备/会话/连接维度的字段（sogacore: TestAliveIPWireBytes）。
 });
 
-it('L08-4 对照：真的有两个不同 IP 在用时，踢掉后来的那个是对的', function () {
+it('L08-4 对照：两个 IP 真的同时在用，现在也不踢 —— 停的是整个机制', function () {
     $node = l08Node();
     $user = User::factory()->create(['node_ip_limit' => 1, 'class' => 0]);
 
@@ -114,11 +114,13 @@ it('L08-4 对照：真的有两个不同 IP 在用时，踢掉后来的那个是
     $this->travel(60)->seconds();
     $r = l08Report($this, $node, l08Wire($user->id, ['203.0.113.1', '203.0.113.2']));
 
-    expect($r['blocked'][0]['ips'])->toBe(['203.0.113.2']);
+    // `[!!]` 即便是"两台设备真的同时在用"这种【本该限制】的情形，
+    //   现在也不踢 —— 停的是整个按 IP 踢人的机制，不是某个判据。
+    //   代价已知并接受：不带 device_id 的第三方客户端不受设备数约束，
+    //   那部分只剩流量配额兜着（docs/decisions/device-model.md）。
+    expect($r['blocked'])->toBe([]);
 
-    // `[!]` 有这条对照才说明问题出在【哪里】：
-    // 「先到先得」这个策略本身没错，错的是它分不清
-    // "旧 IP 还在用" 和 "旧 IP 只是还没过期"。
-    // 两种情况在 alive_ips 里长得一模一样，区别只在 last_seen，
-    // 而排序用的是 id。
+    // `[!]` 记录仍然照记 —— alive_ips 是"一个账号是不是被很多人共用"的唯一线索，
+    //   也是用户端"异常登录"展示的来源。只是不再据此踢人。
+    expect(AliveIp::where('user_id', $user->id)->count())->toBe(2);
 });

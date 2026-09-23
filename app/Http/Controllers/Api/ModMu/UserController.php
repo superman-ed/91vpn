@@ -81,10 +81,19 @@ class UserController extends Controller
 
         $count = $service->record($node, $logs);
 
-        $userIds = collect($logs)->pluck('user_id')->filter()->unique()->values()->all();
-        $blocked = $service->blockedIps($userIds);
-
-        return response()->json(['ret' => 1, 'count' => $count, 'blocked' => $blocked]);
+        // [decided 2026-09-23] 【不再按 IP 踢人】—— 额度改按设备算(DeviceService)。
+        //
+        // [!!] 按 IP 踢人两个方向都错:家里几台设备共出口只算 1 个(放过),
+        //   一台手机 Wi-Fi 切蜂窝算 2 个(误伤)。后者每天发生很多次,
+        //   而被踢的用户只看到"莫名其妙断了"。改排序只能减轻,改不了根子。
+        //
+        // [!] 代价说清楚:这一步之后,【不带 device_id 的第三方客户端完全不受设备数约束】
+        //   —— iOS/macOS 在自研客户端上线前都属于这一类。那部分用户的约束
+        //   只剩流量配额。这是有意接受的取舍,不是遗漏。见 docs/decisions/device-model.md。
+        //
+        // [!] alive_ips 【继续记录】:它仍是"一个账号是不是被很多人共用"的唯一线索,
+        //   也是用户端"异常登录"展示的来源。只是不再据此踢人。
+        return response()->json(['ret' => 1, 'count' => $count, 'blocked' => []]);
     }
 
     /** GET /mod_mu/func/ping —— 节点心跳(自研 agent 用) */
