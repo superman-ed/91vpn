@@ -1,5 +1,5 @@
 @extends('layouts.user')
-@section('title', '在线设备')
+@section("title", "我的设备")
 @section('head')
 <style>
 .dv-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
@@ -27,22 +27,59 @@
 @endsection
 @section('content')
 <div class="dv-bar">
-    <h4><i class="fas fa-laptop text-primary"></i> 在线设备</h4>
+    <h4><i class="fas fa-laptop text-primary"></i> 我的设备</h4>
     <span class="meta">
-        当前在线 <b>{{ $onlineCount }}</b> 台
-        @if($limit > 0)· 设备上限 <b class="{{ $onlineCount > $limit ? 'over' : '' }}">{{ $limit }}</b> 台@else· 不限设备数@endif
+        已登记 <b class="{{ $limit > 0 && $devices->count() > $limit ? 'over' : '' }}">{{ $devices->count() }}</b> 台
+        @if($limit > 0)· 套餐上限 <b>{{ $limit }}</b> 台@else· 不限设备数@endif
     </span>
 </div>
 
-<div class="card dv-panel">
+{{-- `[!!]` 上下两块【不是同一件事】，刻意分开显示：
+     上：设备（客户端上报的 device_id）—— 套餐上限管的就是这个
+     下：最近连接的 IP（节点上报）—— 只用来发现陌生归属地
+     此前这一页只有下面那块，标题却写「在线设备」、旁边挂着「设备上限」，
+     而那个上限自 e379f3a 起管的是上面这块。一台手机 Wi-Fi 切蜂窝
+     会在下面留两行、在上面始终是一台 —— 混在一起用户必然看错。 --}}
+<div class="card dv-panel mb-3">
     @if($devices->isEmpty())
-    <div class="dv-empty"><i class="fas fa-laptop-house fa-2x mb-2 d-block"></i>暂无在线设备<br><span style="font-size:12.5px">连接节点开始使用后，这里会显示正在使用你账号的设备。</span></div>
+    <div class="dv-empty"><i class="fas fa-mobile-alt fa-2x mb-2 d-block"></i>还没有登记的设备<br>
+        <span style="font-size:12.5px">用 91VPN 官方客户端（安卓 / Windows）登录后会自动登记。
+        用小火箭、Clash 等第三方客户端连接【不会】出现在这里，但同样可以正常使用。</span></div>
+    @else
+    <div class="table-responsive">
+        <table class="table dv-table">
+            <thead><tr><th>设备</th><th>平台</th><th>客户端版本</th><th>最近归属地</th><th>最近活跃</th></tr></thead>
+            <tbody>
+            @foreach($devices as $d)
+            <tr>
+                <td><span class="dv-dot"></span><b>{{ $d['name'] }}</b></td>
+                <td>{{ $d['platform'] }}</td>
+                <td class="text-muted">{{ $d['app_version'] }}</td>
+                <td>{{ $d['location'] }}</td>
+                <td class="text-muted">{{ $d['last_seen']?->diffForHumans() }}</td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+</div>
+
+<div class="dv-bar">
+    <h4><i class="fas fa-globe text-primary"></i> 最近连接的 IP</h4>
+    <span class="meta">{{ $ips->count() }} 个 · <span class="text-muted">不计入设备上限</span></span>
+</div>
+
+<div class="card dv-panel">
+    @if($ips->isEmpty())
+    <div class="dv-empty"><i class="fas fa-plug fa-2x mb-2 d-block"></i>暂无连接记录<br>
+        <span style="font-size:12.5px">连接节点开始使用后，这里会显示最近的接入 IP。</span></div>
     @else
     <div class="table-responsive">
         <table class="table dv-table">
             <thead><tr><th>IP 地址</th><th>归属地</th><th>接入节点</th><th>最近活跃</th></tr></thead>
             <tbody>
-            @foreach($devices as $d)
+            @foreach($ips as $d)
             <tr>
                 <td><span class="dv-dot"></span><span class="dv-ip">{{ $d['ip'] }}</span></td>
                 <td>{{ $d['location'] }}</td>
@@ -59,8 +96,9 @@
 <div class="dv-note">
     <span class="ic"><i class="fas fa-shield-alt"></i></span>
     <div>
-        <h6>发现不认识的设备？</h6>
-        <p>这里列出最近正在使用你账号的 IP。若出现陌生归属地，可能是账号或订阅被他人使用。到 <a href="/user/node">「节点设置」</a> <b>重置 UUID</b> 即可让所有旧设备立即失效，只有用新凭证的设备才能继续连接。设备数据由节点每分钟上报，断开后约 2 分钟自动消失。</p>
+        <h6>发现不认识的设备或归属地？</h6>
+        <p>到 <a href="/user/node">「节点设置」</a> <b>重置 UUID</b>，所有旧凭证立即失效，只有重新导入订阅的设备才能继续连接。
+        IP 记录由节点每分钟上报，断开后约 2 分钟自动消失；设备记录则会保留，超过 15 天没有连接的会在额度满时被自动回收。</p>
     </div>
 </div>
 @endsection
