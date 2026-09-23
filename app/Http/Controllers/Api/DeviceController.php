@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\DeviceLimitException;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Services\DeviceService;
 use Illuminate\Http\Request;
 
 /**
@@ -44,7 +46,7 @@ class DeviceController extends Controller
     }
 
     /** POST /api/device/report */
-    public function report(Request $request)
+    public function report(Request $request, DeviceService $devices)
     {
         $user = $request->user();   // 由 client.token 中间件注入
 
@@ -66,18 +68,19 @@ class DeviceController extends Controller
             }
         }
 
-        $device = Device::updateOrCreate(
-            ['user_id' => $user->id, 'device_id' => $data['device_id']],
-            [
-                'platform' => strtolower($data['platform'] ?? ''),
+        // 走统一准入:登记/刷新设备 + 按套餐设备数卡上限(超限且无陈旧设备可回收则拒绝)
+        try {
+            $device = $devices->admit($user, $data['device_id'], [
+                'platform' => $data['platform'] ?? '',
                 'brand' => $data['brand'] ?? '',
                 'model' => $data['model'] ?? '',
                 'os_version' => $data['os_version'] ?? '',
                 'app_version' => $data['app_version'] ?? '',
                 'ip' => $request->ip() ?? '',
-                'last_seen' => now(),
-            ],
-        );
+            ]);
+        } catch (DeviceLimitException $e) {
+            return response()->json(['ret' => 0, 'msg' => $e->getMessage()], 403);
+        }
 
         return response()->json(['ret' => 1, 'device' => $device->id]);
     }

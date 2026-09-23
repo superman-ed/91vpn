@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DeviceService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -11,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SubController extends Controller
 {
-    public function __construct(private SubscriptionService $subscription) {}
+    public function __construct(private SubscriptionService $subscription, private DeviceService $devices) {}
 
     /** GET /sub/{token} —— 公开订阅下发，按 ?flag= 或客户端 UA 选格式 */
     public function show(string $token, Request $request)
@@ -21,7 +22,17 @@ class SubController extends Controller
 
         $flag = $request->query('flag') ?: $this->detectFlag($request->userAgent());
 
+        // 设备准入:仅当客户端带 device_id 时按套餐设备数卡上限(不带则跳过,兼容第三方/旧端)。
+        // 超限抛 DeviceLimitException(RuntimeException)→ 与下方同一出口 403 + 提示文案。
+        $deviceId = trim((string) $request->query('device_id', ''));
+
         try {
+            if ($deviceId !== '') {
+                $this->devices->admit($user, $deviceId, [
+                    'platform' => $request->query('platform'),
+                    'ip' => $request->ip(),
+                ]);
+            }
             $body = $this->subscription->generate($user, $flag);
         } catch (RuntimeException $e) {
             abort(403, $e->getMessage());
