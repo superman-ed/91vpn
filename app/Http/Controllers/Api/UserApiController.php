@@ -40,9 +40,11 @@ class UserApiController extends Controller
             'uuid' => $u->uuid,
             'sub_token' => $u->invite_token,   // 客户端用它拼订阅 URL: /sub/{sub_token}
             'ref_code' => $u->ref_code,
-            // 设备
+            // 设备:限额已按设备(device_id),故客户端这个数用已注册设备数(与「我的设备」列表同口径),
+            // 不用 onlineDevices() 的在线 IP —— 否则未连节点时恒为 0、与限额/设备列表对不上。
+            // (web 仪表盘/admin 仍用 onlineDevices() 的在线 IP 口径,各自不同视角,互不影响。)
             'device_limit' => (int) $u->node_ip_limit,   // 0 = 不限
-            'online_devices' => $u->onlineDevices(),
+            'online_devices' => $u->devices()->count(),
         ];
     }
 }
