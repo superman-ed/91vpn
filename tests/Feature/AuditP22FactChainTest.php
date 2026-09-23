@@ -4,6 +4,7 @@ use App\Models\AliveIp;
 use App\Models\Node;
 use App\Models\User;
 use App\Services\AliveIpService;
+use App\Services\TrafficService;
 
 /**
  * 审计实验 P2-2 端到端事实链 —— 只做观察，不修复。
@@ -47,7 +48,12 @@ it('P22-A 同一出口 IP 后面的多台设备，只算一台', function () {
     expect(AliveIp::where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('P22-B 一台设备换了 IP，就变成两台 —— 而被踢下线的是【正在用的那个】', function () {
+// `[!!]` 本条【原本是在记录缺陷】：一台设备换 IP 变成两台，而被踢的是正在用的那个。
+// 2026-09-23 已修，断言随之翻转。保留作回归守卫。
+// `[!]` 前半截仍然成立且【没有修】：一台设备换 IP 确实会被算成两台 ——
+//   那是"量的是 IP 不是设备"的根本问题（清单 L-08），要靠按设备发凭据才解决。
+//   本次只修了"踢错人"。
+it('P22-B 一台设备换了 IP 仍会被算成两台，但踢掉的是【已经不在用的那个】', function () {
     $node = p22Node();
     $user = User::factory()->create(['node_ip_limit' => 1]);
     $svc = app(AliveIpService::class);
@@ -64,13 +70,13 @@ it('P22-B 一台设备换了 IP，就变成两台 —— 而被踢下线的是�
     $blocked = $svc->blockedIps([$user->id]);
     expect($blocked)->toHaveCount(1);
 
-    // `[!!]` 要害在这里：「先到先得」按 alive_ips.id 升序保留，
-    // 而 id 是【第一次见到这个 IP】时分配的。
-    // 于是保留下来的是已经不在用的 IP-A，被踢的是用户此刻真正在用的 IP-B。
-    expect($blocked[0]['ips'])->toBe(['203.0.113.2']);
-    expect($blocked[0]['ips'])->not->toBe(['203.0.113.1']);
+    // `[!!]` 曾经这里保留的是已经不在用的 IP-A、踢掉用户此刻真正在用的 IP-B ——
+    //   因为「先到先得」按 alive_ips.id 升序，而 id 是【第一次见到这个 IP】时分配的。
+    //   现在按 last_seen 倒序保留，踢掉的是 IP-A。
+    expect($blocked[0]['ips'])->toBe(['203.0.113.1']);
+    expect($blocked[0]['ips'])->not->toBe(['203.0.113.2']);
 
-    // 按 last_seen 排序就不会错 —— 两行的 last_seen 差了 60 秒，信息是有的
+    // 信息一直是有的 —— 两行的 last_seen 差了 60 秒，只是此前没拿它排序
     $rows = AliveIp::where('user_id', $user->id)->orderByDesc('last_seen')->pluck('ip');
     expect($rows->first())->toBe('203.0.113.2');
 });
@@ -99,7 +105,7 @@ it('P22-C 在线 IP 上报不做归属校验 —— 与流量上报的口径不�
     $banned = User::factory()->create(['banned' => true, 'class' => 0]);
 
     // 流量上报会拒收被封用户的记录（见 P11-B）
-    $n = app(\App\Services\TrafficService::class)->record($node, [
+    $n = app(TrafficService::class)->record($node, [
         ['user_id' => $banned->id, 'u' => 1000, 'd' => 1000],
     ]);
     expect($n)->toBe(0);

@@ -49,7 +49,11 @@ function l08Report(object $t, Node $node, string $body): array
     return $res->json();
 }
 
-it('L08-1 节点收到的 blocked 列表里，是用户【此刻正在用】的那个 IP', function () {
+// `[!!]` 本条【原本是在记录缺陷】：切换 IP 后被踢的是用户此刻正在用的那个。
+// 2026-09-23 已修（AliveIpService 改为按 last_seen 倒序保留），断言随之翻转 ——
+// 保留它作为回归守卫：改回「先到先得」这里就会红。
+// 旧结论见 git 历史与清单 L-08。
+it('L08-1 节点收到的 blocked 列表里，是用户【已经不在用】的那个 IP', function () {
     $node = l08Node();
     $user = User::factory()->create(['node_ip_limit' => 1, 'class' => 0]);
 
@@ -64,8 +68,8 @@ it('L08-1 节点收到的 blocked 列表里，是用户【此刻正在用】的�
     // `[!!]` 这就是节点【实际会去执行】的指令。
     expect($r2['blocked'])->toHaveCount(1);
     $ips = $r2['blocked'][0]['ips'] ?? [];
-    expect($ips)->toBe(['203.0.113.2']);       // 被踢的是当前正在用的
-    expect($ips)->not->toBe(['203.0.113.1']);  // 而已经不在用的被保留了
+    expect($ips)->toBe(['203.0.113.1']);       // 被踢的是已经不在用的旧 IP
+    expect($ips)->not->toBe(['203.0.113.2']);  // 当前正在用的那个被保留
 });
 
 it('L08-2 用户面板上那个数字，同一时刻显示「2 台设备」', function () {
