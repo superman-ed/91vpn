@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DailyTraffic;
 use App\Models\SubscribeLog;
+use App\Support\ClientLinks;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -82,7 +83,9 @@ class NodeApiController extends Controller
             'uuid' => $user->uuid,
             'passwd' => $user->passwd,
             'sub_token' => $user->invite_token,
-            'sub_url' => url('/sub/'.$user->invite_token),
+            // `[!]` 与网页端共用同一处构造(ClientLinks::subUrl) —— 订阅域名可与面板
+            //   域名分离,两边各拼一次必然有一天对不上。
+            'sub_url' => ClientLinks::subUrl($user),
         ];
     }
 }

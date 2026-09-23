@@ -175,6 +175,11 @@ it('首页:有问题时显示自检,全绿时不显示', function () {
         \Cache::forever("task_hb:{$sig}", ['at' => now()->timestamp, 'ok' => true]);
     }
     rdBackupOk();   // 同理：测试里没有备份记录，而"从来没备过"是 bad
+    // 订阅域名：与面板同域是 warn —— 全绿要求它单独一个域
+    // `[!]` 这一项 2026-09-23 加入。理由与入口域名同源:订阅 URL 嵌在每个用户的
+    //   客户端里,面板域名被封时订阅会一起失效,而改它要全员重新导入。
+    config(['app.url' => 'https://app.example.com', 'app.sub_url_base' => 'https://sub.other.net']);
+
     // 入口域名：没配是 warn，配了同域是 bad —— 全绿要求配一个【不同注册域】的
     $edNode = rdNode();
     \App\Models\EntryDomain::create([

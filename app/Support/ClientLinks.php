@@ -7,13 +7,31 @@ use App\Models\User;
 class ClientLinks
 {
     /**
+     * 订阅链接（唯一来源，别再各处 url('/sub/…')）。
+     *
+     * `[!!]` 订阅域名与面板域名【应当分开】：订阅 URL 是每个用户的客户端每天都要
+     * 访问的东西，同域意味着面板域名被封时用户连订阅也拉不了 —— 换不了节点、
+     * 加不了设备。`[D]` 对照 91jcdy：`sub.91jcdy.com` 专用域名 + WAF，主域不解析。
+     *
+     * `[!]` 留空则回退 `url()`（跟随 APP_URL），与分离之前行为完全一致。
+     */
+    public static function subUrl(User $user): string
+    {
+        $base = rtrim((string) config('app.sub_url_base'), '/');
+
+        return $base !== ''
+            ? $base.'/sub/'.$user->invite_token
+            : url('/sub/'.$user->invite_token);
+    }
+
+    /**
      * 构造某用户的订阅链接、各客户端导入 scheme/URL 与二维码、各格式链接。
      *
      * @return array{subUrl:string, clashScheme:string, clients:array, formatLinks:array}
      */
     public static function for(User $user): array
     {
-        $subUrl = url('/sub/'.$user->invite_token);
+        $subUrl = self::subUrl($user);
         $enc = urlencode($subUrl);
 
         $clients = [

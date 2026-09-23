@@ -2,8 +2,15 @@
 
 namespace App\Services;
 
+use App\Console\Commands\RecordBackup;
+use App\Models\EntryDomain;
 use App\Models\Node;
+use App\Models\Order;
 use App\Models\Plan;
+use App\Models\Recharge;
+use App\Providers\AppServiceProvider;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * 上线自检：一个新注册的用户，现在能不能真的用起来。
@@ -22,7 +29,7 @@ class ServiceReadiness
 {
     /**
      * @return array<int,array{level:string,title:string,detail:string,fix:?string}>
-     *   level: ok | warn | bad
+     *                                                                               level: ok | warn | bad
      */
     public function check(): array
     {
@@ -60,7 +67,7 @@ class ServiceReadiness
         // `[!!]` CNAME 标签也要查。门牌换了域名、标签还留在面板主域上，
         // 等于没分离 —— 封的是【可注册域】，整条 CNAME 链一起死。
         $offenders = [];
-        foreach (\App\Models\EntryDomain::where('status', 'active')->get() as $d) {
+        foreach (EntryDomain::where('status', 'active')->get() as $d) {
             foreach (array_filter([(string) $d->domain, (string) $d->cname_target]) as $host) {
                 if ($this->registrable($host) === $panel) {
                     $offenders[] = $host;
@@ -78,7 +85,7 @@ class ServiceReadiness
                 '/admin/entry-domains');
         }
 
-        $n = \App\Models\EntryDomain::where('status', 'active')->count();
+        $n = EntryDomain::where('status', 'active')->count();
 
         return $n === 0
             ? $this->x('warn', '入口域名', '还没有启用中的入口域名 —— 订阅目前发的是节点裸 IP，'
@@ -140,8 +147,8 @@ class ServiceReadiness
      */
     private function backup(): array
     {
-        $hb = \Illuminate\Support\Facades\Cache::get(
-            \App\Console\Commands\RecordBackup::KEY, []
+        $hb = Cache::get(
+            RecordBackup::KEY, []
         );
         $lastOk = $hb['last_ok_at'] ?? null;
 
@@ -154,7 +161,7 @@ class ServiceReadiness
         // 时间相关的判据就没法写测试。本项目在 LayerHealth 上已经栽过一次
         // （判据见 ROUND-2026-09 P1-2），这里不重复。
         $ageH = (int) floor((now()->timestamp - (int) $lastOk) / 3600);
-        $when = \Illuminate\Support\Carbon::createFromTimestamp($lastOk)->format('m-d H:i');
+        $when = Carbon::createFromTimestamp($lastOk)->format('m-d H:i');
 
         if (($hb['status'] ?? 'ok') === 'fail') {
             return $this->x('bad', '备份',
@@ -186,10 +193,10 @@ class ServiceReadiness
      */
     private function scheduler(): array
     {
-        $tasks = \App\Providers\AppServiceProvider::WATCHED_TASKS;
+        $tasks = AppServiceProvider::WATCHED_TASKS;
         $never = $stale = [];
         foreach ($tasks as $sig) {
-            $hb = \Illuminate\Support\Facades\Cache::get("task_hb:{$sig}");
+            $hb = Cache::get("task_hb:{$sig}");
             if (! isset($hb['at'])) {
                 $never[] = $sig;
 
@@ -309,8 +316,8 @@ class ServiceReadiness
                 '/admin/settings');
         }
 
-        $real = \App\Models\Order::where('status', 'paid')->whereNotNull('trade_no')->exists()
-            || \App\Models\Recharge::where('status', 'paid')->whereNotNull('trade_no')->exists();
+        $real = Order::where('status', 'paid')->whereNotNull('trade_no')->exists()
+            || Recharge::where('status', 'paid')->whereNotNull('trade_no')->exists();
 
         return $real
             ? $this->x('ok', '支付', '已对接，且有过带网关交易号的真实支付')
@@ -320,10 +327,14 @@ class ServiceReadiness
                 '/admin/settings');
     }
 
-    /** [!] 订阅链接由 APP_URL 派生。填成 localhost 的话，发出去的订阅客户端打不开。 */
+    /**
+     * [!] 订阅链接:优先 SUB_URL_BASE,留空则由 APP_URL 派生。
+     * 填成 localhost 的话,发出去的订阅客户端打不开。
+     */
     private function subUrl(): array
     {
-        $url = (string) config('app.url');
+        $base = rtrim((string) config('app.sub_url_base'), '/');
+        $url = $base !== '' ? $base : (string) config('app.url');
         if ($url === '' || str_contains($url, 'localhost') || str_contains($url, '127.0.0.1')) {
             return $this->x('bad', '订阅地址',
                 "APP_URL 现在是 {$url} —— 用户拿到的订阅链接会指向这个地址，客户端打不开。"
@@ -335,7 +346,35 @@ class ServiceReadiness
                 .'变了之后所有人的订阅和所有节点会同时失效', null);
         }
 
+        // `[!!]` 订阅域名与面板域名【应当分开】。订阅 URL 是每个用户的客户端每天
+        //   都要访问的东西 —— 同域时,面板域名一旦被封或被污染,用户不只是打不开
+        //   网页,是【连订阅也拉不了】:换不了节点、加不了新设备。
+        // `[!!]` 而订阅 URL 一旦发出去就【收不回来】(嵌在每个人的客户端配置里),
+        //   所以这件事要在没有用户时定下来 —— 因此只报 warn 不报 bad:
+        //   它不影响现在能不能用,只影响以后改起来贵不贵。
+        $panelHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: '';
+        $subHost = parse_url($url, PHP_URL_HOST) ?: '';
+        if ($panelHost !== '' && $subHost !== '' && $this->sameRegistrable($panelHost, $subHost)) {
+            return $this->x('warn', '订阅地址',
+                "{$url} —— 与面板同一个可注册域。面板域名被封时订阅会一起失效，"
+                .'而订阅链接已嵌在每个用户的客户端里、改一次要全员重新导入。'
+                .'现在没有付费用户，是改这件事最便宜的时刻：.env 里配 SUB_URL_BASE',
+                null);
+        }
+
         return $this->x('ok', '订阅地址', $url);
+    }
+
+    /** 两个主机名是否属于同一个可注册域（粗略取末两段，够用于"有没有分开"这个判断）。 */
+    private function sameRegistrable(string $a, string $b): bool
+    {
+        $tail = function (string $h): string {
+            $p = explode('.', mb_strtolower(trim($h, '.')));
+
+            return implode('.', array_slice($p, -2));
+        };
+
+        return $tail($a) === $tail($b);
     }
 
     private function x(string $level, string $title, string $detail, ?string $fix = null): array

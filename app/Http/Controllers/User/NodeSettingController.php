@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Support\ClientLinks;
 use Illuminate\Support\Str;
 
 class NodeSettingController extends Controller
@@ -14,7 +15,9 @@ class NodeSettingController extends Controller
 
         return view('user.node', [
             'user' => $user,
-            'subUrl' => url('/sub/'.$user->invite_token),
+            // `[!]` 统一走 ClientLinks::subUrl —— 订阅域名可与面板域名分离,
+            //   各处自己拼必然有一天对不上(本行就是第三处)。
+            'subUrl' => ClientLinks::subUrl($user),
         ]);
     }
 
