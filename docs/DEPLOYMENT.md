@@ -179,6 +179,35 @@ destprobe -vps <节点IP> -d 30s <候选…>     # 可选：深度探测，必�
 
 ---
 
+## 3b. `[!!]` 换服务器时 DNS 不用动
+
+`[S]` `cloudflared` 用 token 认身份（`tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}`），
+而 DNS 指向的是 `<隧道ID>.cfargotunnel.com` —— **不是服务器 IP**。
+所以**哪台机器拿着那个 token，它就是隧道的出口**。
+
+```
+不用动   所有 DNS 记录（面板 / 后台 / 订阅）
+         Tunnel 里的 public hostnames
+要做     ① CLOUDFLARE_TUNNEL_TOKEN 原样搬到新机器的 .env
+         ② 恢复数据库
+         ③ 重建 agent 与 destprobe 二进制到 public/agent/v1（不在 git 里）
+         ④ 轮换节点密钥（旧机器上的一律视为已泄露）
+         ⑤ 【关掉旧机器的 cloudflared】
+```
+
+`[!!]` **⑤ 最容易忘，而它的表现很怪：** 同一个 token 跑在两台机器上时，
+Cloudflare 会把请求**在两边分流** —— 一半用户打到新机器、一半打到还带着旧数据的老机器。
+**不报错，只是行为随机。** 迁移期间务必确认只有一边在跑。
+
+`[!]` **入口域名是例外。** `hk1.<入口域>` 是**灰云 A 记录直指节点 IP**
+（代理流量必须直连节点，不能走隧道），换节点机器时必须改那条 A 记录。
+但那是节点，不是面板 —— 两者本来就该是不同的机器（见 §0）。
+
+`[i]` 换个说法：**面板的"地址"是隧道，节点的"地址"是 IP。**
+前者搬机器不用改 DNS，后者必须改。
+
+---
+
 ## 4. 上线前必做
 
 按 `docs/LAUNCH-CHECKLIST.md` 走。搬机器时**额外**要做的：
