@@ -57,5 +57,12 @@ tinker · db:seed · migrate:fresh · migrate:refresh · migrate:reset · db:wip
 
 确实要动生产：`REPRO_ALLOW_REAL=1` 再执行，或 `tools/repro --real`。
 
+## 部署到新服务器
+
+看 **`docs/DEPLOYMENT.md`** —— 从空机器到「面板可登录、节点可连接、备份在跑」。
+
+`[!!]` 两个最容易踩的：**不要跑 `db:seed`**（会造出 `admin`/`password` 这个默认管理员），
+**入口域名的 DNS 必须关掉 Cloudflare 小黄云**（开着的话域名能解析但连不上）。
+
 ## 文档
 设计文档与实现计划见 `docs/superpowers/`。
