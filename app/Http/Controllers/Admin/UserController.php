@@ -177,13 +177,41 @@ class UserController extends Controller
         return back()->with('status', "已重置 {$user->ident()} 的已用流量");
     }
 
-    /** 重置登录密码 */
+    /**
+     * 重置登录密码 —— 同时吊销该账号的全部登录凭据。
+     *
+     * `[!!]` 只改 password 是【没有用的】。客户端 API 认的是
+     * DeviceToken.token 或 users.api_token(见 ClientToken 中间件),两者与密码
+     * 【完全无关】且是长效的 —— 2026-09-24 实测:改完密码之后,
+     * 原有的设备 token、账号 token、订阅链接【三者全部仍然可用】。
+     * 而管理员按下这个按钮的场景几乎只有两个:用户丢了密码,或者账号被盗。
+     * 后者正是要切断已经拿到凭据的人。
+     *
+     * `[!!]` 但要说清它【切不断什么】:代理访问靠的是 uuid,不是这些 token。
+     * 账号被盗时正确的动作是【封禁】(NodeUserService 筛 banned=false,
+     * 下一个轮询周期内该用户会从所有节点的用户名单里消失)或让用户重置 UUID。
+     * 本方法只负责"登录凭据"这一层 —— 不把这一点写出来,修完仍是虚假的安全感。
+     *
+     * `[!]` 订阅 token(invite_token)刻意【不动】:换掉它会让用户必须重新导入
+     * 订阅,那是独立的、用户自己有入口的动作(/user/node/reset-sub),
+     * 不该被一次密码重置顺带触发。
+     */
     public function resetPassword(Request $request, User $user)
     {
         $data = $request->validate(['password' => ['required', 'string', 'min:8']]);
-        $user->update(['password' => Hash::make($data['password'])]);
-        audit('user.reset_password', "重置 {$user->ident()} 登录密码", $user);
 
-        return back()->with('status', "已重置 {$user->ident()} 的登录密码");
+        $revoked = \App\Models\DeviceToken::where('user_id', $user->id)->count();
+        $user->update([
+            'password' => Hash::make($data['password']),
+            'api_token' => \Illuminate\Support\Str::random(60),   // 账号级长效 token 一并换掉
+        ]);
+        \App\Models\DeviceToken::where('user_id', $user->id)->delete();
+
+        audit('user.reset_password',
+            "重置 {$user->ident()} 登录密码，并吊销其全部登录凭据（设备 token {$revoked} 个 + 账号 token）", $user);
+
+        return back()->with('status',
+            "已重置 {$user->ident()} 的登录密码，并吊销 {$revoked} 个已登录设备。"
+            .'注意：这不影响代理连接（那靠 UUID）——账号被盗请改用「封禁」');
     }
 }
