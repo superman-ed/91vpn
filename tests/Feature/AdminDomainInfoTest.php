@@ -20,7 +20,9 @@ function adiAdmin(): User
 it('显示三个地址，并标出订阅是否与面板分开', function () {
     config(['app.url' => 'https://app.example.com', 'app.sub_url_base' => 'https://sub.other.net']);
 
-    $html = $this->actingAs(adiAdmin())->get('/admin/settings')->assertOk()->getContent();
+    // `[!]` app.url 设成真域名后,WebOnOfficialHost 会把非 canonical host 的网页请求跳走,
+    //   所以后台页要走 canonical host(否则 test 默认 localhost 会被 302)。
+    $html = $this->actingAs(adiAdmin())->get(config('app.url').'/admin/settings')->assertOk()->getContent();
 
     expect($html)->toContain('域名与地址');
     expect($html)->toContain('https://app.example.com');
@@ -31,7 +33,7 @@ it('显示三个地址，并标出订阅是否与面板分开', function () {
 it('未单独配置时显示回退提示', function () {
     config(['app.url' => 'https://app.example.com', 'app.sub_url_base' => '']);
 
-    $html = $this->actingAs(adiAdmin())->get('/admin/settings')->assertOk()->getContent();
+    $html = $this->actingAs(adiAdmin())->get(config('app.url').'/admin/settings')->assertOk()->getContent();
 
     expect($html)->toContain('跟随面板域名');
     expect($html)->toContain('最便宜的时刻');   // 提示要说明"现在改最便宜"

@@ -195,7 +195,10 @@ it('从来没备份过时，blockers 会多算一项', function () {
 it('首页:有问题时显示自检,全绿时不显示', function () {
     $admin = User::factory()->create(['is_admin' => true]);
 
-    $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('上线自检');
+    // `[!]` beforeEach 把 app.url 设成了真域名(app.example.com)来测域名自检,
+    //   而 WebOnOfficialHost 会把非 canonical host 的网页请求 302 跳走 ——
+    //   所以后台页要走 canonical host(否则 test 默认 localhost 会被跳)。
+    $this->actingAs($admin)->get(config('app.url').'/admin')->assertOk()->assertSee('上线自检');
 
     // 把所有 bad 都补齐
     rdNode();
@@ -229,7 +232,7 @@ it('首页:有问题时显示自检,全绿时不显示', function () {
         'pay_method' => 'epay', 'trade_no' => 'GW-GREEN-1', 'paid_at' => now(),
     ]);
 
-    $this->actingAs($admin)->get('/admin')->assertOk()->assertDontSee('上线自检');
+    $this->actingAs($admin)->get(config('app.url').'/admin')->assertOk()->assertDontSee('上线自检');
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -297,7 +300,7 @@ it('只配工单不算 —— 工单要登录，而站在这里的人正是登�
 it('登录页给得出联系方式，而不是只写一句"请联系客服"', function () {
     \App\Models\Setting::put('support_tg', 'https://t.me/mysupport');
 
-    $html = $this->get('/login')->assertOk()->getContent();
+    $html = $this->get(config('app.url').'/login')->assertOk()->getContent();
     expect($html)->toContain('https://t.me/mysupport');
     // 客服挂件也要出现在未登录页上
     expect($html)->toContain('联系客服');
@@ -306,12 +309,12 @@ it('登录页给得出联系方式，而不是只写一句"请联系客服"', fu
 it('未登录时客服面板不给「提交工单」—— 那是个死循环', function () {
     \App\Models\Setting::put('support_tg', 'https://t.me/mysupport');
 
-    $guest = $this->get('/login')->assertOk()->getContent();
+    $guest = $this->get(config('app.url').'/login')->assertOk()->getContent();
     expect($guest)->not->toContain('/user/ticket');
 
     // 对照：登录后是给的
     $u = User::factory()->create();
-    $in = $this->actingAs($u)->get('/user')->assertOk()->getContent();
+    $in = $this->actingAs($u)->get(config('app.url').'/user')->assertOk()->getContent();
     expect($in)->toContain('/user/ticket');
 });
 

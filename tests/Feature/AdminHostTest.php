@@ -50,9 +50,12 @@ it('主机名大小写不敏感', function () {
         ->get('http://ADMIN.example.test/admin')->assertOk();
 });
 
-// 用户面和节点端点不受影响 —— 它们本来就该在任何主机名上可用。
-it('用户页与节点端点不受主机名限制', function () {
-    config(['app.admin_host' => 'admin.example.test']);
+// AdminHost 只挡 /admin/*，不该碰用户页。
+// `[!]` 这条守的是 AdminHost；用户【网页】能在哪个 host 打开是 WebOnOfficialHost 的事
+//   (它把非官网域的网页跳回官网域)。所以让 app.example.test 当官网(用户面)域,
+//   验配了 ADMIN_HOST 后 AdminHost 仍不拦用户面的 /login。
+it('用户页不受后台主机名限制', function () {
+    config(['app.admin_host' => 'admin.example.test', 'app.url' => 'http://app.example.test']);
 
     $this->get('http://app.example.test/login')->assertOk();
 });

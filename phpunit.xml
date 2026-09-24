@@ -24,6 +24,13 @@
              一起 404。踩过一次:.env 里刚配上 summer.91app.shop,131 个用例当场变红。
              需要验主机名保护的用例自己 config(['app.admin_host' => ...]) 就行。 -->
         <env name="ADMIN_HOST" value=""/>
+        <!-- [!!] 测试里 APP_URL 必须中性化成 localhost。它是 WebOnOfficialHost 的
+             canonical host —— 一旦是真域名(91vpn.com),测试默认 host=localhost
+             就 ≠ canonical,【所有朴素路径的网页用例】(->get('/login') 等)当场被
+             302 跳回官网。踩过一次:f4b3c95 加中间件没同步改这里,154 个用例变红。
+             需要验官网/非官网域行为的用例自己 config(['app.url' => ...]) 就行
+             (见 ExampleTest、NoindexHostTest)。 -->
+        <env name="APP_URL" value="http://localhost"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
