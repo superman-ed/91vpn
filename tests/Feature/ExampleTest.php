@@ -21,7 +21,7 @@ it('renders real plans (grouped, with duration toggle), regions and downloads', 
         'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 's', 'role' => 'landing', 'enabled' => true]);
     ClientDownload::create(['platform' => 'Android', 'label' => '安卓版', 'url' => 'https://x.example/app.apk', 'enabled' => true, 'sort' => 1]);
 
-    $this->get('/')->assertOk()
+    $this->get(config('app.url').'/')->assertOk()       // 落地页只在官网域(APP_URL host)出
         ->assertSee('VIP①')                             // 套餐名
         ->assertSee('data-price="19"', false)           // 首个时长价(切换按钮的数据)
         ->assertSee('1月', false)->assertSee('12月', false)  // 时长切换按钮
@@ -31,13 +31,20 @@ it('renders real plans (grouped, with duration toggle), regions and downloads', 
 });
 
 it('shows fallbacks when no data is configured', function () {
-    $this->get('/')->assertOk()
+    $this->get(config('app.url').'/')->assertOk()
         ->assertSee('套餐即将上线')                       // 无在售套餐
         ->assertSee('香港');                             // 无节点 → 回落地区清单
 });
 
 it('redirects authenticated users from / to dashboard', function () {
     $this->actingAs(User::factory()->create())->get('/')->assertRedirect('/user');
+});
+
+it('serves the landing only on the official host; other hosts go to login', function () {
+    config(['app.url' => 'https://91vpn.com']);
+    // 面板/API 域(非官网 host)根路径 → 登录,不显示落地页(官网只此一个)
+    $this->get('http://app.91app.shop/')->assertRedirect('/login');
+    $this->get('http://sub.91app.shop/')->assertRedirect('/login');
 });
 
 it('serves legal placeholder pages', function () {
@@ -75,7 +82,7 @@ it('landing og image and legal content come from settings', function () {
     \App\Models\Setting::put('og_image', 'https://cdn.example/og-real.png');
     \App\Models\Setting::put('terms_content', "第一条 测试条款\n第二条 xyz");
 
-    $this->get('/')->assertOk()->assertSee('https://cdn.example/og-real.png', false);
+    $this->get(config('app.url').'/')->assertOk()->assertSee('https://cdn.example/og-real.png', false);
     $this->get('/terms')->assertOk()->assertSee('第一条 测试条款')->assertDontSee('本页内容整理中');
     $this->get('/refund')->assertOk()->assertSee('本页内容整理中');   // 未设 → 兜底
 });
