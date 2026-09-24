@@ -3,6 +3,8 @@
     $supportWidget = setting('support_widget', '');
     $supportTg = setting('support_tg', '');
     $supportGroup = setting('support_group', '');
+    $supportEmail = setting('support_email', '');
+    $supportQq = setting('support_qq', '');
     $supportHours = setting('support_hours', '');
     $csUser = auth()->user();
     // `[!!]` 这个挂件现在也会渲染在登录页上(layouts/guest)——
@@ -57,6 +59,19 @@
                     <i class="fas fa-chevron-right cs-arr"></i>
                 </a>
                 @endif
+                @if($supportEmail)
+                <a class="cs-item" href="mailto:{{ $supportEmail }}">
+                    <span class="cs-ic" style="background:#fff1f0;color:#d8442a"><i class="fas fa-envelope"></i></span>
+                    <span class="cs-txt"><b>邮件客服</b><small>{{ $supportEmail }} · 无需代理，连不上时也能联系</small></span>
+                    <i class="fas fa-chevron-right cs-arr"></i>
+                </a>
+                @endif
+                @if($supportQq)
+                <div class="cs-item" style="cursor:default">
+                    <span class="cs-ic" style="background:#eaf4ff;color:#12b7f5"><i class="fab fa-qq"></i></span>
+                    <span class="cs-txt"><b>QQ 客服</b><small>{{ $supportQq }}</small></span>
+                </div>
+                @endif
                 @unless($csGuest)
                 <a class="cs-item" href="/user/ticket">
                     <span class="cs-ic" style="background:#f0edff;color:#6777ef"><i class="fas fa-ticket-alt"></i></span>
@@ -65,7 +80,7 @@
                 </a>
                 @endunless
             </div>
-            @if(! $supportTg && ! $supportGroup)
+            @if(! $supportTg && ! $supportGroup && ! $supportEmail && ! $supportQq)
             {{-- `[!]` 未登录时不能说"请通过工单联系"——工单要登录,
                  而站在这里的人正是登不进去的那个。 --}}
             <div class="cs-foot">{{ $csGuest

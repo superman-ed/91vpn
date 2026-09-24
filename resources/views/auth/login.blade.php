@@ -27,13 +27,20 @@
         <div class="custom-control custom-checkbox"><input type="checkbox" name="remember" class="custom-control-input" id="remember"><label class="custom-control-label" for="remember" style="font-weight:500;color:#7a869a">记住我</label></div>
     </div>
     <button class="btn btn-auth btn-block mb-3"><i class="fas fa-sign-in-alt"></i> 登 录</button>
-    @php $csLink = setting('support_tg', '') ?: setting('support_group', ''); @endphp
-    {{-- `[!]` 这句话此前是纯文本:告诉用户"去联系客服",却不给任何联系方式。
-         右下角的挂件是一条路,这里再给一条直达链接 ——
-         两条互不依赖(挂件在 Crisp/第三方模式下没有 csToggle 可调)。 --}}
+    @php
+        $csEmail = setting('support_email', '');
+        $csQq = setting('support_qq', '');
+        $csTg = setting('support_tg', '') ?: setting('support_group', '');
+    @endphp
+    {{-- `[!]` 站在登录页的人正是【登不进去】的那批 —— 忘密码只能靠客服。
+         优先给国内可达、无需代理的邮箱/QQ(TG 要代理,他们恰恰连不上);都没有再回退右下角挂件。 --}}
     <div class="auth-links">
-        @if($csLink)
-            忘记密码请 <a href="{{ $csLink }}" target="_blank" rel="noopener">联系在线客服</a>
+        @if($csEmail)
+            忘记密码请邮件联系 <a href="mailto:{{ $csEmail }}">{{ $csEmail }}</a>@if($csQq) · QQ {{ $csQq }}@endif
+        @elseif($csQq)
+            忘记密码请联系客服 QQ {{ $csQq }}
+        @elseif($csTg)
+            忘记密码请 <a href="{{ $csTg }}" target="_blank" rel="noopener">联系在线客服</a>
         @else
             <span style="color:#9a9aa0">忘记密码请点右下角联系客服</span>
         @endif

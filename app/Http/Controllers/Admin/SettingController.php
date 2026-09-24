@@ -27,6 +27,8 @@ class SettingController extends Controller
             'smtpFromName' => setting('smtp_from_name', '91VPN'),
             'supportTg' => setting('support_tg', ''),
             'supportGroup' => setting('support_group', ''),
+            'supportEmail' => setting('support_email', ''),
+            'supportQq' => setting('support_qq', ''),
             'supportHours' => setting('support_hours', ''),
             'crispWebsiteId' => setting('crisp_website_id', ''),
             'crispBindIdentity' => setting('crisp_bind_identity', '0') === '1',
@@ -58,6 +60,8 @@ class SettingController extends Controller
             'smtp_from_name' => ['nullable', 'string', 'max:64'],
             'support_tg' => ['nullable', 'string', 'max:255'],
             'support_group' => ['nullable', 'string', 'max:255'],
+            'support_email' => ['nullable', 'email', 'max:255'],
+            'support_qq' => ['nullable', 'string', 'max:64'],
             'support_hours' => ['nullable', 'string', 'max:128'],
             'crisp_website_id' => ['nullable', 'string', 'regex:/^[0-9a-f-]{36}$/i', 'max:36'],
             'support_widget' => ['nullable', 'string', 'max:8000'],
@@ -84,6 +88,8 @@ class SettingController extends Controller
         Setting::put('smtp_from_name', $data['smtp_from_name'] ?? '91VPN');
         Setting::put('support_tg', $data['support_tg'] ?? '');
         Setting::put('support_group', $data['support_group'] ?? '');
+        Setting::put('support_email', $data['support_email'] ?? '');
+        Setting::put('support_qq', $data['support_qq'] ?? '');
         Setting::put('support_hours', $data['support_hours'] ?? '');
         Setting::put('crisp_website_id', $data['crisp_website_id'] ?? '');
         Setting::put('crisp_bind_identity', $request->boolean('crisp_bind_identity') ? '1' : '0');

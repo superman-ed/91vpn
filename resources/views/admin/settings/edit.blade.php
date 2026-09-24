@@ -145,6 +145,8 @@
                 <div class="row">
                     <div class="form-group col-md-6"><label>Telegram 客服链接</label><input name="support_tg" value="{{ old('support_tg', $supportTg) }}" class="form-control" placeholder="https://t.me/your_support"><small class="text-muted">留空则面板不显示该入口。</small></div>
                     <div class="form-group col-md-6"><label>客服群 / 交流群链接</label><input name="support_group" value="{{ old('support_group', $supportGroup) }}" class="form-control" placeholder="https://t.me/your_group"></div>
+                    <div class="form-group col-md-6"><label>客服邮箱</label><input name="support_email" value="{{ old('support_email', $supportEmail) }}" class="form-control" placeholder="support@yourdomain.com"><small class="text-muted">国内可达、无需代理。找回密码/连不上时的兜底联系方式,强烈建议填。</small></div>
+                    <div class="form-group col-md-6"><label>客服 QQ（选填）</label><input name="support_qq" value="{{ old('support_qq', $supportQq) }}" class="form-control" placeholder="例：800123456 或 QQ群号"></div>
                     <div class="form-group col-md-12"><label>在线时段（选填）</label><input name="support_hours" value="{{ old('support_hours', $supportHours) }}" class="form-control" placeholder="例：每日 10:00 - 24:00 在线，其余时段请提交工单"></div>
                 </div>
                 <hr style="margin:6px 0 18px;border-color:#eef1f8">
