@@ -364,14 +364,33 @@ class ServiceReadiness
         // `[!!]` 而订阅 URL 一旦发出去就【收不回来】(嵌在每个人的客户端配置里),
         //   所以这件事要在没有用户时定下来 —— 因此只报 warn 不报 bad:
         //   它不影响现在能不能用,只影响以后改起来贵不贵。
+        // `[!!]` 2026-09-24:这一项的建议改过一次。原文写的是"去 .env 配 SUB_URL_BASE",
+        //   但 SUB_URL_BASE 配好之后它照样 warn(sub.91app.shop 与 app.91app.shop
+        //   仍是同一个可注册域),于是建议变成了一句【做完也不会消失的指令】——
+        //   自检里最坏的一种文案:照着做了还红着,下次就没人信它了。
+        //   现在分两种情形说话,并且说清代价。
+        // `[!!]` 代价不对称,这是 2026-09-24 查 routes/api.php 才发现的:
+        //   客户端要调 /auth/login /plans /order/*/pay 等等,【面板域名写死在
+        //   每个已装的客户端二进制里】—— 搬面板要发新版+全员升级;
+        //   搬订阅只要用户重新导入一次。所以真要分开时,搬的是订阅不是面板。
+        // `[D]` 已决定接受本项 warn(见 docs/decisions/domain-allocation.md):
+        //   面板与订阅同域,换来的是客户端与节点都不用动。
         $panelHost = parse_url($panel, PHP_URL_HOST) ?: '';
         $subHost = parse_url($url, PHP_URL_HOST) ?: '';
         if ($panelHost !== '' && $subHost !== '' && $this->sameRegistrable($panelHost, $subHost)) {
+            $configured = $base !== '';
+
             return $this->x('warn', '订阅地址',
-                "{$url} —— 与面板同一个可注册域。面板域名被封时订阅会一起失效，"
-                .'而订阅链接已嵌在每个用户的客户端里、改一次要全员重新导入。'
-                .'现在没有付费用户，是改这件事最便宜的时刻：.env 里配 SUB_URL_BASE',
-                null);
+                "{$url} —— 与面板（{$panelHost}）同一个可注册域。"
+                .'面板域名被封时订阅会一起失效：用户不只是打不开网页，是连订阅也拉不了，'
+                .'换不了节点、加不了新设备。',
+                $configured
+                    // 已经配了独立的订阅地址,只是还在同一个注册域 —— 别再叫人去配 SUB_URL_BASE
+                    ? '已是独立子域，但仍在同一注册域。要真正分开，把 SUB_URL_BASE 换成'
+                      .'另一个注册域下的主机名（代价：用户重新导入一次订阅）。'
+                      .'注意别反过来搬面板 —— 面板域名写死在已发出的客户端二进制里，那要发新版。'
+                      .'已知并接受时见 docs/decisions/domain-allocation.md'
+                    : '.env 里配 SUB_URL_BASE，指向另一个注册域下的主机名');
         }
 
         return $this->x('ok', '订阅地址', $url);

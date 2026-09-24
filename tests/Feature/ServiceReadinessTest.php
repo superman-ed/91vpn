@@ -125,6 +125,41 @@ it('APP_URL 指向 trycloudflare 临时域名时报 warn', function () {
     expect($r['detail'])->toContain('每次隧道重启都会变');
 });
 
+// `[!!]` 自检最坏的一种文案:照着做了还红着。原文在「订阅与面板同域」这一项里
+//   写的建议是"去 .env 配 SUB_URL_BASE",可 SUB_URL_BASE 配好之后它照样 warn
+//   —— 因为 sub.x.com 与 app.x.com 仍是同一个可注册域。这两条钉住:
+//   配了就别再叫人去配,没配才叫。
+it('订阅已配独立子域但仍同注册域时，不再叫人去配 SUB_URL_BASE', function () {
+    config([
+        'app.url' => 'https://app.example.com',
+        'app.sub_url_base' => 'https://sub.example.com',
+    ]);
+
+    $r = rd()['订阅地址'];
+    expect($r['level'])->toBe('warn');
+    expect($r['detail'])->toContain('同一个可注册域');
+    // 建议必须承认"已经配过了",而不是重复一句做完也不消失的指令
+    expect($r['fix'])->toContain('已是独立子域');
+    expect($r['fix'])->not->toContain('.env 里配 SUB_URL_BASE');
+    // 并且要指明方向:搬订阅,不是搬面板(面板域名写死在已发出的客户端里)
+    expect($r['fix'])->toContain('别反过来搬面板');
+});
+
+// `[!]` 这一条【在旧行为下也是绿的】(实测:注入旧文案后只有上面那条转红),
+//   所以它不是对上面那次改动的反证,只是回归护栏 —— 防的是将来有人把
+//   "没配"这个分支的建议一并删掉,导致真没配的人看不到该干什么。
+it('订阅压根没配独立地址时，才叫人去配 SUB_URL_BASE', function () {
+    config([
+        'app.url' => 'https://app.example.com',
+        'app.sub_url_base' => '',
+    ]);
+
+    $r = rd()['订阅地址'];
+    expect($r['level'])->toBe('warn');
+    expect($r['fix'])->toContain('SUB_URL_BASE');
+    expect($r['fix'])->not->toContain('已是独立子域');
+});
+
 /** 假装刚成功备份过一次。测试库里没有这条记录，而"从来没备过"是 bad。 */
 function rdBackupOk(): void
 {
