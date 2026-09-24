@@ -158,10 +158,11 @@ class ShopController extends Controller
         return back()->with('status', $activated ? '当前套餐已结束，排队套餐已生效' : '当前套餐已结束');
     }
 
-    /** POST /user/order/{order}/mock-pay —— 模拟支付并发货（仅开发环境） */
+    /** POST /user/order/{order}/mock-pay —— 模拟支付并发货（仅本地开发，需显式开开关） */
     public function mockPay(Order $order, BillingService $billing)
     {
-        abort_unless(app()->environment('local', 'testing'), 404);
+        // `[!!]` 独立开关 + 环境双条件:默认关,即使 APP_ENV=local 也白嫖不了(审计 U-1);生产恒不可用。
+        abort_unless(app()->environment('local', 'testing') && config('app.mock_pay_enabled'), 404);
         abort_unless($order->user_id === auth()->id(), 403);
 
         if ($order->status !== 'pending') {
