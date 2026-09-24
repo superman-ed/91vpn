@@ -16,7 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [App\Http\Middleware\TurboRedirects::class, App\Http\Middleware\CaptureUtm::class, App\Http\Middleware\NoindexNonCanonicalHost::class]);
         // [!] 必须 prepend:它要排在 Authenticate 前面,否则走错主机名的请求
         // 会先被跳到登录页。见 Middleware\AdminHost 的说明。
-        $middleware->web(prepend: [App\Http\Middleware\AdminHost::class]);
+        // WebOnOfficialHost 紧随其后:非官网域的网页请求跳回官网域(app.91app.shop 只留 /api)。
+        $middleware->web(prepend: [App\Http\Middleware\AdminHost::class, App\Http\Middleware\WebOnOfficialHost::class]);
         $middleware->alias([
             'node.secret' => App\Http\Middleware\NodeSecret::class,
             'admin' => App\Http\Middleware\AdminOnly::class,

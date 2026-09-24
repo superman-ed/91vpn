@@ -1,16 +1,13 @@
 <?php
 
-// 非官网域(≠ APP_URL host)下发 noindex,官网域不下发。用 /robots.txt 作轻量探针(web 组,无重依赖)。
+// 非官网域(≠ APP_URL host)下发 noindex。网页已由 WebOnOfficialHost 跳回官网,所以 noindex
+// 现在主要护住放行路径 /sub(订阅含 token,不该被索引)—— 用它作探针(不被重定向)。
 
-it('adds noindex on a non-canonical host (app./sub.)', function () {
+it('adds noindex on a non-canonical host for passthrough paths (/sub)', function () {
     config(['app.url' => 'https://91vpn.com']);
 
-    $this->get('http://app.91app.shop/robots.txt')
-        ->assertOk()
-        ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
-
-    $this->get('http://sub.91app.shop/robots.txt')
-        ->assertOk()
+    $this->get('http://sub.91app.shop/sub/__probe__')
+        ->assertNotFound()   // 未知 token → SubController 404,且未被重定向(放行)
         ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
 });
 

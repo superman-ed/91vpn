@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ClientDownload;
 use App\Models\Node;
 use App\Services\PlanCatalog;
-use Illuminate\Http\Request;
 
 /**
  * 官网首页(门户)。游客看营销落地页,已登录进用户中心。
@@ -39,19 +38,13 @@ class HomeController extends Controller
 
     public function __construct(private PlanCatalog $catalog) {}
 
-    public function index(Request $request)
+    public function index()
     {
         if (auth()->check()) {
             return redirect('/user');
         }
 
-        // 落地页只在官网域(APP_URL host,如 91vpn.com)显示。其它域(app./sub. 等,面板+API 用)
-        // 的根路径直接进登录 —— 官网只此一个,避免"多个域名都是官网";与 D-7 牺牲域/低调域分离一致。
-        $canonical = parse_url((string) config('app.url'), PHP_URL_HOST);
-        if ($canonical && $request->getHost() !== $canonical) {
-            return redirect('/login');
-        }
-
+        // 落地页只在官网域显示;非官网域的网页请求由 WebOnOfficialHost 中间件跳回官网,不会走到这。
         $regions = $this->regionsFromNodes();
 
         return view('landing', [

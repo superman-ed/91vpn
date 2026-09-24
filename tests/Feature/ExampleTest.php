@@ -40,11 +40,13 @@ it('redirects authenticated users from / to dashboard', function () {
     $this->actingAs(User::factory()->create())->get('/')->assertRedirect('/user');
 });
 
-it('serves the landing only on the official host; other hosts go to login', function () {
+it('serves web pages only on the official host; non-official hosts redirect there', function () {
     config(['app.url' => 'https://91vpn.com']);
-    // 面板/API 域(非官网 host)根路径 → 登录,不显示落地页(官网只此一个)
-    $this->get('http://app.91app.shop/')->assertRedirect('/login');
-    $this->get('http://sub.91app.shop/')->assertRedirect('/login');
+    // 非官网域的网页 → 302 跳官网同路径(app.91app.shop 因此只剩 /api 当纯 API 域)
+    $this->get('http://app.91app.shop/')->assertRedirect('https://91vpn.com/');
+    $this->get('http://app.91app.shop/login')->assertRedirect('https://91vpn.com/login');
+    // [!!] 放行不能跳:/sub 必须原样服务(误跳会把全员订阅搬走)→ 命中 SubController 得 404,而非 302
+    $this->get('http://app.91app.shop/sub/__nope__')->assertNotFound();
 });
 
 it('serves legal placeholder pages', function () {
