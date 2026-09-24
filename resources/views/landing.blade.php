@@ -358,6 +358,14 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     'ios' => $appleSvg,
     'macos' => $macSvg,
   ];
+
+  // 发车信息板目的地(服务端渲染 → 首屏/无 JS/爬虫都能看到;JS 只做翻牌入场增强)
+  $dest = [
+    ['NETFLIX','HKG','流媒体'],['DISNEY+','JPN','流媒体'],['HBO MAX','USA','流媒体'],
+    ['PRIME VIDEO','JPN','流媒体'],['YOUTUBE','HKG','流媒体'],['HULU','USA','流媒体'],
+    ['CHATGPT','USA','AI'],['CLAUDE','USA','AI'],['GEMINI','USA','AI'],
+    ['SPOTIFY','SGP','音乐'],['INSTAGRAM','HKG','社交'],['TIKTOK','JPN','社交'],
+  ];
 @endphp
 
 <main id="top">
@@ -377,7 +385,16 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
         <span class="m" id="board-clk">TERMINAL 91 · --:--</span>
       </div>
       <div class="brow bhead"><span>航班 FLT</span><span>目的地 DEST</span><span>经由 VIA</span><span>状态 STATUS</span></div>
-      <div id="rows"></div>
+      <div id="rows">
+        @foreach($dest as $i => $d)
+        <div class="brow row">
+          <div class="fno">9V{{ 201 + $i }}</div>
+          <div class="dest">{{ $d[0] }} <span class="cat">{{ $d[2] }}</span></div>
+          <div class="via">VIA {{ $d[1] }}</div>
+          <div class="status on"><span class="dot"></span><span class="flap">已通航</span></div>
+        </div>
+        @endforeach
+      </div>
       <div class="board-foot"><span>* 目的地按套餐与地区就近直达 · 部分服务需切换对应地区落地</span><span id="cnt">通航中</span></div>
     </div>
 
@@ -570,27 +587,12 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 </footer>
 
 <script>
-var DEST=[
-  ["NETFLIX","HKG","流媒体"],["DISNEY+","JPN","流媒体"],["HBO MAX","USA","流媒体"],
-  ["PRIME VIDEO","JPN","流媒体"],["YOUTUBE","HKG","流媒体"],["HULU","USA","流媒体"],
-  ["CHATGPT","USA","AI"],["CLAUDE","USA","AI"],["GEMINI","USA","AI"],
-  ["SPOTIFY","SGP","音乐"],["INSTAGRAM","HKG","社交"],["TIKTOK","JPN","社交"]
-];
-var rows=document.getElementById('rows');
-DEST.forEach(function(d,i){
-  var fno='9V'+String(201+i);
-  var el=document.createElement('div'); el.className='brow row';
-  el.innerHTML='<div class="fno">'+fno+'</div>'+
-    '<div class="dest">'+d[0]+' <span class="cat">'+d[2]+'</span></div>'+
-    '<div class="via">VIA '+d[1]+'</div>'+
-    '<div class="status"><span class="dot"></span><span class="flap">已通航</span></div>';
-  rows.appendChild(el);
-});
-var sts=[].slice.call(document.querySelectorAll('.status'));
+// 发车板行已由服务端渲染(默认 .status.on / 已通航)。JS 只做翻牌入场增强:
+// 先复位成"候机中"再错峰翻成"已通航"。prefers-reduced-motion 下保持 SSR 的已通航态,不动。
+var sts=[].slice.call(document.querySelectorAll('#rows .status'));
 var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-if(reduce){ sts.forEach(function(s){s.classList.add('on');}); }
-else{
-  sts.forEach(function(s){ s.querySelector('.flap').textContent='候机中'; });
+if(!reduce){
+  sts.forEach(function(s){ s.classList.remove('on'); s.querySelector('.flap').textContent='候机中'; });
   sts.forEach(function(s,i){ setTimeout(function(){
     s.classList.add('flip');
     setTimeout(function(){ s.querySelector('.flap').textContent='已通航'; s.classList.add('on'); },170);

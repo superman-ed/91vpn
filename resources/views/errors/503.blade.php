@@ -1,5 +1,5 @@
 @extends('errors.layout')
 @section('code', '503')
-@section('emoji', '🔧')
-@section('title', '正在维护升级')
-@section('desc', '服务正在维护,预计很快恢复。给你带来不便,敬请谅解。')
+@section('tag', 'UNDER MAINTENANCE')
+@section('title', '例行维护中')
+@section('desc', '航站楼正在例行维护,暂停通航,很快恢复。给你带来不便,敬请谅解。')

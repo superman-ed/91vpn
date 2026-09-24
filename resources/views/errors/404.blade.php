@@ -1,5 +1,5 @@
 @extends('errors.layout')
 @section('code', '404')
-@section('emoji', '🧭')
-@section('title', '页面走丢了')
-@section('desc', '你访问的页面不存在,或已被移动。检查一下网址,或从首页重新出发。')
+@section('tag', 'FLIGHT NOT FOUND')
+@section('title', '该目的地暂无航班')
+@section('desc', '你要找的页面查无此航班——可能网址有误,或它已经改签。回首页看看有哪些通航目的地。')

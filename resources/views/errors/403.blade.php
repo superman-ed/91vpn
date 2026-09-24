@@ -1,5 +1,5 @@
 @extends('errors.layout')
 @section('code', '403')
-@section('emoji', '🔒')
-@section('title', '没有访问权限')
-@section('desc', '你没有权限查看此页面。如果你认为这是误判,请联系客服。')
+@section('tag', 'RESTRICTED · 禁区')
+@section('title', '无权登机')
+@section('desc', '你没有访问该区域的权限。若你认为这是误拦,请通过帮助中心联系我们。')
