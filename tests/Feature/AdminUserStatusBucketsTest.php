@@ -38,7 +38,8 @@ it('他不会同时落进别的桶', function () {
 
     foreach (['member', 'free', 'banned'] as $bucket) {
         $html = $this->actingAs($admin)->get("/admin/users?status={$bucket}")->assertOk()->getContent();
-        expect($html)->not->toContain('nullexpire', "不该出现在 {$bucket} 桶里");
+        // `[!]` 见 FinanceSearchAndTypesTest 的说明:toContain 不接受消息参数。
+        expect(str_contains($html, 'nullexpire'))->toBeFalse("不该出现在 {$bucket} 桶里");
     }
 });
 

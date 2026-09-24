@@ -16,10 +16,15 @@ class RebateController extends Controller
         $from = $request->query('from');
         $to = $request->query('to');
 
-        // 邮箱可命中受益人或下线任一方
+        // 搜索可命中受益人或下线任一方
+        // `[!!]` 曾经【只匹配 email】,而本产品注册不收邮箱 —— 客户端注册的用户
+        //   email 为空,这个搜索框对他们永远搜不到(owner 自己的账号就是这样)。
+        //   口径与「用户管理」页一致:username / email / name 任一命中。
         $base = Payback::query()
             ->when($q, function ($query) use ($q) {
-                $ids = User::where('email', 'like', "%{$q}%")->pluck('id');
+                $ids = User::where(fn ($w) => $w->where('username', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%")
+                    ->orWhere('name', 'like', "%{$q}%"))->pluck('id');
                 $query->where(fn ($w) => $w->whereIn('user_id', $ids)->orWhereIn('from_user_id', $ids));
             })
             ->dateBetween($from, $to);
