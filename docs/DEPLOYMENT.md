@@ -179,6 +179,38 @@ destprobe -vps <节点IP> -d 30s <候选…>     # 可选：深度探测，必�
 
 ---
 
+## 3a. `[!!]` 绝不要在跑测试前 `config:cache`
+
+`[D]` 2026-09-24 实际发生过一次：`php artisan config:cache` 之后再
+`php artisan test`，`RefreshDatabase` 要在**生产库 `vpn`** 上跑
+`migrate:fresh`。
+
+原因：`phpunit.xml` 里的
+
+```xml
+<env name="DB_DATABASE" value="vpn_test"/>
+```
+
+**盖不住配置缓存** —— Laravel 一旦读 `bootstrap/cache/config.php`
+就不再看环境变量，而那个文件是用 `.env`（`DB_DATABASE=vpn`）生成的。
+
+`[D]` 拦住它的是 `AppServiceProvider.php` 里那道
+「拒绝在非 `_test` 库上执行 migrate/tinker」的护栏。**没有它，生产库
+会被整个清空重建，而且跑完一片绿 —— 现象是没有现象。**
+
+```bash
+# 跑测试之前
+docker compose exec app php artisan config:clear
+
+# 只在部署完、确认不再跑测试时才 cache
+docker compose exec app php artisan config:cache
+```
+
+`[!]` 那道护栏当初是为 `tinker` 加的，这次替 `php artisan test` 挡了一次。
+**别以为它多余。**
+
+---
+
 ## 3b. `[!!]` 换服务器时 DNS 不用动
 
 `[S]` `cloudflared` 用 token 认身份（`tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}`），
