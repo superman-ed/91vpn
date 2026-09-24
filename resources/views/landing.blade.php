@@ -293,13 +293,25 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
    * `[!]` 这 4 问是冲着【潜在客户】写的(能不能解锁、快不快、几台设备、
    * 怎么退款),不是帮助中心那 16 篇故障排查 —— 受众不同,别混。
    */
+  // 已开放下载的平台 / 还没开放的平台 —— url 为空即"即将推出"(见 client_downloads 迁移注释)
+  $dlReady = collect($downloads)->filter(fn ($d) => filled($d->url))->pluck('platform')->all();
+  $dlSoon = collect($downloads)->filter(fn ($d) => blank($d->url))->pluck('platform')->all();
+  $devicesAnswer = trim(
+      ($dlReady ? '现提供 '.implode('、', $dlReady).' 客户端。' : '')
+      .($dlSoon ? implode('、', $dlSoon).' 客户端即将开放下载。' : '')
+      .'一个账号全平台通用;同时在线设备数因套餐而异,详见各套餐说明。'
+  );
+
   $faqs = [
     ['能解锁 Netflix 和 ChatGPT 吗?',
      '能。多地区节点针对主流流媒体与 AI 服务做了解锁优化——ChatGPT / Claude / Gemini 注册订阅、Netflix 各区片库都可直达。个别服务风控严格时,切到对应地区的原生 IP 节点即可。'],
     ['速度和稳定性怎么样?晚高峰会误点吗?',
      '采用香港就近入口 + 多地区高速落地的中转航线:过境那一跳最短,其余走海外骨干。客户端持续测速自动选最快节点,某个节点异常会自动改签,晚高峰体验更稳。'],
     ['支持哪些设备?一张票能用几台?',
-     '提供 Android、Windows、iOS、macOS 客户端,一个账号全平台通用。同时在线设备数因套餐而异,详见各套餐说明。'],
+     /* `[!!]` 平台清单【不写死】—— 按 HomeController 自己定的规矩(价格/地区/下载
+        全部读真实数据)从 $downloads 生成。写死过一次:页面四个平台都显示
+        "即将推出",而这句话说"提供 Android、Windows、iOS、macOS 客户端"。 */
+     $devicesAnswer],
     ['怎么付款?可以退票吗?',
      '付款后订阅即时开通,支持多种在线支付方式。新用户 3 天内不满意可无理由退票。'],
   ];
@@ -356,8 +368,13 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
   <div class="wrap">
     <div class="shead"><h2>三步,几分钟直达</h2><span class="m">GET STARTED</span></div>
     <div class="steps">
-      <div class="step"><div class="n">STEP 01</div><h3>注册领票</h3><p>邮箱注册即领试用流量,无需付款、无需实名。</p></div>
-      <div class="step"><div class="n">STEP 02</div><h3>下载客户端</h3><p>选你的设备下载 App,一个账号手机、电脑通用。</p></div>
+      {{-- `[!!]` 顺序是【先下载、后注册】,不能反。网站不受理注册
+           (RegisterController::store 直接挡回提示页),账号只能在客户端里开。
+           原文把注册写成 STEP 01 并说"邮箱注册",两处都不对:注册没有邮箱字段
+           (AuthApiController::register 只收 username/password),而按原顺序走的人
+           会到 /register 看见"请回首页下载客户端",转一圈回到原点。 --}}
+      <div class="step"><div class="n">STEP 01</div><h3>下载客户端</h3><p>选你的设备下载 App,一个账号手机、电脑通用。</p></div>
+      <div class="step"><div class="n">STEP 02</div><h3>注册账号</h3><p>在客户端里注册,只需账户名和密码,无需邮箱、无需实名。</p></div>
       <div class="step"><div class="n">STEP 03</div><h3>一键起飞</h3><p>打开点一下,自动选最快节点,直达全球互联网。</p></div>
     </div>
   </div>
