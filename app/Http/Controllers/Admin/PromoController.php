@@ -21,7 +21,15 @@ class PromoController extends Controller
         // 渠道 code 建库时强制大写,但 Web 归因存的 promo_code 保留原始大小写 → 按 upper() 归一分组,否则大小写不符导致漏计。
         // 营收含 queued(排队订单钱已收,与营收口径一致)。
         $reg = User::whereNotNull('promo_code')->selectRaw('upper(promo_code) as code, count(*) as c')->groupBy(\DB::raw('upper(promo_code)'))->pluck('c', 'code');
+        // `[!!]` 排除后台「开通」建的单(pay_method=admin)。L-06 已经确认那个按钮
+        //   【会在生产后台上被用来测试】,它建的单 amount=0 —— 营收不受影响,
+        //   但 count(distinct users) 会把只拿过赠送的人算成【付费用户】,
+        //   而这正是用来判断"哪个广告渠道有效"的数字。首页早就排除了,这里漏了。
+        // `[!!]` 不能写成 where('pay_method', '!=', 'admin') ——
+        //   SQL 里 NULL != 'admin' 求值为 NULL 而不是 true,那会把 pay_method
+        //   为空的历史订单一起排除掉,数字反而变小。(同 DashboardController 的说明)
         $paidRows = Order::whereIn('orders.status', ['paid', 'queued'])
+            ->where(fn ($q) => $q->whereNull('orders.pay_method')->orWhere('orders.pay_method', '!=', 'admin'))
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->whereNotNull('users.promo_code')
             ->selectRaw('upper(users.promo_code) as code, count(distinct users.id) as paid_users, sum(orders.amount) as revenue')
@@ -92,7 +100,9 @@ class PromoController extends Controller
     public function show(PromoChannel $channel)
     {
         $users = User::where('promo_code', $channel->code)
-            ->withSum(['orders as paid_amount' => fn ($q) => $q->where('status', 'paid')], 'amount')
+            // `[!]` 与上面同口径:后台开通的单不算业绩
+            ->withSum(['orders as paid_amount' => fn ($q) => $q->where('status', 'paid')
+                ->where(fn ($w) => $w->whereNull('pay_method')->orWhere('pay_method', '!=', 'admin'))], 'amount')
             ->orderByDesc('id')->paginate(30);
 
         return view('admin.promo.show', ['channel' => $channel, 'users' => $users]);
