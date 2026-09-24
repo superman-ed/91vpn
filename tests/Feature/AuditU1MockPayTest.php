@@ -54,7 +54,7 @@ it('开关开启 + local 时,mock-pay 才生效(仅供本地开发)', function (
     $r = $this->withoutMiddleware(ValidateCsrfToken::class)
         ->actingAs($user)->post("/user/order/{$order->id}/mock-pay");
 
-    expect($r->status())->toBe(302)
+    expect($r->status())->toBe(303)   // Turbo 302→303
         ->and($order->fresh()->status)->toBe('paid')
         ->and($user->fresh()->class)->toBe($plan->class);
 });

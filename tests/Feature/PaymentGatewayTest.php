@@ -66,12 +66,22 @@ it('maps channels to gateway type and sends usdt to the cashier', function () {
     expect($epay->payUrl($order, 'usdt'))->not->toContain('&type=');   // 该网关无USDT → 走收银台
 });
 
-it('falls back to mock immediate delivery when gateway not configured', function () {
+it('falls back to mock immediate delivery when gateway not configured AND mock pay enabled (dev only)', function () {
+    config(['app.mock_pay_enabled' => true]);   // 仅开发:显式开开关才模拟直付
     $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
     $order = gwOrder($user, gwPlan());
 
     $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'alipay'])->assertRedirect('/user');
     expect($order->fresh()->status)->toBe('paid');
+});
+
+it('online pay unavailable when gateway not configured and mock pay off —— 不免费发货', function () {
+    config(['app.mock_pay_enabled' => false]);   // 默认态:未配网关时禁止零成本到账
+    $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay()]);
+    $order = gwOrder($user, gwPlan());
+
+    $this->actingAs($user)->post("/user/order/{$order->id}/pay", ['method' => 'alipay']);
+    expect($order->fresh()->status)->toBe('pending');   // 未发货,未白嫖
 });
 
 it('settles the order on a valid TRADE_SUCCESS notify', function () {

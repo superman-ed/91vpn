@@ -77,6 +77,7 @@ it('cannot open another user checkout', function () {
 });
 
 it('mock-pays an order and delivers the plan', function () {
+    config(['app.mock_pay_enabled' => true]);   // mock-pay 现需显式开开关(默认关,防白嫖)
     $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay(), 'transfer_enable' => 0]);
     $plan = Plan::create(['name' => 'VIP②', 'price' => 50, 'transfer_gb' => 300, 'class' => 2, 'speed_limit' => 200, 'ip_limit' => 7, 'duration_days' => 30, 'on_sale' => true]);
     $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 50, 'status' => 'pending', 'period' => 'month']);
@@ -90,6 +91,7 @@ it('mock-pays an order and delivers the plan', function () {
 });
 
 it('pays via an online channel (mock) and records the method', function () {
+    config(['app.mock_pay_enabled' => true]);   // 未配网关的模拟直付现需显式开开关
     $user = User::factory()->create(['class' => 0, 'class_expire' => now()->subDay(), 'transfer_enable' => 0, 'money' => 0]);
     $plan = Plan::create(['name' => 'VIP②', 'price' => 50, 'transfer_gb' => 300, 'class' => 2, 'speed_limit' => 200, 'ip_limit' => 7, 'duration_days' => 30, 'on_sale' => true]);
     $order = Order::create(['user_id' => $user->id, 'plan_id' => $plan->id, 'amount' => 50, 'status' => 'pending', 'period' => 'month']);
@@ -132,6 +134,7 @@ it('rejects an unknown payment method', function () {
 });
 
 it('cannot pay another user order', function () {
+    config(['app.mock_pay_enabled' => true]);   // 开开关才走到归属校验(否则先被开关拦成 404)
     $owner = User::factory()->create();
     $other = User::factory()->create();
     $plan = Plan::create(['name' => 'VIP①', 'price' => 30, 'transfer_gb' => 100, 'class' => 1, 'speed_limit' => 100, 'ip_limit' => 4, 'duration_days' => 30]);

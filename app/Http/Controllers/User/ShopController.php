@@ -61,8 +61,9 @@ class ShopController extends Controller
             'user' => $user,
             'couponNotes' => \App\Models\Coupon::checkoutVisible(),
             'queuedActivateAt' => $queuedActivateAt,
-            // 在线支付是否可用:配了网关(生产跳转) 或 本地/测试(模拟直付)。都不满足则只留余额支付,不摆无效按钮
-            'onlinePay' => $epay->configured() || app()->environment(['local', 'testing']),
+            // 在线支付是否可用:配了网关(生产跳转) 或 本地/测试且开了 MOCK_PAY_ENABLED(模拟直付)。
+            // 都不满足则只留余额支付,不摆无效按钮(与 pay() 的实际可用条件保持一致)。
+            'onlinePay' => $epay->configured() || (app()->environment(['local', 'testing']) && config('app.mock_pay_enabled')),
         ]);
     }
 
@@ -134,8 +135,9 @@ class ShopController extends Controller
             return redirect()->away($epay->payUrl($order, $data['method']));
         }
 
-        // 未配置网关：仅开发/测试环境允许模拟直付；生产环境必须报错，严禁零成本到账
-        if (! app()->environment(['local', 'testing'])) {
+        // 未配置网关:仅开发/测试环境【且显式开 MOCK_PAY_ENABLED】才模拟直付；否则一律报"暂不可用"，
+        // 严禁零成本到账。`[!!]` 必须带 mock_pay_enabled —— 否则清空网关后 local 环境点支付=免费拿套餐(同 U-1)。
+        if (! (app()->environment(['local', 'testing']) && config('app.mock_pay_enabled'))) {
             return back()->with('status', '在线支付暂不可用，请稍后再试或联系客服。');
         }
         $billing->settleOrder($order, $data['method']);
