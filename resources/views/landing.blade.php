@@ -45,7 +45,31 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
 @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto} *{animation:none!important;transition:none!important}}
 a{color:inherit;text-decoration:none}
-h1,h2,h3{margin:0;font-family:var(--sign);font-weight:900;line-height:1.04;letter-spacing:-.02em;text-wrap:balance}
+
+/* 印刷质感:极淡纸张颗粒(multiply,像油墨落在纸上)。想更淡/更重改 opacity 即可 */
+body::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* 四角印刷套准/裁切标记:整张纸被"印在版上"的框感 */
+.crop{position:fixed;inset:13px;z-index:4;pointer-events:none}
+.crop i{position:absolute;width:11px;height:11px;opacity:.55}
+.crop i::before,.crop i::after{content:"";position:absolute;background:var(--rule);top:0;left:0}
+.crop i::before{width:11px;height:1px}
+.crop i::after{width:1px;height:11px}
+.crop i:nth-child(1){top:0;left:0}
+.crop i:nth-child(2){top:0;right:0;transform:scaleX(-1)}
+.crop i:nth-child(3){bottom:0;left:0;transform:scaleY(-1)}
+.crop i:nth-child(4){bottom:0;right:0;transform:scale(-1)}
+@media (max-width:600px){.crop{inset:8px}}
+
+/* 一次编排的入场:hero 元素错峰上浮渐显(prefers-reduced-motion 下自动关闭) */
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.hero h1{animation:rise .62s .04s both cubic-bezier(.2,.7,.2,1)}
+.hero .lead{animation:rise .62s .14s both cubic-bezier(.2,.7,.2,1)}
+.hero .cta-row{animation:rise .62s .24s both cubic-bezier(.2,.7,.2,1)}
+.hero .trial{animation:rise .62s .32s both cubic-bezier(.2,.7,.2,1)}
+.hero .board{animation:rise .7s .42s both cubic-bezier(.2,.7,.2,1)}
+.hero .ticker{animation:rise .7s .54s both cubic-bezier(.2,.7,.2,1)}
+h1,h2,h3{margin:0;font-family:var(--sign);font-weight:900;line-height:1.06;letter-spacing:-.01em;text-wrap:balance}
 .wrap{max-width:var(--maxw);margin:0 auto;padding-inline:24px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -58,6 +82,11 @@ button{font:inherit}
 .btn-line{background:transparent;color:var(--ink);border-color:var(--ink)}
 .btn-line:hover{border-color:var(--amber);color:var(--amber);background:rgba(216,68,42,.06)}
 .btn-lg{padding:15px 30px;font-size:15px}
+
+/* 批2:统一微交互 —— 可交互面的 hover/active 平滑过渡(不再硬切),细节更精致 */
+.gate,.brow.row,.dur,.fcol a,.nav .links a,.hero .cta-row .btn,.qa summary .q{transition:background-color .16s ease,color .16s ease}
+.qa .pm{transition:transform .22s ease}
+.qa summary:hover .q{color:var(--amber)}
 
 /* header */
 header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--rule)}
@@ -77,7 +106,7 @@ header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px s
 
 /* hero */
 .hero{padding:56px 0 34px}
-.hero h1{font-size:clamp(40px,7vw,80px);letter-spacing:-.035em;text-transform:none}
+.hero h1{font-size:clamp(40px,7vw,80px);letter-spacing:-.015em;text-transform:none}
 .hero h1 em{font-style:normal;color:var(--amber)}
 .hero .lead{color:var(--dim);font-size:clamp(16px,2.1vw,19px);margin:22px 0 0;max-width:42ch}
 .hero .cta-row{display:flex;flex-wrap:wrap;gap:0;margin-top:30px;border:1px solid var(--amber-dim);width:fit-content}
@@ -120,11 +149,11 @@ header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px s
 .ticker .k{font-size:12px;color:var(--dim);letter-spacing:.04em}
 
 /* sections */
-section{padding:66px 0;border-top:1px solid var(--rule)}
-.shead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:15px;border-bottom:2px solid var(--ink);margin-bottom:34px}
+section{padding:72px 0;border-top:1px solid var(--rule)}
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:15px;border-bottom:2px solid var(--ink);margin-bottom:28px}
 .shead h2{font-size:clamp(24px,3.6vw,36px)}
 .shead .m{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.08em;white-space:nowrap}
-.lede{color:var(--dim);font-size:16px;max-width:56ch;margin:-14px 0 30px}
+.lede{color:var(--dim);font-size:16px;max-width:56ch;margin:0 0 30px}
 
 /* route */
 .legs{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:6px;padding:14px 0 26px;border-bottom:1px solid var(--rule-soft)}
@@ -266,6 +295,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 @endverbatim
 </head>
 <body>
+<div class="crop" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
 <header id="hdr">
   <div class="wrap nav">
@@ -323,7 +353,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     <h1>直飞你到不了的<br><em>全球互联网</em></h1>
     <p class="lead">Netflix、YouTube、ChatGPT——像机场一样,从香港就近值机,多地区高速直达。晚高峰也不误点。</p>
     <div class="cta-row">
-      <a class="btn btn-solid btn-lg" href="/register">立即值机</a>
+      <a class="btn btn-solid btn-lg" id="dl-cta" href="#gates">立即下载</a>
       <a class="btn btn-line btn-lg" href="#fares">查看票价</a>
     </div>
     <div class="trial">新用户注册即领 <b>1 GB 试用流量</b> · 无需付款、无需实名,连上再决定</div>
@@ -574,6 +604,23 @@ document.querySelectorAll('[data-plan-card]').forEach(function(card){
 var qas=[].slice.call(document.querySelectorAll('.qa'));
 qas.forEach(function(q){q.querySelector('summary').addEventListener('click',function(e){
   e.preventDefault();var open=q.open;qas.forEach(function(o){o.open=false;});q.open=!open;});});
+
+/* UA 自适应下载:按 navigator 匹配当前平台。有下载链接→直接下载;暂无→回退到下载区 #gates。
+   客户端判断(非服务端 UA),HTML 对所有访客一致,规避 CDN 缓存串味。 */
+(function(){
+  var dl=@json($downloads->mapWithKeys(fn($d)=>[strtolower($d->platform)=>['url'=>$d->url,'label'=>$d->label ?: $d->platform]]));
+  var ua=navigator.userAgent||'', uap=(navigator.userAgentData&&navigator.userAgentData.platform)||'', p='';
+  if(/android/i.test(ua)) p='android';
+  else if(/iphone|ipad|ipod/i.test(ua)) p='ios';
+  else if(/windows/i.test(ua)||/win/i.test(uap)) p='windows';
+  else if(/macintosh|mac os x/i.test(ua)||/mac/i.test(uap)) p='macos';
+  var names={android:'Android',ios:'iOS',windows:'Windows',macos:'macOS'};
+  var btn=document.getElementById('dl-cta');
+  if(!btn||!p) return;                              // 认不出平台 → 保持"立即下载"→#gates
+  var d=dl[p];
+  if(d&&d.url){ btn.href=d.url; btn.textContent='立即下载 · '+names[p]; btn.target='_blank'; btn.rel='noopener'; }
+  else { btn.textContent='查看'+names[p]+'下载'; } // 该平台暂无链接 → 文案提示,href 仍指 #gates
+})();
 </script>
 {{--
   `[!!]` 结构化数据。三条纪律:
