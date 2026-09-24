@@ -182,6 +182,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="form-group col-md-12"><label>分享图 URL（OG image）</label><input name="og_image" value="{{ old('og_image', $ogImage) }}" class="form-control" placeholder="https://你的域名/og.png（1200×630）"><small class="text-muted">把链接发到微信 / TG / X 时预览卡片用的缩略图。填一个图片的完整网址(建议 1200×630)。留空则用站内 /og.png。本项目不做上传,请填托管好的图片地址。</small></div>
+                    <div class="form-group col-md-12"><label>统计 / 追踪代码</label><textarea name="tracking_code" rows="6" class="form-control" style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px" placeholder="粘贴第三方统计脚本,如 Google Analytics(gtag)、Plausible、Umami、Microsoft Clarity 的完整 &lt;script&gt; 代码">{{ old('tracking_code', $trackingCode) }}</textarea><small class="text-muted">原样注入到官网公开页的 &lt;head&gt;(落地页/登录/帮助/条款)。把统计平台给的整段 &lt;script&gt; 贴进来即可。<b>⚠️ 只有你自己能改此项,请勿粘贴不信任来源的代码</b>(会在所有访客浏览器执行)。留空=不加载。</small></div>
                 </div>
             </div>
         </div>

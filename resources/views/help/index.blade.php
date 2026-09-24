@@ -32,6 +32,7 @@ h1{font-family:var(--sign);font-weight:900;font-size:34px;letter-spacing:-.02em;
 .art .pf{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.06em;text-transform:uppercase}
 .empty{border:1px solid var(--rule);padding:40px;text-align:center;color:var(--faint);margin-top:30px}
 </style>
+@include('partials.tracking')
 </head>
 <body>
 <div class="wrap">

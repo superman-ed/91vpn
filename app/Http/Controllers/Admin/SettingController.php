@@ -37,6 +37,7 @@ class SettingController extends Controller
             'privacyContent' => setting('privacy_content', ''),
             'refundContent' => setting('refund_content', ''),
             'ogImage' => setting('og_image', ''),
+            'trackingCode' => setting('tracking_code', ''),
             'apiHosts' => setting('api_hosts', ''),
         ]);
     }
@@ -69,6 +70,7 @@ class SettingController extends Controller
             'privacy_content' => ['nullable', 'string', 'max:20000'],
             'refund_content' => ['nullable', 'string', 'max:20000'],
             'og_image' => ['nullable', 'url', 'max:500'],
+            'tracking_code' => ['nullable', 'string', 'max:20000'],
             'api_hosts' => ['nullable', 'string', 'max:4000'],
         ]);
 
@@ -98,6 +100,7 @@ class SettingController extends Controller
         Setting::put('privacy_content', $data['privacy_content'] ?? '');
         Setting::put('refund_content', $data['refund_content'] ?? '');
         Setting::put('og_image', $data['og_image'] ?? '');
+        Setting::put('tracking_code', $data['tracking_code'] ?? '');
         Setting::put('api_hosts', $data['api_hosts'] ?? '');
 
         audit('setting.update', '更新站点设置');

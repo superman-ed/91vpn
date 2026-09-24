@@ -295,6 +295,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 }
 </style>
 @endverbatim
+@include('partials.tracking')
 </head>
 <body>
 <div class="crop" aria-hidden="true"><i></i><i></i><i></i><i></i></div>

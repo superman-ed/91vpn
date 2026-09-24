@@ -25,6 +25,7 @@ hr{border:0;border-top:2px solid var(--ink);margin:20px 0 26px}
 .content{font-size:15.5px;color:var(--ink)}
 .foot{margin-top:40px;border-top:1px solid var(--rule);padding-top:20px;font-family:var(--mono);font-size:13px}
 </style>
+@include('partials.tracking')
 </head>
 <body>
 <div class="wrap">

@@ -51,6 +51,7 @@
         .auth-toast.ok{background:var(--ink)}
         .auth-toast.warn{background:var(--sig)}
     </style>
+    @include('partials.tracking')
 </head>
 <body class="auth-body">
 <div class="auth-wrap">

@@ -15,6 +15,7 @@ a{color:#D8442A;text-decoration:none}
 a:hover{text-decoration:underline}
 hr{border:0;border-top:1px solid #C4BCA8;margin:22px 0}
 </style>
+@include('partials.tracking')
 </head>
 <body>
 <div class="wrap">
