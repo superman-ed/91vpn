@@ -21,7 +21,7 @@ function rcSetup(): array
 }
 
 it('settles a pending order the gateway reports as paid', function () {
-    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 1, 'msg' => '查询成功', 'data' => ['status' => 'success']])]);
+    Http::fake(['pay.example.com/api.php*' => Http::response(['code' => 1, 'msg' => '查询成功', 'status' => 1])]);
     [$user, $order] = rcSetup();
 
     $this->artisan('payment:reconcile')->assertSuccessful();
@@ -32,7 +32,7 @@ it('settles a pending order the gateway reports as paid', function () {
 });
 
 it('leaves a pending order the gateway does not report as paid', function () {
-    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 0, 'msg' => '订单不存在', 'data' => null])]);
+    Http::fake(['pay.example.com/api.php*' => Http::response(['code' => 0, 'msg' => '订单不存在'])]);
     [$user, $order] = rcSetup();
 
     $this->artisan('payment:reconcile')->assertSuccessful();
@@ -42,7 +42,7 @@ it('leaves a pending order the gateway does not report as paid', function () {
 });
 
 it('does not reconcile orders still inside the notify grace window', function () {
-    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 1, 'data' => ['status' => 'success']])]);
+    Http::fake(['pay.example.com/api.php*' => Http::response(['code' => 1, 'status' => 1])]);
     Setting::put('epay_url', 'https://pay.example.com');
     Setting::put('epay_pid', '1001');
     Setting::put('epay_key', 'secret-key');
@@ -57,7 +57,7 @@ it('does not reconcile orders still inside the notify grace window', function ()
 });
 
 it('credits a pending recharge the gateway reports as paid', function () {
-    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 1, 'msg' => '查询成功', 'data' => ['status' => 'success']])]);
+    Http::fake(['pay.example.com/api.php*' => Http::response(['code' => 1, 'msg' => '查询成功', 'status' => 1])]);
     Setting::put('epay_url', 'https://pay.example.com');
     Setting::put('epay_pid', '1001');
     Setting::put('epay_key', 'secret-key');
@@ -72,7 +72,7 @@ it('credits a pending recharge the gateway reports as paid', function () {
 });
 
 it('does not credit a recharge the gateway does not confirm', function () {
-    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 0, 'msg' => '订单不存在', 'data' => null])]);
+    Http::fake(['pay.example.com/api.php*' => Http::response(['code' => 0, 'msg' => '订单不存在'])]);
     Setting::put('epay_url', 'https://pay.example.com');
     Setting::put('epay_pid', '1001');
     Setting::put('epay_key', 'secret-key');

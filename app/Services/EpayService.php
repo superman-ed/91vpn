@@ -75,8 +75,18 @@ class EpayService
         }
 
         try {
-            $resp = Http::asForm()->timeout(10)
-                ->post($this->url().'/api/EasyPay/queryOrder', ['orderNo' => $outTradeNo]);
+            // 经典彩虹易支付单笔查询：GET api.php?act=order&pid=&key=&out_trade_no=
+            // 商户查询以 pid+key 鉴权(key 即商户密钥，走 HTTPS)——与本类的下单(submit.php)、
+            // 回调验签同属【经典彩虹】契约。此前这里打的是 /api/EasyPay/queryOrder 且只带
+            // orderNo、无 pid/key/sign：那是另一种网关的 API，在经典彩虹上不存在，且无鉴权必被
+            // 拒 → 查询恒失败、对账形同虚设。统一回经典彩虹后整个网关契约才自洽。
+            // [!] 新网关(等文档)若非经典彩虹，此处需连同下单/回调一并按其文档重对。
+            $resp = Http::timeout(10)->get($this->url().'/api.php', [
+                'act' => 'order',
+                'pid' => $this->pid(),
+                'key' => $this->key(),
+                'out_trade_no' => $outTradeNo,
+            ]);
         } catch (\Throwable $e) {
             return null;   // 网络异常 → 不确定
         }
@@ -86,10 +96,10 @@ class EpayService
         }
         $json = $resp->json() ?? [];
         if ((int) ($json['code'] ?? 0) !== 1) {
-            return null;   // 查询未成功返回 → 不确定，保守不关单
+            return null;   // 查询未成功返回(含"订单不存在") → 不确定，保守不关单
         }
 
-        return ($json['data']['status'] ?? '') === 'success';   // 明确已付=true / 明确未付=false
+        return (int) ($json['status'] ?? 0) === 1;   // 顶层 status：1=明确已付 / 0=明确未付
     }
 
     /** 生成跳转到网关的支付地址（页面支付 submit.php）。未映射的渠道不传 type → 网关收银台 */

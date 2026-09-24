@@ -39,7 +39,7 @@ it('delivers instead of cancelling if the gateway reports the overdue order paid
     Setting::put('epay_url', 'https://pay.example.com');
     Setting::put('epay_pid', '1001');
     Setting::put('epay_key', 'secret-key');
-    Http::fake(['*/api/EasyPay/queryOrder' => Http::response(['code' => 1, 'data' => ['status' => 'success']])]);
+    Http::fake(['pay.example.com/api.php*' => Http::response(['code' => 1, 'status' => 1])]);
 
     $order = epOrder(40);
 
