@@ -217,8 +217,27 @@ class BillingService
             }
 
             $plan = $locked->plan;
-            if (! $plan || ! $plan->on_sale || $plan->stock === 0) {
-                throw ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架，无法完成支付']);
+
+            // 套餐没了就无从发货 —— 两种情形都只能拒。
+            // `[!]` 实际上到不了这里:PlanController::destroy 不允许删除有订单的套餐
+            //   (orders.plan_id 是 cascadeOnDelete,删了会连带抹掉历史订单)。
+            if (! $plan) {
+                throw ValidationException::withMessages(['plan_id' => '该套餐已不存在，无法完成支付']);
+            }
+
+            // `[!!]` 下架/售罄的判断必须看"钱收了没有",与下面优惠券那段同一套道理。
+            //   2026-09-24 实测:用户在网关付完钱,期间管理员按了「下架」
+            //   (或限量套餐被别人买空),回调走到这里【抛异常】——
+            //   订单停在 pending,而钱已经在网关收了。ReconcilePayments 还会
+            //   反复重试、反复抛。
+            //   而"下架"是后台一键按钮、"售罄"是限量套餐的自然结果,都不罕见。
+            if (! $plan->on_sale || $plan->stock === 0) {
+                if (! $moneyAlreadyTaken) {
+                    throw ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架，无法完成支付']);
+                }
+                // 钱已收:照常发货(用户买的就是这个套餐),把异常写进备注供对账
+                $locked->update(['refund_reason' => trim(($locked->refund_reason ?? '')
+                    .' [结算时套餐已下架或售罄，仍按原订单发货]')]);
             }
 
             if ($charge) {
