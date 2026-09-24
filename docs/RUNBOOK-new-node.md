@@ -149,8 +149,10 @@ $n=App\Models\Node::find(<ID>);
 printf("心跳 %s 秒前 · 自报协议 %s\n", time()-(int)$n->last_heartbeat, $n->reported_server_type ?: "-");'
 ```
 
-`[!]` 用 **`last_heartbeat`**，不要用 `last_seen_at`（该字段常年为 null）
-也不要用 `updated_at`（面板写别的字段也会动它）。
+`[!!]` 心跳字段叫 **`last_heartbeat`**（unix 秒）。不要写 `last_seen_at` ——
+**`nodes` 表根本没有这一列**，而 Eloquent 对不存在的属性**静默返回 NULL**，
+于是你会得到"从未上报"这个完全错误的结论（本 runbook 写作时就这么错过一次）。
+也不要用 `updated_at`：面板写别的字段也会动它。
 
 ---
 
@@ -258,6 +260,6 @@ journalctl -u agent -n 200 --no-pager     # 看失败原因
 | REALITY server_names 不跟 dest 变 | agent `ErrRealityIncomplete` 拒整个节点 | 面板已加同站校验 |
 | `enabled=1` 但机器还没好 | 死节点进所有人订阅 | 19 个占位节点事件 |
 | ~~一键部署的 `api_url` 指向牺牲域~~ | **已修**（2026-09-24）：改读 `NODE_API_URL`，不配才回落 `APP_URL` | 见闸门 2 |
-| 用 `last_seen_at` 判在线 | 该字段常年 null，会误判成"从未上报" | 本 runbook 写作时踩到 |
+| 用 `last_seen_at` 判在线 | **该列不存在**，而 Eloquent 对不存在的属性静默返回 NULL → 误判成"从未上报" | 本 runbook 写作时踩到 |
 | 面板不可达时 fail-open 无上界 | agent 无限期沿用旧用户列表，**没有告警** | `LAUNCH-CHECKLIST` L-11 |
 | dest 挂掉 | 全员断线，**没有任何人会被通知** | `LAUNCH-CHECKLIST` L-22 |
