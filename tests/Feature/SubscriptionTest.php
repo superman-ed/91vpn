@@ -9,7 +9,11 @@ it('serves clash config for a valid token', function () {
         'class' => 2, 'class_expire' => now()->addDays(10),
         'transfer_enable' => 100 * 1024 ** 3, 'u' => 0, 'd' => 0,
     ]);
-    Node::create(['name' => '香港01', 'server' => 'hk.example.com', 'port' => 10086, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 's1']);
+    // `[!]` online 从 2026-09-24 起默认 false（迁移
+    //   default_nodes_offline_until_heartbeat）—— 新建节点在 agent 首次上报前
+    //   不进订阅。这里显式写成 true = "该节点的 agent 已经报到过",
+    //   这是本用例一直隐含的前提,只是以前由一个会撒谎的默认值替它成立。
+    Node::create(['name' => '香港01', 'server' => 'hk.example.com', 'port' => 10086, 'type' => 'vmess', 'net' => 'tcp', 'traffic_rate' => 1, 'node_class' => 0, 'secret' => 's1', 'online' => true]);
 
     $res = $this->get('/sub/VALIDTOKEN');
     $res->assertOk();

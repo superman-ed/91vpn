@@ -460,6 +460,10 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
   </div>
 </section>
 
+{{-- `[!]` 一个地区都识别不到时【整块隐掉】,不要空着也不要编。
+     此前这里靠 HomeController::FALLBACK_REGIONS 顶上 6 个地区名,
+     那会在一台节点都没有的时候宣称覆盖 6 个地区。 --}}
+@if($regionCount > 0)
 <section id="regions">
   <div class="wrap">
     <div class="shead"><h2>通航地区</h2><span class="m">DESTINATIONS · {{ $regionCount }}</span></div>
@@ -471,6 +475,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     <p style="font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px;letter-spacing:.04em">* 地区持续增加 · 具体可用节点以客户端为准</p>
   </div>
 </section>
+@endif
 
 <section id="fares">
   <div class="wrap">

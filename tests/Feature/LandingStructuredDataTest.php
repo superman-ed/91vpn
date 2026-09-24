@@ -79,11 +79,22 @@ it('在没有可下载客户端时不标 SoftwareApplication', function () {
     expect(ld())->not->toHaveKey('SoftwareApplication');
 });
 
+// `[!!]` 这条断言最初写成"必须引用 favicon.svg",那是【过度指定】——
+//   钉的是文件选择,不是真正要保证的性质。2026-09-24 另一个会话把
+//   favicon.svg 有意去掉了(它是个占位的"9"标,而 favicon.ico 是从品牌 logo
+//   生成的多尺寸图),于是这条测试红了 —— 而他们的改动其实完全满足本意图。
+//   现在只断言该保证的性质:标签图标是图标文件,不是 37 KB 的社交大图。
 it('favicon 用图标文件，不是 37 KB 的社交大图', function () {
     $html = $this->get('/')->assertOk()->getContent();
 
-    expect($html)->toContain('favicon.svg');
-    expect($html)->toMatch('#<link rel="icon"[^>]*favicon\.ico#');
-    // og.jpg 只该出现在 og:image / apple-touch-icon,不该是 rel="icon"
-    expect($html)->not->toMatch('#<link rel="icon"[^>]*og\.jpg#');
+    preg_match_all('#<link[^>]*rel="icon"[^>]*>#', $html, $icons);
+    expect($icons[0])->not->toBeEmpty('页面没有任何 rel="icon"');
+
+    foreach ($icons[0] as $tag) {
+        expect($tag)->not->toContain('og.jpg',
+            'rel="icon" 指向 og.jpg —— 那是社交分享大图(37 KB),不是标签图标');
+        expect($tag)->toMatch('#favicon\.(ico|svg|png)#');
+    }
+    // og.jpg 仍该用在社交预览与 apple-touch-icon 上
+    expect($html)->toContain('og:image');
 });

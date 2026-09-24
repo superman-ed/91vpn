@@ -34,7 +34,10 @@ class HomeController extends Controller
         '智利' => '智利', '俄罗斯' => '俄罗斯', '迪拜' => '阿联酋', '阿联酋' => '阿联酋',
     ];
 
-    private const FALLBACK_REGIONS = ['香港', '日本', '新加坡', '美国', '台湾', '韩国'];
+    // `[!!]` 曾经这里有一个 FALLBACK_REGIONS = ['香港','日本','新加坡','美国','台湾','韩国'],
+    //   在识别不到任何地区时顶上去,理由是"保证板块不空"。那是【编数据】——
+    //   一台节点都没有的时候页面照样宣称覆盖 6 个地区。
+    //   现在改成:识别不到就返回空,由模板把整个板块隐掉(不空着也不编)。
 
     public function __construct(private PlanCatalog $catalog) {}
 
@@ -54,7 +57,8 @@ class HomeController extends Controller
             'downloads' => ClientDownload::visible()->get(),
             'regions' => $regions,
             'regionCount' => count($regions),
-            'nodeCount' => Node::where('enabled', true)->count(),
+            // `[!]` 与 regionsFromNodes 同口径:没上报过的节点不算数
+            'nodeCount' => Node::where('enabled', true)->where('last_heartbeat', '>', 0)->count(),
         ]);
     }
 
@@ -62,7 +66,14 @@ class HomeController extends Controller
     private function regionsFromNodes(): array
     {
         $found = [];
-        foreach (Node::where('enabled', true)->pluck('name') as $name) {
+        // `[!!]` 必须同时要求【曾经上报过】(last_heartbeat > 0)。只筛 enabled 时,
+        //   在后台建一个节点就能让这里多出一个地区 —— 2026-09-24 实际发生:
+        //   19 个 server 指向 .placeholder.invalid 的占位节点把这里从 1 个
+        //   吹到了 13 个,而其中 12 个地区根本不存在。
+        // `[!]` 口径是 last_heartbeat 而【不是 online】:真节点的 agent 重启时
+        //   online 会短暂变 0,营销页的地区数不该跟着闪。"曾经上报过"才是
+        //   "这台机器真实存在"的证据。
+        foreach (Node::where('enabled', true)->where('last_heartbeat', '>', 0)->pluck('name') as $name) {
             foreach (self::REGION_KEYWORDS as $kw => $region) {
                 if (mb_stripos((string) $name, $kw) !== false) {
                     $found[$region] = true;
@@ -70,6 +81,6 @@ class HomeController extends Controller
             }
         }
 
-        return $found === [] ? self::FALLBACK_REGIONS : array_keys($found);
+        return array_keys($found);
     }
 }
