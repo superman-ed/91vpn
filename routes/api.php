@@ -58,9 +58,11 @@ Route::middleware('client.token')->group(function () {
 
     // 工单
     Route::get('/tickets', [TicketApiController::class, 'index']);                // 列表
-    Route::post('/tickets', [TicketApiController::class, 'store']);               // 新建
+    // `[!]` 限流与登录/注册同口径(throttle:10,1)。此前【没有限流】,而 /crash 都有 ——
+    //   缺失是不一致,不是有意。10/分钟不会打扰真人,但挡得住刷。
+    Route::post('/tickets', [TicketApiController::class, 'store'])->middleware('throttle:10,1');   // 新建
     Route::get('/tickets/{ticket}', [TicketApiController::class, 'show']);        // 详情
-    Route::post('/tickets/{ticket}/reply', [TicketApiController::class, 'reply']); // 回复
+    Route::post('/tickets/{ticket}/reply', [TicketApiController::class, 'reply'])->middleware('throttle:10,1'); // 回复
     Route::post('/tickets/{ticket}/close', [TicketApiController::class, 'close']); // 结单
 
     // 连接凭证 / 用量

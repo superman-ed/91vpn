@@ -25,7 +25,13 @@ class TicketController extends Controller
     {
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
+            // `[!!]` ticket_replies.content 是 TEXT(65,535 字节)且 MySQL 开着
+            //   STRICT_TRANS_TABLES —— 超长写入会【抛错】,用户收到的是 HTTP 500,
+            //   不是"内容太长"。2026-09-24 实测:1,000 汉字成功,70,000 汉字 500。
+            //   而客服工单里用户最常干的事就是【粘贴客户端日志】。
+            //   5000 字符 × 3 字节/汉字 = 15,000 字节,离上限还很远。
+            //   5000 这个数是跟 NotificationController 的既有口径对齐,不是新定的。
+            'content' => ['required', 'string', 'max:5000'],
         ]);
 
         $ticket = DB::transaction(function () use ($data) {
@@ -58,7 +64,7 @@ class TicketController extends Controller
     public function reply(Request $request, Ticket $ticket)
     {
         abort_unless($ticket->user_id === auth()->id(), 403);
-        $data = $request->validate(['content' => ['required', 'string']]);
+        $data = $request->validate(['content' => ['required', 'string', 'max:5000']]);   // 见 store()
 
         $ticket->replies()->create(['user_id' => auth()->id(), 'is_admin' => false, 'content' => $data['content']]);
         $ticket->update(['status' => 'open', 'last_reply_at' => now()]);

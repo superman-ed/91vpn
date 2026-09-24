@@ -106,9 +106,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/invite', [InviteController::class, 'index'])->name('user.invite');
     Route::get('/user/ticket', [UserTicketController::class, 'index'])->name('user.ticket');
     Route::get('/user/ticket/create', [UserTicketController::class, 'create']);
-    Route::post('/user/ticket', [UserTicketController::class, 'store']);
+    Route::post('/user/ticket', [UserTicketController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/user/ticket/{ticket}', [UserTicketController::class, 'show']);
-    Route::post('/user/ticket/{ticket}/reply', [UserTicketController::class, 'reply']);
+    Route::post('/user/ticket/{ticket}/reply', [UserTicketController::class, 'reply'])->middleware('throttle:10,1');
     Route::post('/user/ticket/{ticket}/close', [UserTicketController::class, 'close']);
     Route::get('/user/shop', [ShopController::class, 'index'])->name('user.shop');
     Route::post('/user/order/create', [ShopController::class, 'createOrder']);
