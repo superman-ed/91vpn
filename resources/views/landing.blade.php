@@ -6,10 +6,10 @@
 <title>91VPN</title>
 <meta name="description" content="解锁全球流媒体与 AI 的加速服务——像机场一样，直达你到不了的目的地">
 <link rel="canonical" href="{{ url('/') }}">
-{{-- `[!]` 此前 rel=icon 指向 og.jpg —— 拿 37 KB 的社交大图当浏览器标签图标。
-     favicon.ico / favicon.svg 本来就在 public/ 下,只是没被引用。 --}}
-<link rel="icon" href="{{ asset('favicon.ico') }}" sizes="32x32">
-<link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+{{-- `[!]` favicon 用 og.jpg 的 logo(favicon.ico 是从 og.jpg 生成的 16/32/48 多尺寸图,
+     即品牌 logo 缩好的版本,而非 37 KB 社交大图)。不引 favicon.svg 那个占位"9"标——
+     否则现代浏览器会优先用 SVG,显示成"9"而不是 og.jpg logo。 --}}
+<link rel="icon" href="{{ asset('favicon.ico') }}" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="{{ asset('og.jpg') }}">
 <meta name="theme-color" content="#F1EEE4">
 <meta property="og:type" content="website">
