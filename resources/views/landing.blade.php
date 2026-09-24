@@ -183,6 +183,11 @@ section{padding:72px 0;border-top:1px solid var(--rule)}
 
 /* platforms — ruled row */
 .gates{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule)}
+/* [!] 下载区按当前可下载的平台数排列 —— 隐掉 iOS/macOS 或某平台还没出包时,
+   不至于剩两张卡塞在四列里发虚。移动端列数仍由下面的媒体查询接管(源序在后=覆盖)。 */
+.gates-1{grid-template-columns:1fr}
+.gates-2{grid-template-columns:repeat(2,1fr)}
+.gates-3{grid-template-columns:repeat(3,1fr)}
 .gate{padding:24px 20px;border-right:1px solid var(--rule-soft);display:block}
 .gate:last-child{border-right:0}
 .gate:hover{background:var(--flap)}
@@ -191,6 +196,10 @@ section{padding:72px 0;border-top:1px solid var(--rule)}
 .gate .g{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--amber-dim)}
 .gate b{display:block;font-family:var(--sign);font-size:18px;margin:6px 0 2px}
 .gate span{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+/* 还没出包的平台:占位卡,不可点(<a> 去掉 href 即不可点),灰化并抑制 hover 高亮 */
+.gate-soon{cursor:default;opacity:.5}
+.gate-soon:hover{background:transparent}
+.gate-soon:hover svg{color:var(--dim)}
 
 /* fares — a timetable, not pricing cards */
 .fares-scroll{overflow-x:auto}
@@ -444,13 +453,13 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 <section id="gates">
   <div class="wrap">
     <div class="shead"><h2>值机 · 下载客户端</h2><span class="m">CHECK-IN</span></div>
-    <div class="gates">
+    <div class="gates gates-{{ max(1, min(count($downloads), 4)) }}">
       @forelse($downloads as $dl)
-      <a class="gate" href="{{ $dl->url ?: '/register' }}"@if($dl->url) target="_blank" rel="noopener"@endif>
+      <a class="gate{{ filled($dl->url) ? '' : ' gate-soon' }}"@if(filled($dl->url)) href="{{ $dl->url }}" target="_blank" rel="noopener"@endif>
         {!! $platSvg[strtolower($dl->platform)] ?? '' !!}
         <span class="g">{{ $dl->platform }}</span>
         <b>{{ $dl->label ?: $dl->platform }}</b>
-        <span>{{ $dl->url ? ($dl->version ?: '点击下载') : '即将推出' }}</span>
+        <span>{{ filled($dl->url) ? ($dl->version ?: '点击下载') : '即将推出' }}</span>
       </a>
       @empty
       <a class="gate" href="/register"><span class="g">全平台</span><b>Android · Windows</b><span>iOS · macOS · 注册后下载</span></a>
@@ -640,8 +649,9 @@ qas.forEach(function(q){q.querySelector('summary').addEventListener('click',func
   var btn=document.getElementById('dl-cta');
   if(!btn||!p) return;                              // 认不出平台 → 保持"立即下载"→#gates
   var d=dl[p];
-  if(d&&d.url){ btn.href=d.url; btn.textContent='立即下载 · '+names[p]; btn.target='_blank'; btn.rel='noopener'; }
-  else { btn.textContent='查看'+names[p]+'下载'; } // 该平台暂无链接 → 文案提示,href 仍指 #gates
+  if(!d) return;                                    // 该平台我们没提供(如 iOS/macOS 已隐)→ 不承诺,保持默认
+  if(d.url){ btn.href=d.url; btn.textContent='立即下载 · '+names[p]; btn.target='_blank'; btn.rel='noopener'; }
+  else { btn.textContent='查看'+names[p]+'下载'; }  // 已列出但暂无链接(即将推出)→ href 仍指 #gates 看占位卡
 })();
 </script>
 {{--
