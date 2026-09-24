@@ -73,9 +73,9 @@ class BillingService
      * - 流量包：立即加流量
      * - 普通套餐：当前有效则排队(status=queued, activate_at)，否则立即发货
      */
-    public function completeOrder(Order $order, string $payMethod): void
+    public function completeOrder(Order $order, string $payMethod, bool $moneyAlreadyTaken = false): void
     {
-        DB::transaction(function () use ($order, $payMethod) {
+        DB::transaction(function () use ($order, $payMethod, $moneyAlreadyTaken) {
             // 锁 user 行：串行化同一用户的并发发货，避免两笔订单各自读到旧到期日、互相覆盖时长
             $user = User::whereKey($order->user_id)->lockForUpdate()->first();
 
@@ -85,12 +85,29 @@ class BillingService
             if ($order->plan && $order->plan->stock > 0) {
                 $order->plan->decrement('stock');
             }
-            if ($order->coupon_id && $order->coupon) {
-                // 原子受限自增:used 不超过 max_use(max_use<0=不限)。防并发结算把限量券刷穿,
-                // 且用尽后 used 恰好=max_use,后续 isUsable() 能正确判为不可用。
-                \App\Models\Coupon::whereKey($order->coupon_id)
-                    ->where(fn ($q) => $q->where('max_use', '<', 0)->orWhereColumn('used', '<', 'max_use'))
-                    ->increment('used');
+            if ($order->coupon_id) {
+                // `[!!]` 券必须在【结算这一刻】复查,不能只靠下单时校验过。
+                //   2026-09-24 实测:券在附加到订单时折了价,之后用尽或过期,
+                //   支付照样按折后价成交 ——
+                //     限量 1 次的券 → 两单都按 50 成交(原价 100),而 used 只涨到 1
+                //     过期后再支付  → 仍按 50 成交
+                //   原来的原子自增确实防住了"计数被刷穿",但【钱不在计数器上】:
+                //   自增影响 0 行时它不看返回值,订单照样以折后价完成。
+                $coupon = \App\Models\Coupon::whereKey($order->coupon_id)->lockForUpdate()->first();
+
+                if ($coupon && $coupon->isUsable()) {
+                    $coupon->increment('used');
+                } elseif (! $moneyAlreadyTaken) {
+                    // 钱还没收 —— 拒绝,整个事务回滚,用户重新下单拿到真实价格
+                    throw ValidationException::withMessages([
+                        'coupon' => '优惠券已失效（已用完或已过期），请返回重新下单',
+                    ]);
+                } else {
+                    // `[!!]` 钱已经在网关收了 —— 抛异常只会回滚数据库,退不了那笔钱。
+                    //   照常发货,把异常写进订单备注,让对账时看得见。
+                    $order->update(['refund_reason' => trim(($order->refund_reason ?? '')
+                        .' [结算时优惠券已失效，仍按折后价成交]')]);
+                }
             }
 
             $plan = $order->plan;
@@ -182,10 +199,18 @@ class BillingService
      * - 订单已非 pending → 幂等跳过(返回 false)
      * - 套餐已售罄/下架 → 抛校验错误
      * - $charge：余额支付的扣款闭包(在锁内执行，可抛"余额不足")
+     * - $moneyAlreadyTaken：钱是否【已经在外部收到】(网关回调/对账/超时补结)
+     *
+     * `[!!]` 最后这个参数决定"券失效时怎么办",而两种答案都可能是错的:
+     *   钱还没收(余额/0元/mock/manual) → 拒绝。整个事务回滚,用户重新下单。
+     *   钱已经收了(epay 回调/对账)     → 【绝不能拒绝】。抛异常只会回滚数据库,
+     *                                    网关那边的钱【不会退回来】——
+     *                                    结果是用户付了钱而订单失败。
+     *                                    照常发货,把异常记进备注。
      */
-    public function settleOrder(Order $order, string $method, ?\Closure $charge = null): bool
+    public function settleOrder(Order $order, string $method, ?\Closure $charge = null, bool $moneyAlreadyTaken = false): bool
     {
-        return DB::transaction(function () use ($order, $method, $charge) {
+        return DB::transaction(function () use ($order, $method, $charge, $moneyAlreadyTaken) {
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
             if (! $locked || $locked->status !== 'pending') {
                 return false;   // 并发下已被处理，幂等跳过
@@ -200,7 +225,7 @@ class BillingService
                 $charge($locked);   // 余额扣款，可抛"余额不足"
             }
 
-            $this->completeOrder($locked, $method);
+            $this->completeOrder($locked, $method, $moneyAlreadyTaken);
 
             return true;
         });

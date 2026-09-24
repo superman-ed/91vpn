@@ -37,7 +37,8 @@ class ReconcilePayments extends Command
                         continue;
                     }
                     try {
-                        if ($billing->settleOrder($order, 'epay')) {   // 幂等
+                        // `[!]` true = 钱已在网关收到(对账补结),券失效也不能拒绝。见 PaymentController
+                        if ($billing->settleOrder($order, 'epay', null, true)) {   // 幂等
                             $count++;
                             // 回调丢了、钱已经收了 —— 这条必须留痕:
                             // 它是"用户付了钱但系统当时没反应"的唯一证据
