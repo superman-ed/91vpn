@@ -283,8 +283,25 @@ class Node extends Model
         return "#{$this->id} {$this->name} ({$this->server}".($this->port ? ":{$this->port}" : '').')';
     }
 
+    /**
+     * `[!!]` 节点心跳失联窗口（秒）—— 【全项目唯一来源】。
+     *
+     * 曾经这个 180 在【六个地方各写一遍】:本方法的默认参数、
+     * RelayMonitorController::STALE_SEC、LayerHealth::HEARTBEAT_STALE_SEC、
+     * HealthController::NODE_ONLINE_WINDOW、NodeDiagnosis 里一个裸字面量,
+     * 以及 nodes:mark-offline 的 CLI 默认值。取值当时恰好一致,
+     * 但【没有任何机制保证它们一起改】—— 改一处而漏掉别处的后果是:
+     * 同一个节点在不同页面上一个显示在线、一个显示失联,而谁都不报错。
+     *
+     * 取 180 的依据:agent 每分钟上报一次(mod_mu 心跳),180 秒 = 容 3 次漏报。
+     * `[!]` 这与 AliveIp::ONLINE_WINDOW(120,用户在线) 和
+     * Device::ONLINE_WINDOW(300,客户端设备) 是【三件不同的事】,
+     * 各有自己的上报频率,不要为了"看起来一致"而强行统一成一个数。
+     */
+    public const STALE_SEC = 180;
+
     /** 心跳是否新鲜（中转页用；落地那边看 online）。 */
-    public function alive(int $staleSec = 180): bool
+    public function alive(int $staleSec = self::STALE_SEC): bool
     {
         return $this->enabled && (time() - (int) $this->last_heartbeat) <= $staleSec;
     }

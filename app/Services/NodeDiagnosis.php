@@ -47,7 +47,8 @@ class NodeDiagnosis
                 .'或者 webapi_url / node_id / secret 配错了');
         }
         $age = time() - (int) $node->last_heartbeat;
-        if ($age > 180) {
+        // `[!]` 原本是裸字面量 180 —— 连常量名都没有。@see Node::STALE_SEC
+        if ($age > Node::STALE_SEC) {
             return $this->x('bad', '心跳', "最后一次是 {$age} 秒前 —— 节点失联了。"
                 .'去节点上看 `systemctl is-active agent` 与 `journalctl -u agent -n 50`');
         }

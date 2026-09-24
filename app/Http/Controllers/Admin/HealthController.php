@@ -98,8 +98,8 @@ class HealthController extends Controller
         }
     }
 
-    /** 节点心跳在线判定窗口（秒） */
-    private const NODE_ONLINE_WINDOW = 180;
+    /** 节点心跳在线判定窗口（秒）。@see \App\Models\Node::STALE_SEC —— 唯一来源 */
+    private const NODE_ONLINE_WINDOW = \App\Models\Node::STALE_SEC;
 
     private function nodes(): array
     {

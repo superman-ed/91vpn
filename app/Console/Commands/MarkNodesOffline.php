@@ -10,13 +10,14 @@ use Illuminate\Console\Command;
 // 注:last_heartbeat=0(从未连过)的节点不动——那是新建/未接 agent,由 enabled 控制是否服务。
 class MarkNodesOffline extends Command
 {
-    protected $signature = 'nodes:mark-offline {--seconds=180 : 心跳超过多少秒未更新即判离线}';
+    // `[!]` 默认值取 Node::STALE_SEC(唯一来源),不在这里另写一个数。
+    protected $signature = 'nodes:mark-offline {--seconds= : 心跳超过多少秒未更新即判离线(默认 Node::STALE_SEC)}';
 
     protected $description = '把心跳失联的节点置为离线(online=false),避免死节点仍被下发给用户';
 
     public function handle(): int
     {
-        $threshold = max(30, (int) $this->option('seconds'));
+        $threshold = max(30, (int) ($this->option('seconds') ?: Node::STALE_SEC));
         $cutoff = now()->timestamp - $threshold;
 
         $n = Node::where('online', true)

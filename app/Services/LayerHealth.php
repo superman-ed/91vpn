@@ -28,8 +28,8 @@ use App\Models\Node;
  */
 class LayerHealth
 {
-    /** 心跳多久没来就算失联。与 NodeDiagnosis 一致。 */
-    private const HEARTBEAT_STALE_SEC = 180;
+    /** 心跳多久没来就算失联。@see \App\Models\Node::STALE_SEC —— 唯一来源 */
+    private const HEARTBEAT_STALE_SEC = \App\Models\Node::STALE_SEC;
 
     /**
      * 一个节点的三层状态。

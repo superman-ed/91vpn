@@ -619,7 +619,7 @@ xray 的 REALITY 入站只支持一个 dest，自动切换意味着 agent 重写
 | **P13-B** | v2rayN / base64 格式没有自动切换 —— 是格式本身的能力差别，非缺陷。但 P0-1「客户端自动故障转移」的结论**只对 Clash 用户成立**，而下载页对两类客户端是并列推荐的 |
 | **订阅同域** | ~~自检「订阅地址」长期 warn~~ —— **2026-09-24 已自行转绿**：`APP_URL` 改成 `91vpn.com` 后，面板域与订阅域（`91app.shop`）已是不同可注册域。`[D]` 自检该项现为 `ok`。分配与修订理由见 `docs/decisions/domain-allocation.md`（D-7） |
 | **严格属性模式** | `Model::preventAccessingMissingAttributes()` 评估过,**不开**。`[D]` 2026-09-24 实测:开了之后全量 45 条红、99 处报错,而缺的全是**真实存在的 `users` 列**(`last_check_in`/`money`/`username`…)—— 那是 `factory()->create()` 之后模型未取回数据库默认值造成的**部分水合**,不是生产 bug(生产里 `auth()->user()` 是完整 select)。清理成本高、信号低 |
-| 阈值重复 | 180 秒失联阈值在 4 处各写一遍（其中一处是 CLI 选项），当前取值一致，但没有机制保证它们一起改。`LayerHealth::worst()` 与 `Node::alive()` 均无生产调用方 |
+| 阈值重复 | ~~180 秒失联阈值在 4 处各写一遍~~ —— **已修（2026-09-24）**：实际数下来是 **6 处**（含 `NodeDiagnosis` 里一个**裸字面量**和 `nodes:mark-offline` 的 CLI 默认值）。现已统一到 `Node::STALE_SEC`，并加了两条**互补**的护栏测试（结构扫描抓「写回同值」、常量对比抓「写回异值」，`[D]` 两种退化各自验过）。`[!]` 三个在线口径**刻意不同**且各有依据：`Node::STALE_SEC` 180（节点，agent 每分钟上报→容 3 次漏报）/ `AliveIp::ONLINE_WINDOW` 120（用户）/ `Device::ONLINE_WINDOW` 300（客户端，`[?]` 所依据的上报频率未文档化）—— 不要为「看起来一致」把它们拉平 |
 
 ---
 

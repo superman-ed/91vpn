@@ -41,7 +41,20 @@ class Device extends Model
 
     protected $casts = ['last_seen' => 'datetime'];
 
-    /** 在线判定窗口（秒）：与节点在线口径一致，客户端约每分钟心跳一次 */
+    /**
+     * 客户端设备在线判定窗口（秒）。
+     *
+     * `[!]` 这里原本的注释写着"与节点在线口径一致" —— **那是错的**:
+     * 节点失联窗口是 Node::STALE_SEC(180),不是 300。
+     *
+     * `[?]` 300 的依据是"客户端约每分钟心跳一次" —— 但 /api/device/report
+     * 【没有文档化的上报频率】,客户端是独立代码库,本仓库无法证实这个前提。
+     * 移动端会被系统挂起/节流,窗口比节点宽是合理的,但具体该是 300 还是别的
+     * 数,要等客户端把心跳间隔定下来并写进文档才能确定。
+     *
+     * `[!]` 与 Node::STALE_SEC(180,节点) 和 AliveIp::ONLINE_WINDOW(120,用户)
+     * 是三件不同的事,不要为了"看起来一致"而强行统一。
+     */
     public const ONLINE_WINDOW = 300;
 
     public function user(): BelongsTo

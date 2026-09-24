@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 class RelayMonitorController extends \App\Http\Controllers\Controller
 {
-    private const STALE_SEC = 180;
+    /** @see \App\Models\Node::STALE_SEC —— 唯一来源,别在这里另写一个数 */
+    private const STALE_SEC = Node::STALE_SEC;
 
     public function index()
     {
