@@ -73,12 +73,29 @@ class UserController extends Controller
         return csv_download('users_'.now()->format('Ymd_His').'.csv', $header, $rows);
     }
 
+    /**
+     * 四个状态桶。
+     *
+     * `[!!]` 它们必须【完整划分】全体用户 —— 否则会出现"后台能造出一个后台
+     * 自己找不到的状态"。2026-09-24 实测过一次:`class > 0` 而 `class_expire`
+     * 被清空(编辑表单是 nullable,注释写明允许清空)的用户,
+     *   member 要求 expire > now  → NULL 比较为假
+     *   expired 要求 expire <= now → NULL 比较也为假
+     * 于是他在【四个桶里都不出现】,只在不筛选的列表里露面,四个计数之和也对
+     * 不上 all。而这个用户功能上是【用不了的】(hasActivePackage() 为 false、
+     * 订阅返回 403)—— 他会来投诉,而你按"已过期"筛选看不到他。
+     *
+     * `[!]` 修法是让 expired 与【功能上的真相】对齐(没有有效期 = 已过期),
+     * 而不是禁止管理员清空到期时间 —— 那会拿掉表单有意提供的能力。
+     */
     private function applyStatus($query, string $status)
     {
         return match ($status) {
             'member' => $query->where('banned', false)->where('class', '>', 0)->where('class_expire', '>', now()),
             'free' => $query->where('banned', false)->where('class', 0),
-            'expired' => $query->where('banned', false)->where('class', '>', 0)->where('class_expire', '<=', now()),
+            // 已过期 = 有等级但【当前无效】:到期日为空,或已经过去
+            'expired' => $query->where('banned', false)->where('class', '>', 0)
+                ->where(fn ($q) => $q->whereNull('class_expire')->orWhere('class_expire', '<=', now())),
             'banned' => $query->where('banned', true),
             default => $query,
         };
