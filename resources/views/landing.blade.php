@@ -186,6 +186,8 @@ section{padding:72px 0;border-top:1px solid var(--rule)}
 .gate{padding:24px 20px;border-right:1px solid var(--rule-soft);display:block}
 .gate:last-child{border-right:0}
 .gate:hover{background:var(--flap)}
+.gate svg{width:26px;height:26px;display:block;margin-bottom:14px;color:var(--dim);transition:color .16s ease}
+.gate:hover svg{color:var(--amber)}
 .gate .g{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--amber-dim)}
 .gate b{display:block;font-family:var(--sign);font-size:18px;margin:6px 0 2px}
 .gate span{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
@@ -345,6 +347,17 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     ['怎么付款?可以退票吗?',
      '付款后订阅即时开通,支持多种在线支付方式。新用户 3 天内不满意可无理由退票。'],
   ];
+
+  // 平台图标(内联单色 SVG,契合纸墨单色调性;iOS/macOS 同用苹果标)。按 platform 小写取。
+  $appleSvg = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.06 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>';
+  // macOS 用笔记本轮廓,和 iOS 的苹果标区分开
+  $macSvg = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 5h14a1 1 0 011 1v8H4V6a1 1 0 011-1zm1 2v6h12V7H6z"/><path d="M2 16h20l-1.3 2.2a1 1 0 01-.86.5H4.16a1 1 0 01-.86-.5L2 16z"/></svg>';
+  $platSvg = [
+    'android' => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.52 15.34a1 1 0 110-2 1 1 0 010 2zm-11.04 0a1 1 0 110-2 1 1 0 010 2zM17.88 9.32l2-3.46a.42.42 0 00-.72-.42l-2.02 3.5A12.2 12.2 0 0012 7.85c-1.85 0-3.59.39-5.14 1.09L4.84 5.44a.42.42 0 00-.72.42l2 3.46C2.69 11.19.34 14.66 0 18.76h24c-.34-4.1-2.69-7.57-6.12-9.44z"/></svg>',
+    'windows' => '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.45L9.75 2.1v9.45H0zM10.95 1.95L24 0v11.4H10.95zM0 12.6h9.75v9.45L0 20.7zM10.95 12.6H24V24l-13.05-1.8z"/></svg>',
+    'ios' => $appleSvg,
+    'macos' => $macSvg,
+  ];
 @endphp
 
 <main id="top">
@@ -416,6 +429,7 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
     <div class="gates">
       @forelse($downloads as $dl)
       <a class="gate" href="{{ $dl->url ?: '/register' }}"@if($dl->url) target="_blank" rel="noopener"@endif>
+        {!! $platSvg[strtolower($dl->platform)] ?? '' !!}
         <span class="g">{{ $dl->platform }}</span>
         <b>{{ $dl->label ?: $dl->platform }}</b>
         <span>{{ $dl->url ? ($dl->version ?: '点击下载') : '即将推出' }}</span>
