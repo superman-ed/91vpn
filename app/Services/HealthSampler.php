@@ -37,7 +37,22 @@ class HealthSampler
     public function __construct(
         private LayerHealth $layers,
         private ?\Closure $prober = null,
+        private ?\App\Support\Alerter $alerter = null,
     ) {}
+
+    /**
+     * 原因码 → 人话。发到告警里的就是这些。
+     *
+     * `[!]` 不含 manual / deleted —— 那两个是运维动作,NodeHealthSpell::isFailure()
+     * 已经把它们判成非故障,不会走到告警这条路。
+     */
+    private const REASON_TEXT = [
+        'dest_down' => 'REALITY dest 挂了 —— 端口照常监听、心跳照常,但没人能完成握手',
+        'hop_failed' => '到落地那一跳断了',
+        'agent_gone' => 'agent 进程没了(端口还通,机器还在)',
+        'unreachable' => '机器连不上(端口也不通)',
+        'unknown' => '心跳失联,但无法判断是机器还是 agent(accept_proxy 节点面板探不到)',
+    ];
 
     private function probe(string $host, int $port): bool
     {
@@ -58,6 +73,9 @@ class HealthSampler
     {
         $now ??= now();
         $opened = $closed = $confirmed = 0;
+        // `[!!]` 告警按【本轮批量】发一条,不是每个节点一条。面板出故障时
+        //   可能十几个节点同时掉,逐条发会把人淹掉,而被淹掉的告警等于没有告警。
+        $wentDown = $cameBack = [];
 
         $open = NodeHealthSpell::whereNull('ended_at')->get()->keyBy('node_id');
         $nodes = Node::with('outboundStatuses.rule')->get();
@@ -93,6 +111,20 @@ class HealthSampler
                         'unknown_observations' => $unknown ? 1 : 0,
                     ]);
                     $opened++;
+
+                    // `[!!]` 只有【曾经故障过】的节点才算"恢复"。新买的机器第一次
+                    //   上线不该被报成恢复 —— 那会让人以为它出过事。
+                    $prevFailed = NodeHealthSpell::where('node_id', $node->id)
+                        ->where('outcome', 'failed')
+                        ->latest('ended_at')
+                        ->first();
+                    if ($prevFailed) {
+                        $cameBack[] = [
+                            'node' => $node,
+                            'downFrom' => $prevFailed->ended_at,
+                            'reason' => (string) $prevFailed->reason,
+                        ];
+                    }
                 }
 
                 continue;
@@ -116,6 +148,12 @@ class HealthSampler
             $spell->outcome = NodeHealthSpell::isFailure($reason) ? 'failed' : 'censored';
             $spell->save();
             $closed++;
+
+            // `[!]` 只对 failed 告警。censored(运维手动停用/删除)不是故障 ——
+            //   为自己的操作收一条告警,是训练自己忽略告警最快的办法。
+            if ($spell->outcome === 'failed') {
+                $wentDown[] = ['node' => $node, 'spell' => $spell, 'reason' => $reason];
+            }
         }
 
         // 节点被删掉时，它的区段要按【删失】结束 —— 删除是运维动作，不是失效。
@@ -129,7 +167,71 @@ class HealthSampler
             $closed++;
         }
 
-        return ['opened' => $opened, 'closed' => $closed, 'confirmed' => $confirmed];
+        $alerted = $this->notify($wentDown, $cameBack);
+
+        return ['opened' => $opened, 'closed' => $closed, 'confirmed' => $confirmed, 'alerted' => $alerted];
+    }
+
+    /**
+     * 把本轮的掉线/恢复发出去。
+     *
+     * `[!!]` 发不出去【不影响采样】—— Alerter 自己兜住所有异常,这里也不抛。
+     * 告警是附加价值,区段记录是本职;不能让前者拖累后者。
+     *
+     * `[!]` 消息里只放 节点 ID / 名称 / 原因 / 时长。
+     * 不放 server(IP)、secret、dest —— Telegram 聊天记录不受我们控制且会被转发。
+     *
+     * @return int 发出去的消息条数（0 = 没事发生，或没配告警）
+     */
+    private function notify(array $wentDown, array $cameBack): int
+    {
+        if ($wentDown === [] && $cameBack === []) {
+            return 0;
+        }
+        $alerter = $this->alerter ?? app(\App\Support\Alerter::class);
+        if (! $alerter->configured()) {
+            return 0;
+        }
+
+        $lines = [];
+        if ($wentDown !== []) {
+            $lines[] = '🔴 节点不可用 '.count($wentDown).' 个';
+            foreach ($wentDown as $d) {
+                $up = $d['spell']->first_healthy_at && $d['spell']->ended_at
+                    ? $d['spell']->first_healthy_at->diffForHumans($d['spell']->ended_at, true)
+                    : '未知';
+                $lines[] = sprintf('  #%d %s —— %s（此前连续可用 %s）',
+                    $d['node']->id, $d['node']->name,
+                    self::REASON_TEXT[$d['reason']] ?? $d['reason'], $up);
+            }
+        }
+        if ($cameBack !== []) {
+            if ($lines !== []) {
+                $lines[] = '';
+            }
+            $lines[] = '🟢 节点恢复 '.count($cameBack).' 个';
+            foreach ($cameBack as $c) {
+                $down = $c['downFrom'] ? $c['downFrom']->diffForHumans(null, true) : '未知';
+                $lines[] = sprintf('  #%d %s —— 中断了 %s（原因曾是 %s）',
+                    $c['node']->id, $c['node']->name, $down,
+                    self::REASON_TEXT[$c['reason']] ?? $c['reason']);
+            }
+        }
+
+        // `[!!]` 这里【自己也要兜一层】。Alerter::send() 内部确实 try/catch 了,
+        //   但靠"下游会兜住"是脆的:换一个 alerter、或 Alerter 自己出 bug,
+        //   异常就会顺着这里冒出去,让整轮采样失败、区段记不上 ——
+        //   那是把一个通知问题升级成了数据问题。
+        //   `[D]` 这一层不是补的:测试用一个"必抛"的 alerter 当场证明了缺它就会炸。
+        try {
+            return $alerter->send(implode("\n", $lines)) ? 1 : 0;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('节点告警发送失败(已忽略,不影响采样)', [
+                'error' => class_basename($e).': '.$e->getMessage(),
+            ]);
+
+            return 0;
+        }
     }
 
     /**

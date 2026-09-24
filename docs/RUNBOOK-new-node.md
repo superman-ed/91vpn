@@ -262,4 +262,4 @@ journalctl -u agent -n 200 --no-pager     # 看失败原因
 | ~~一键部署的 `api_url` 指向牺牲域~~ | **已修**（2026-09-24）：改读 `NODE_API_URL`，不配才回落 `APP_URL` | 见闸门 2 |
 | 用 `last_seen_at` 判在线 | **该列不存在**，而 Eloquent 对不存在的属性静默返回 NULL → 误判成"从未上报" | 本 runbook 写作时踩到 |
 | 面板不可达时 fail-open 无上界 | agent 无限期沿用旧用户列表，**没有告警** | `LAUNCH-CHECKLIST` L-11 |
-| dest 挂掉 | 全员断线，**没有任何人会被通知** | `LAUNCH-CHECKLIST` L-22 |
+| ~~dest 挂掉没人被通知~~ | **已修**（2026-09-24）：接在存活区段转换上，与掉线同一条告警路径。需配 `TELEGRAM_BOT_TOKEN` / `TELEGRAM_ALERT_CHAT_ID` | L-22 |

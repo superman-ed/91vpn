@@ -20,7 +20,8 @@ class SampleNodeHealth extends Command
     public function handle(HealthSampler $s): int
     {
         $r = $s->sample();
-        $this->info(sprintf('新开 %d、确认 %d、结束 %d', $r['opened'], $r['confirmed'], $r['closed']));
+        $this->info(sprintf('新开 %d、确认 %d、结束 %d、告警 %d 条',
+            $r['opened'], $r['confirmed'], $r['closed'], $r['alerted'] ?? 0));
 
         return self::SUCCESS;
     }
