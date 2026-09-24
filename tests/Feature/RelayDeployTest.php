@@ -116,8 +116,15 @@ it('accept_proxy 缺端口或源 IP 时告警', function () {
 });
 
 // #1:落地部署的 91vpn 身份自动带入 —— 面板即 91vpn,节点身份(id/协议/secret)
-// 它全知道,api_url 由 APP_URL 派生。省掉手粘,也消掉"粘错 secret 部署失败"的坑。
+// 它全知道。省掉手粘,也消掉"粘错 secret 部署失败"的坑。
+//
+// `[!!]` api_url 的来源 2026-09-24 改过:原本派生自 APP_URL,现在读
+//   NODE_API_URL(不配则回落 APP_URL)。理由见 config/app.php 的说明 ——
+//   APP_URL 是官网品牌域(投广告/做 SEO,最容易被封的一个),而节点回连的
+//   地址不做推广。绑在一起等于把仓库专线号码印在广告牌上。
+//   本用例的意图(身份自动带入)没变,变的是哪个地址算权威。
 it('身份端点给出该节点的 91vpn 身份', function () {
+    config(['app.node_api_url' => 'https://node-api.example.com']);
     $n = deployNode();   // secret 'S', type vmess
     $this->actingAs(deployAdmin())
         ->getJson("/admin/nodes/{$n->id}/deploy-identity")
@@ -126,8 +133,39 @@ it('身份端点给出该节点的 91vpn 身份', function () {
             'node_id' => $n->id,
             'server_type' => 'vmess',
             'secret' => 'S',
-            'api_url' => config('app.url'),
+            'api_url' => 'https://node-api.example.com',
         ]);
+});
+
+// `[!!]` 这一条钉的是"别再绑回 APP_URL":端点必须给节点回连那个地址,
+//   而不是官网品牌域。
+//
+// `[!]` 注意这里【不改 app.url】。WebOnOfficialHost 中间件会把
+//   "请求主机名 ≠ app.url 的主机名" 的网页请求 302 到官网域 —— 在测试里改
+//   app.url 会让该用例后续所有网页请求变成 302(实测踩到:本条一开始就是
+//   这么红的)。改 node_api_url 一个就够,两者天然不同值。
+it('节点拿到的是回连地址，不是官网品牌域', function () {
+    config(['app.node_api_url' => 'https://quiet.example.net']);
+    $n = deployNode();
+
+    $json = $this->actingAs(deployAdmin())
+        ->getJson("/admin/nodes/{$n->id}/deploy-identity")->assertOk()->json();
+
+    expect($json['api_url'])->toBe('https://quiet.example.net');
+    expect($json['api_url'])->not->toBe((string) config('app.url'));
+});
+
+// `[!]` 回落必须保留:少配一个环境变量不该让节点装不上。
+// `[!]` 这一条【在旧代码下也是绿的】(实测:把 identity() 改回读 app.url 后
+//   只有上面两条转红)。所以它不是对本次改动的反证,只是回落护栏 ——
+//   防的是将来有人把回落删掉,让没配 NODE_API_URL 的部署拿到空地址。
+it('没配 NODE_API_URL 时回落到 APP_URL', function () {
+    config(['app.node_api_url' => null]);
+    $n = deployNode();
+
+    expect($this->actingAs(deployAdmin())
+        ->getJson("/admin/nodes/{$n->id}/deploy-identity")->assertOk()->json('api_url'))
+        ->toBe((string) config('app.url'));
 });
 
 // `[!!]` 这端点会吐 secret —— 必须只给管理员。

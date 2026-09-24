@@ -96,7 +96,11 @@ class RelayDeployController extends \App\Http\Controllers\Controller
     public function identity(Node $node)
     {
         return response()->json([
-            'api_url' => (string) config('app.url'),   // 用户面/mod_mu 的对外地址,节点身份无关机器
+            // `[!!]` 节点回连地址【刻意不读 app.url】—— 那是官网品牌域(投广告/做 SEO,
+            //   最容易被封的一个)。节点回连该走不推广的低调域,见 config/app.php
+            //   的 node_api_url 说明与 docs/decisions/domain-allocation.md(D-7)。
+            //   不配 NODE_API_URL 时回落到 APP_URL,保持旧行为。
+            'api_url' => (string) (config('app.node_api_url') ?: config('app.url')),
             'node_id' => $node->id,
             'server_type' => $node->type,
             'secret' => $node->secret,

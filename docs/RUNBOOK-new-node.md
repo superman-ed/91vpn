@@ -105,14 +105,18 @@ cp /tmp/agent-linux-amd64 ../deploy/install.sh /home/dev/web/91vpn/public/agent/
 节点行的「部署」按钮，填 SSH 主机/端口/用户 + 私钥正文或密码。
 凭据只走 stdin，不落盘。
 
-`[!!]` **但现在有个已知问题要手工修正**：一键部署把
-`api_url` 设成 `config('app.url')` = `https://91vpn.com`，
-而按 D-7，节点 API 应该走 **`app.91app.shop`** —— `91vpn.com` 是投广告的
-牺牲域，被封的概率最高。部署完后在机器上改：
+`[!]` 表单里的「面板地址」由 `NODE_API_URL` 预填（**不是** `APP_URL`）——
+节点回连走不推广的低调域，而不是投广告的品牌域。理由见 `config/app.php`
+的 `node_api_url` 说明。部署前扫一眼这个值对不对：
 
 ```bash
-sed -i 's|^webapi_url=.*|webapi_url=https://app.91app.shop|' /etc/agent/agent.conf
-systemctl restart agent
+grep NODE_API_URL .env          # 应为 https://app.91app.shop
+```
+
+`[!]` 装完可在节点机上核对一次：
+
+```bash
+grep webapi_url /etc/agent/agent.conf
 ```
 
 ### 方式 B：手工安装
@@ -253,7 +257,7 @@ journalctl -u agent -n 200 --no-pager     # 看失败原因
 | 一机两 agent | 安装**报成功而什么都没做**，新节点永远没心跳 | `install.sh` 已加护栏 |
 | REALITY server_names 不跟 dest 变 | agent `ErrRealityIncomplete` 拒整个节点 | 面板已加同站校验 |
 | `enabled=1` 但机器还没好 | 死节点进所有人订阅 | 19 个占位节点事件 |
-| 一键部署的 `api_url` | 指向 `91vpn.com`（牺牲域）而非 `app.91app.shop` | 见闸门 2 |
+| ~~一键部署的 `api_url` 指向牺牲域~~ | **已修**（2026-09-24）：改读 `NODE_API_URL`，不配才回落 `APP_URL` | 见闸门 2 |
 | 用 `last_seen_at` 判在线 | 该字段常年 null，会误判成"从未上报" | 本 runbook 写作时踩到 |
 | 面板不可达时 fail-open 无上界 | agent 无限期沿用旧用户列表，**没有告警** | `LAUNCH-CHECKLIST` L-11 |
 | dest 挂掉 | 全员断线，**没有任何人会被通知** | `LAUNCH-CHECKLIST` L-22 |

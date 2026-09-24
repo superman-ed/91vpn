@@ -29,7 +29,7 @@ function freshNode(array $attr = []): Node
     ], $attr));
 }
 
-function subUser(): User
+function hbSubUser(): User
 {
     return User::factory()->create([
         'invite_token' => 'HBTOKEN', 'class' => 2, 'class_expire' => now()->addDays(10),
@@ -49,7 +49,7 @@ it('新建节点在 agent 上报前不算在线', function () {
 // `[!!]` 这是本组最要紧的一条:它钉住的是【用户看得见的后果】,
 //   而不只是一个字段的取值。
 it('从未上报的节点即使 enabled 也不会出现在任何人的订阅里', function () {
-    subUser();
+    hbSubUser();
     $node = freshNode(['enabled' => true]);
 
     $res = $this->get('/sub/HBTOKEN')->assertOk();
@@ -59,7 +59,7 @@ it('从未上报的节点即使 enabled 也不会出现在任何人的订阅里'
 });
 
 it('agent 真的上报之后，节点才进订阅', function () {
-    subUser();
+    hbSubUser();
     $node = freshNode(['enabled' => true]);
 
     // 先确认此刻不在
