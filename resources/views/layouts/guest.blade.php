@@ -11,12 +11,12 @@
     <link rel="stylesheet" href="/stisla/assets/css/components.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <meta name="turbo-prefetch" content="true">
     <script src="/js/turbo.min.js" defer></script>
     <style>
         :root{--paper:#F1EEE4;--card:#F7F4EC;--ink:#1A160F;--dim:#5E5849;--faint:#928B78;--rule:#C4BCA8;--sig:#D8442A;--sig2:#EA4E2E;
-            --sign:"Archivo","Noto Sans SC",sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;--body:"Noto Sans SC","Archivo",sans-serif}
+            --sign:"Archivo","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;--body:-apple-system,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif}
         body.auth-body{min-height:100vh;margin:0;background:var(--paper);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px 16px;font-family:var(--body)}
         .auth-wrap{width:100%;max-width:400px}
         .auth-card{background:var(--card);border:1px solid var(--rule);border-radius:4px;overflow:hidden}

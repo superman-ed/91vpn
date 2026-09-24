@@ -8,10 +8,10 @@
 <meta name="theme-color" content="#F1EEE4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F1EEE4;--ink:#1A160F;--dim:#5E5849;--faint:#928B78;--rule:#C4BCA8;--soft:#D8D2C3;--sig:#D8442A;
-  --sign:"Archivo","Noto Sans SC",sans-serif;--mono:"JetBrains Mono",monospace;--body:"Noto Sans SC",sans-serif}
+  --sign:"Archivo","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;--mono:"JetBrains Mono",monospace;--body:-apple-system,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7}
 .wrap{max-width:820px;margin:0 auto;padding:44px 24px 72px}

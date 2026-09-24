@@ -21,7 +21,7 @@
 <meta name="twitter:image" content="{{ setting('og_image') ?: asset('og.jpg') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 @verbatim
 <style>
 :root{
@@ -31,9 +31,9 @@
   --ink:#1A160F; --dim:#5E5849; --faint:#928B78;
   --amber:#D8442A; --amber-hi:#EA4E2E; --amber-dim:#B23A20;
   --stamp:#BE4526; --ok:#D8442A;
-  --sign:"Archivo","Noto Sans SC",sans-serif;
+  --sign:"Archivo","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,monospace;
-  --body:"Noto Sans SC","Archivo",sans-serif;
+  --body:-apple-system,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
   --maxw:1180px;
 }
 *{box-sizing:border-box}
