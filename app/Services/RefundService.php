@@ -18,7 +18,15 @@ use Illuminate\Support\Facades\DB;
  * 两种都是错的，而且错了不会报错，只会变成一个用户投诉。
  *
  * 所以分工是：
- *     钱      精确 —— 金额、时间、原因、操作人，全部落库并审计
+ *     钱      精确 —— 金额、时间、原因、操作人，全部落库并审计；
+ *                     余额支付的【真的退回余额并记流水】，网关支付的明说要去网关退
+ *
+ * `[!!]` 2026-09-24 修正：上面这句"钱这一侧精确"曾经是【假的】。实测：
+ *     支付前 100 → 余额支付 30 → 退款 ¥30 → 余额仍是 70
+ *     系统返回 ok 并显示「已退款 ¥30.00」，订单 refunded、refund_amount=30，
+ *     而 BalanceLog 只有一条 consume，没有任何反向流水。
+ *   也就是：系统确认退款成功，用户的钱却没回来 —— 而且 caveats() 里
+ *   （那个专门用来"把做不到的事明说出来"的清单）一个字都没提。
  *     券      精确 —— 当初占用的那一次用量释放掉（条件与占用时完全对称）
  *     权益    交给人 —— 只提供一个可靠动作「立即结束当前套餐」，并说清楚为什么不自动做
  *     库存    不动 —— 见下方说明
@@ -66,8 +74,30 @@ class RefundService
                 $notes[] = '库存未自动加回（当初是否扣减已无从判断，需要就手动改）';
             }
 
+            // `[!!]` 余额支付的钱【在系统内】，没有网关可退 —— 必须自己退回去。
+            //   写法沿用 BillingService::adminAdjust：行锁内取值、事务内写 BalanceLog、
+            //   balance_after 取锁内的结果（见 LAUNCH-CHECKLIST 的 P11-D）。
+            $user = User::whereKey($order->user_id)->lockForUpdate()->first();
+
+            if ($order->pay_method === 'balance') {
+                $after = round((float) $user->money + $amount, 2);
+                $user->update(['money' => $after]);
+                \App\Models\BalanceLog::create([
+                    'user_id' => $user->id,
+                    'amount' => $amount,
+                    'type' => 'refund',
+                    'balance_after' => $after,
+                    'remark' => "订单 {$order->order_no} 退款：{$reason}",
+                ]);
+                $notes[] = '已退回余额 ¥'.number_format($amount, 2);
+            } else {
+                // `[!]` 网关支付的钱不在系统内，这里【退不了】—— 但必须说出来，
+                //   否则管理员会以为点完就完事了。
+                $notes[] = '【余额未变动】这笔是「'.($order->pay_method ?: '未知方式')
+                    .'」支付，需要到支付网关后台退款';
+            }
+
             if ($endPackage && $wasDelivered) {
-                $user = User::whereKey($order->user_id)->lockForUpdate()->first();
                 app(BillingService::class)->endCurrentPackage($user);
                 $notes[] = '已立即结束该用户当前套餐';
             } elseif ($wasDelivered) {
@@ -90,6 +120,14 @@ class RefundService
     public static function caveats(Order $order): array
     {
         $out = [];
+        // `[!!]` 钱这一条排在最前面 —— 它是管理员最可能误以为"系统会办"的事。
+        if ($order->pay_method === 'balance') {
+            $out[] = '这笔是【余额支付】：退款金额会直接退回用户余额，并记一条退款流水。';
+        } else {
+            $out[] = '这笔是「'.($order->pay_method ?: '未知方式').'」支付：'
+                .'系统【不会】把钱退给用户，只会把订单标记为已退款。'
+                .'真正的退款要到支付网关后台操作。';
+        }
         if ($order->delivered_at) {
             $out[] = '这笔订单【已发货】。退款不会自动撤销已发放的权益 —— '
                 .'发货是覆盖写（流量配额、等级、到期日直接被盖掉，已用流量清零），'

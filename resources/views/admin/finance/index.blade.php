@@ -2,9 +2,9 @@
 @section('title', '资金流水')
 @section('content')
 @php
-    $tabs = ['' => '全部', 'recharge' => '充值', 'consume' => '消费', 'rebate' => '返佣', 'bonus' => '注册奖励', 'adjust' => '调账'];
-    $typeName = ['recharge' => '充值', 'consume' => '消费', 'rebate' => '返佣', 'bonus' => '注册奖励', 'adjust' => '调账'];
-    $typePill = ['recharge' => 'ok', 'consume' => 'warn', 'rebate' => 'info', 'bonus' => 'primary', 'adjust' => 'muted'];
+    $tabs = ['' => '全部', 'recharge' => '充值', 'consume' => '消费', 'rebate' => '返佣', 'bonus' => '注册奖励', 'adjust' => '调账', 'refund' => '退款'];
+    $typeName = ['recharge' => '充值', 'consume' => '消费', 'rebate' => '返佣', 'bonus' => '注册奖励', 'adjust' => '调账', 'refund' => '退款'];
+    $typePill = ['recharge' => 'ok', 'consume' => 'warn', 'rebate' => 'info', 'bonus' => 'primary', 'adjust' => 'muted', 'refund' => 'info'];
 @endphp
 <div class="adm-head">
     <h4><i class="fas fa-money-bill-wave text-primary"></i> 资金流水</h4>
