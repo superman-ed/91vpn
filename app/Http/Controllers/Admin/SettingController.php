@@ -74,6 +74,37 @@ class SettingController extends Controller
             'api_hosts' => ['nullable', 'string', 'max:4000'],
         ]);
 
+        // `[!!]` 两项【原样注入到公开页的脚本】只允许超级管理员改。
+        //
+        //   tracking_code   注入 落地页/登录页/注册页/帮助/条款
+        //   support_widget  注入 登录页/注册页
+        //   [D] 2026-09-24 实测过注入范围,两者都覆盖【登录页】。
+        //
+        // `[!!]` 而这两项原本只要 system.manage —— `infra`(运维) 角色就有。
+        //   能在登录页跑任意 JS = 能捕获任何登录者的口令,【包括超级管理员】。
+        //   也就是 infra 实际上等价于 super。
+        //   这违反 AdminAccess 自己写下的原则:"能在界面上改权限的人,就能给自己
+        //   加权限 —— 那么角色划分只剩装饰"。能在认证页注入 JS 与之等价。
+        //
+        // `[!]` 只在【值真的变了】时才拦:非超管保存其它设置时,表单会把这两项的
+        //   原值一起提交,那不该被拒。做法与 UserController 的 original_money 同源。
+        $isSuper = (auth()->user()->admin_role ?? null) === 'super';
+        if (! $isSuper) {
+            $blocked = [];
+            foreach (['tracking_code' => '统计/追踪代码', 'support_widget' => '客服挂件代码'] as $key => $label) {
+                if ((string) ($data[$key] ?? '') !== (string) setting($key, '')) {
+                    $blocked[$key] = "「{$label}」只有超级管理员能改 —— 它是原样注入到登录页的脚本，"
+                        .'能改它就等于能拿到任何人的登录口令';
+                }
+            }
+            if ($blocked !== []) {
+                return back()->withErrors($blocked)->withInput();
+            }
+            // 没改动 → 沿用原值，不让下面的 put 把它覆盖成表单里可能被篡改的内容
+            $data['tracking_code'] = setting('tracking_code', '');
+            $data['support_widget'] = setting('support_widget', '');
+        }
+
         Setting::put('buy_notice', $data['buy_notice'] ?? '');
         Setting::put('epay_url', $data['epay_url'] ?? '');
         Setting::put('epay_pid', $data['epay_pid'] ?? '');
