@@ -41,7 +41,13 @@ class NotificationController extends Controller
             'title' => ['required', 'string', 'max:120'],
             'content' => ['required', 'string', 'max:5000'],
             'type' => ['nullable', 'in:system,marketing,notice'],
-            'email' => ['required_if:mode,single', 'nullable', 'email'],
+            // `[!!]` 收件人按【用户名或邮箱】找,不能只认邮箱。
+            //   本产品的注册不收邮箱(AuthApiController::register 只要
+            //   username + password)—— 只认邮箱的话,这个"单发"功能对
+            //   客户端注册的用户【完全不可用】:输用户名连校验都过不去。
+            //   [D] 2026-09-24 实测:生产 2 个用户里只有为 epay 对接建的那个有邮箱,
+            //       owner 自己的账号 summer 没有。
+            'recipient' => ['required_if:mode,single', 'nullable', 'string', 'max:190'],
             'segment' => ['required_if:mode,batch', 'nullable', 'in:'.implode(',', array_keys(self::SEGMENTS))],
         ]);
         $type = $data['type'] ?? 'system';
@@ -49,14 +55,16 @@ class NotificationController extends Controller
         $batch = (string) Str::uuid();
 
         if ($data['mode'] === 'single') {
-            $user = User::where('email', $data['email'])->first();
+            $r = trim((string) $data['recipient']);
+            $user = User::where('username', $r)->orWhere('email', $r)->first();
             if (! $user) {
-                return back()->withErrors(['email' => '该邮箱用户不存在'])->withInput();
+                return back()->withErrors(['recipient' => "找不到用户「{$r}」（可填用户名或邮箱）"])->withInput();
             }
             UserNotification::create(['user_id' => $user->id, 'batch_id' => $batch, 'title' => $data['title'], 'content' => $data['content'], 'type' => $type, 'pinned' => $pinned]);
-            audit('notification.send', "站内信发给 {$user->email}：{$data['title']}");
+            // `[!]` 用 ident()(username ?: email ?: #id),别用 email —— 多数用户没有
+            audit('notification.send', "站内信发给 {$user->ident()}：{$data['title']}");
 
-            return back()->with('status', "已发送给 {$user->email}");
+            return back()->with('status', "已发送给 {$user->ident()}");
         }
 
         $now = now();

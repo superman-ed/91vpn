@@ -25,7 +25,7 @@
             </div>
         </div>
         <div id="emailWrap" class="row" style="display:none">
-            <div class="form-group col-md-6"><label style="font-size:13px;color:#7a869a;font-weight:600">用户邮箱</label><input name="email" class="form-control" placeholder="user@example.com" style="border-radius:9px"></div>
+            <div class="form-group col-md-6"><label style="font-size:13px;color:#7a869a;font-weight:600">收件人（用户名或邮箱）</label><input name="recipient" value="{{ old('recipient') }}" class="form-control" placeholder="如 summer，或 user@example.com" style="border-radius:9px"></div>
         </div>
 
         <div class="row">
@@ -36,7 +36,7 @@
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0"><input type="checkbox" name="pinned" value="1" style="width:16px;height:16px"> <span style="font-size:13px;color:#34395e">登录弹窗提醒</span> <small class="text-muted">（勾选后用户下次进入会自动弹窗显示，必须点"知道了"才关闭；适合重要通知）</small></label>
             </div>
         </div>
-        @error('email')<div class="text-danger" style="font-size:12.5px;margin-bottom:8px">{{ $message }}</div>@enderror
+        @error('recipient')<div class="text-danger" style="font-size:12.5px;margin-bottom:8px">{{ $message }}</div>@enderror
         <button class="btn adm-btn" style="border-radius:9px" data-dgr="确认发送这条站内信？群发将立即推送给所选人群的全部用户。"><i class="fas fa-paper-plane"></i> 发送</button>
     </form>
 </div>

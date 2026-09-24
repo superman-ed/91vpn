@@ -91,8 +91,7 @@ it('favicon 用图标文件，不是 37 KB 的社交大图', function () {
     expect($icons[0])->not->toBeEmpty('页面没有任何 rel="icon"');
 
     foreach ($icons[0] as $tag) {
-        expect($tag)->not->toContain('og.jpg',
-            'rel="icon" 指向 og.jpg —— 那是社交分享大图(37 KB),不是标签图标');
+        expect(str_contains($tag, 'og.jpg'))->toBeFalse('rel="icon" 指向 og.jpg —— 那是社交分享大图(37 KB),不是标签图标');
         expect($tag)->toMatch('#favicon\.(ico|svg|png)#');
     }
     // og.jpg 仍该用在社交预览与 apple-touch-icon 上
