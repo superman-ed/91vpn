@@ -6,7 +6,11 @@
 <title>91VPN</title>
 <meta name="description" content="解锁全球流媒体与 AI 的加速服务——像机场一样，直达你到不了的目的地">
 <link rel="canonical" href="{{ url('/') }}">
-<link rel="icon" type="image/jpeg" href="{{ asset('og.jpg') }}">
+{{-- `[!]` 此前 rel=icon 指向 og.jpg —— 拿 37 KB 的社交大图当浏览器标签图标。
+     favicon.ico / favicon.svg 本来就在 public/ 下,只是没被引用。 --}}
+<link rel="icon" href="{{ asset('favicon.ico') }}" sizes="32x32">
+<link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ asset('og.jpg') }}">
 <meta name="theme-color" content="#F1EEE4">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="91VPN">
@@ -281,6 +285,26 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
   </div>
 </header>
 
+@php
+  /**
+   * `[!!]` 旅客须知的 4 问在这里【只写一遍】—— 下面的可见折叠和页尾的
+   * FAQPage 结构化数据都从它渲染。若两处各写一份,早晚会对不上,
+   * 而 Google 判"结构化数据与可见内容不符"是会失去展示资格的。
+   * `[!]` 这 4 问是冲着【潜在客户】写的(能不能解锁、快不快、几台设备、
+   * 怎么退款),不是帮助中心那 16 篇故障排查 —— 受众不同,别混。
+   */
+  $faqs = [
+    ['能解锁 Netflix 和 ChatGPT 吗?',
+     '能。多地区节点针对主流流媒体与 AI 服务做了解锁优化——ChatGPT / Claude / Gemini 注册订阅、Netflix 各区片库都可直达。个别服务风控严格时,切到对应地区的原生 IP 节点即可。'],
+    ['速度和稳定性怎么样?晚高峰会误点吗?',
+     '采用香港就近入口 + 多地区高速落地的中转航线:过境那一跳最短,其余走海外骨干。客户端持续测速自动选最快节点,某个节点异常会自动改签,晚高峰体验更稳。'],
+    ['支持哪些设备?一张票能用几台?',
+     '提供 Android、Windows、iOS、macOS 客户端,一个账号全平台通用。同时在线设备数因套餐而异,详见各套餐说明。'],
+    ['怎么付款?可以退票吗?',
+     '付款后订阅即时开通,支持多种在线支付方式。新用户 3 天内不满意可无理由退票。'],
+  ];
+@endphp
+
 <main id="top">
 <div class="wrap">
   <section class="hero" style="border-top:0;padding-top:56px">
@@ -413,10 +437,9 @@ footer{border-top:2px solid var(--ink);color:var(--dim);margin-top:8px}
 <section id="notice">
   <div class="wrap">
     <div class="shead"><h2>旅客须知</h2><span class="m">PASSENGER INFO</span></div>
-    <details class="qa" open><summary><span class="no">Q1</span><span class="q">能解锁 Netflix 和 ChatGPT 吗?</span><span class="pm">+</span></summary><p class="ans">能。多地区节点针对主流流媒体与 AI 服务做了解锁优化——ChatGPT / Claude / Gemini 注册订阅、Netflix 各区片库都可直达。个别服务风控严格时,切到对应地区的原生 IP 节点即可。</p></details>
-    <details class="qa"><summary><span class="no">Q2</span><span class="q">速度和稳定性怎么样?晚高峰会误点吗?</span><span class="pm">+</span></summary><p class="ans">采用香港就近入口 + 多地区高速落地的中转航线:过境那一跳最短,其余走海外骨干。客户端持续测速自动选最快节点,某个节点异常会自动改签,晚高峰体验更稳。</p></details>
-    <details class="qa"><summary><span class="no">Q3</span><span class="q">支持哪些设备?一张票能用几台?</span><span class="pm">+</span></summary><p class="ans">提供 Android、Windows、iOS、macOS 客户端,一个账号全平台通用。同时在线设备数因套餐而异,详见各套餐说明。</p></details>
-    <details class="qa"><summary><span class="no">Q4</span><span class="q">怎么付款?可以退票吗?</span><span class="pm">+</span></summary><p class="ans">付款后订阅即时开通,支持多种在线支付方式。新用户 3 天内不满意可无理由退票。</p></details>
+    @foreach ($faqs as $i => [$q, $ans])
+    <details class="qa" @if($i === 0) open @endif><summary><span class="no">Q{{ $i + 1 }}</span><span class="q">{{ $q }}</span><span class="pm">+</span></summary><p class="ans">{{ $ans }}</p></details>
+    @endforeach
     <p style="font-family:var(--mono);font-size:13px;color:var(--faint);margin-top:20px;letter-spacing:.04em">更多问题?<a href="/help" style="color:var(--amber)">查看帮助中心 →</a></p>
   </div>
 </section>
@@ -535,5 +558,78 @@ var qas=[].slice.call(document.querySelectorAll('.qa'));
 qas.forEach(function(q){q.querySelector('summary').addEventListener('click',function(e){
   e.preventDefault();var open=q.open;qas.forEach(function(o){o.open=false;});q.open=!open;});});
 </script>
+{{--
+  `[!!]` 结构化数据。三条纪律:
+   1. 全部从【已经渲染在页面上的真实数据】生成 —— $faqs 与可见折叠同源,
+      价格来自 PlanCatalog,与「舱位与票价」板块是同一批数字。写死会漂移,
+      而 Google 判"结构化数据与可见内容不符"是会失去展示资格的。
+   2. `[I]` FAQPage 的富摘要资格自 2023 年起被 Google 收窄到政府与医疗类
+      权威站点,本站【很可能拿不到那个折叠问答位】。留着的理由是它仍然帮
+      搜索引擎与 AI 检索理解页面结构 —— 但别指望它变成搜索结果里的样式。
+   3. `[!]` 故意【没有】SoftwareApplication:那组是给可下载的软件用的,
+      而当前四个平台的 client_downloads.url 全为空、页面显示"即将推出"。
+      标一个下载不到的 App 是误导。等下载链接填上再加。
+--}}
+@php
+  $ldHome = rtrim(config('app.url'), '/');
+  // 价格区间:只取还在售(未售罄)的档位,与页面显示的口径一致
+  $ldPrices = collect($groups)
+      ->flatMap(fn ($g) => collect($g['durations'] ?? []))
+      ->reject(fn ($d) => ($d['sold_out'] ?? false))
+      // `[!!]` price 是【带千位分隔符的展示字符串】("1,800")。直接 (float) 转
+      //   会得到 1.0 —— 实测踩过:最低价被算成 ¥1、最高价从 1800 掉到 900。
+      ->pluck('price')->map(fn ($v) => (float) str_replace(',', '', (string) $v))
+      ->filter()->values();
+  $ldTg = trim((string) setting('support_tg', ''));
+
+  $ldGraph = [
+    [
+      '@type' => 'Organization',
+      '@id' => $ldHome.'/#org',
+      'name' => '91VPN',
+      'url' => $ldHome,
+      'logo' => $ldHome.'/og.jpg',
+      'sameAs' => array_values(array_filter([$ldTg])),
+    ],
+    [
+      '@type' => 'WebSite',
+      '@id' => $ldHome.'/#site',
+      'name' => '91VPN',
+      'url' => $ldHome,
+      'inLanguage' => 'zh-CN',
+      'publisher' => ['@id' => $ldHome.'/#org'],
+    ],
+    [
+      '@type' => 'FAQPage',
+      '@id' => $ldHome.'/#faq',
+      'mainEntity' => array_map(fn ($f) => [
+        '@type' => 'Question',
+        'name' => $f[0],
+        'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f[1]],
+      ], $faqs),
+    ],
+  ];
+
+  // 没有在售套餐时【不输出】价格 —— 空的 AggregateOffer 比没有更糟
+  if ($ldPrices->isNotEmpty()) {
+      $ldGraph[] = [
+          '@type' => 'Product',
+          '@id' => $ldHome.'/#plans',
+          'name' => '91VPN 订阅',
+          'brand' => ['@id' => $ldHome.'/#org'],
+          'offers' => [
+              '@type' => 'AggregateOffer',
+              'priceCurrency' => 'CNY',
+              'lowPrice' => (string) $ldPrices->min(),
+              'highPrice' => (string) $ldPrices->max(),
+              'offerCount' => $ldPrices->count(),
+              'availability' => 'https://schema.org/InStock',
+              'url' => $ldHome.'/#fares',
+          ],
+      ];
+  }
+@endphp
+<script type="application/ld+json">{!! json_encode(['@context' => 'https://schema.org', '@graph' => $ldGraph], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 </body>
+
 </html>
