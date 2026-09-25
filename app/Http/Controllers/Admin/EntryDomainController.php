@@ -62,12 +62,36 @@ class EntryDomainController extends Controller
     }
 
     /** 设为在用：本域名成为该中转订阅对外发的入口,同中转其余降为备用。 */
+    /**
+     * 把这一条设为该节点【唯一】的在用域名。
+     *
+     * `[!!]` Node::activeEntryDomain() 用的是 where('status','active')->first(),
+     * 注释声称"一台中转至多一个 active" —— 那个不变式【只能靠这里维护】。
+     * 破掉之后 first() 按插入顺序返回,订阅发的是哪个域名变成不确定的。
+     * [D] 2026-09-24 实测过:rotate() 曾直接置 active 而不降其它,
+     *     轮换备用域名后同节点出现两个 active,而订阅仍发旧的那个 ——
+     *     管理员以为"轮换完就顶上了",实际什么都没变。
+     */
+    private function makeSoleActive(EntryDomain $d): void
+    {
+        EntryDomain::where('node_id', $d->node_id)
+            ->where('id', '!=', $d->id)->where('status', 'active')
+            ->update(['status' => 'standby']);
+        $d->update(['status' => 'active']);
+    }
+
+    /** 该节点此刻还有没有在用的入口域名 —— 没有的话订阅会回退发裸 IP。 */
+    private function fallbackWarning(EntryDomain $d): string
+    {
+        $still = EntryDomain::where('node_id', $d->node_id)->where('status', 'active')->exists();
+
+        return $still ? '' : '　⚠ 该节点现在【没有在用的入口域名】，订阅会回退到发节点裸 IP'
+            .'（IP 被墙时只能改节点配置 + 等客户端更新）。请把备用域名「设为在用」。';
+    }
+
     public function activate(EntryDomain $entryDomain)
     {
-        EntryDomain::where('node_id', $entryDomain->node_id)
-            ->where('id', '!=', $entryDomain->id)->where('status', 'active')
-            ->update(['status' => 'standby']);
-        $entryDomain->update(['status' => 'active']);
+        $this->makeSoleActive($entryDomain);
         audit('entry_domain.activate', "入口域名「{$entryDomain->domain}」设为在用", $entryDomain);
 
         return back()->with('status', "{$entryDomain->domain} 已设为在用。订阅从此发它,别忘了 "
@@ -80,7 +104,8 @@ class EntryDomainController extends Controller
         $entryDomain->update(['status' => 'blocked']);
         audit('entry_domain.block', "入口域名「{$entryDomain->domain}」标记被墙", $entryDomain);
 
-        return back()->with('status', "{$entryDomain->domain} 已标记被墙。去『轮换IP』换后端 IP,或把备用域名『设为在用』。");
+        return back()->with('status', "{$entryDomain->domain} 已标记被墙。去『轮换IP』换后端 IP,或把备用域名『设为在用』。"
+            .$this->fallbackWarning($entryDomain));
     }
 
     /**
@@ -93,8 +118,10 @@ class EntryDomainController extends Controller
         $entryDomain->update([
             'pointed_ip' => $data['pointed_ip'],
             'last_rotated_at' => now(),
-            'status' => 'active',
         ]);
+        // `[!!]` 必须走 makeSoleActive:直接置 active 会让同节点出现两个在用域名,
+        //   而 activeEntryDomain() 取 first() —— 订阅可能仍在发旧的那个。
+        $this->makeSoleActive($entryDomain);
 
         // `[!!]` 共用同一个 CNAME 标签的其它门牌,在 DNS 上会跟着一起变 ——
         // 它们的 pointed_ip 必须同步,否则面板会亮出一批【假的】「该改 DNS」告警,
@@ -119,9 +146,12 @@ class EntryDomainController extends Controller
     public function destroy(EntryDomain $entryDomain)
     {
         $name = $entryDomain->domain;
+        $wasActive = $entryDomain->status === 'active';
         $entryDomain->delete();
-        audit('entry_domain.delete', "删除入口域名「{$name}」");
+        audit('entry_domain.delete', "删除入口域名「{$name}」".($wasActive ? '（原为在用）' : ''));
 
-        return back()->with('status', "已删除 {$name}");
+        // `[!]` 删掉在用的那条,订阅会【静默】回退到发裸 IP —— 必须说出来。
+        //   删除本身是合法操作(域名到期等),所以不拦,只把后果讲清楚。
+        return back()->with('status', "已删除 {$name}".$this->fallbackWarning($entryDomain));
     }
 }
