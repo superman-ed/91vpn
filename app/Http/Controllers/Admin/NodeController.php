@@ -324,7 +324,11 @@ class NodeController extends Controller
             // 根本填不出一个合法的中转节点（中转 #93 当初只能用 tinker 建）。
             // 落地节点仍然必须有端口，见下面的 after() 校验。
             'port' => ['required', 'integer', 'min:0', 'max:65535'],
-            'type' => ['required', 'in:vmess,vless'],
+            // `[!!]` hysteria 实为 hysteria2,走 UDP/QUIC。agent 侧早已实现并有
+            //   compatibility/hysteria.md 的完整对照;面板这一侧此前不放它过,
+            //   所以能力有而建不出来。放开时必须一并守住 agent 的三条硬约束
+            //   (见下面的 after 校验):transport 只能 tcp、TLS 强制、obfs 只能 plain。
+            'type' => ['required', 'in:vmess,vless,hysteria'],
             'net' => ['required', 'in:tcp,ws'],
             'host' => ['nullable', 'string', 'max:255'],
             'path' => ['nullable', 'string', 'max:255'],
@@ -357,6 +361,35 @@ class NodeController extends Controller
         $data['enabled'] = $request->boolean('enabled'); // 对用户开放(排空/维护时取消勾选,agent 照常在线但不再服务用户)
         // C 修:flow 仅 vless 有意义;vmess 强制置空(否则 agent 见 flow 会 ErrFlowNeedsVLESS 拒整节点)
         $data['flow'] = $data['type'] === 'vless' ? ($data['flow'] ?? '') : '';
+
+        // ── hysteria(hysteria2)的硬约束,与 agent 的 node.Validate 逐条对齐 ──
+        //
+        // `[!!]` 这些不是面板的偏好,是 agent 会【拒绝启动整个节点】的条件。
+        //   不在这里拦,管理员保存成功、节点却起不来,而两边日志都要人去翻。
+        if ($data['type'] === 'hysteria') {
+            $errs = [];
+
+            // `[D]` agent: "hysteria 走 UDP/QUIC,不支持 stream_type=%q"
+            //   —— hysteria 不使用 stream_type 这一套传输层,soga 的配置里也没有。
+            if (($data['net'] ?? 'tcp') !== 'tcp') {
+                $errs['net'] = 'hysteria 走 UDP/QUIC，不使用 ws 这类传输层，请选 tcp';
+            }
+
+            // `[D]` agent: "缺证书 ⛔ 拒绝启动 —— hysteria2 协议层强制 TLS,
+            //   不存在明文 hysteria"
+            if (! $request->boolean('tls')) {
+                $errs['tls'] = 'hysteria2 协议层强制 TLS，不存在明文 hysteria —— 必须勾选 TLS';
+            }
+
+            // `[!!]` REALITY 要求 vless;两者同开 agent 会拒整节点
+            if ($request->boolean('reality_enabled') || ($data['reality_dest'] ?? '') !== '') {
+                $errs['reality_dest'] = 'REALITY 只能配 vless，hysteria 请清空 REALITY 相关字段';
+            }
+
+            if ($errs !== []) {
+                throw ValidationException::withMessages($errs);
+            }
+        }
         $data['accept_proxy_protocol'] = $request->boolean('accept_proxy_protocol');
 
         // dest 候选筛查:id 取候选内容的哈希 —— 内容不变则 id 不变,节点不会重扫。

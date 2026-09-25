@@ -64,6 +64,23 @@ class SubscriptionService
         $lines = $this->accessibleNodes($user)->flatMap(function (Node $n) use ($user) {
             return collect($this->entrypoints($n))->map(function (array $e) use ($n, $user) {
                 $name = $e['label'] === '' ? $n->name : $n->name.' · '.$e['label'];
+            // hysteria(hysteria2)出 hysteria2:// 链接。
+            //
+            // `[!!]` 这个分支【必须存在】。本方法末尾是 vmess 回落 ——
+            //   少了它,hysteria 节点会被当成 vmess 发出去:客户端拿到一条
+            //   语法合法但协议完全不对的链接,连不上且无从判断原因。
+            //   `[S]` 凭据是 users.passwd(hysteria 以 password 为身份),不是 uuid。
+            //   `[D]` alpn=h3 必须带,见 compatibility/hysteria.md §4。
+            if ($n->type === 'hysteria') {
+                $q = http_build_query([
+                    'sni' => $n->host !== '' ? $n->host : $e['server'],
+                    'alpn' => 'h3',
+                ]);
+
+                return 'hysteria2://'.rawurlencode($user->passwd).'@'
+                    .$e['server'].':'.$e['port'].'/?'.$q.'#'.rawurlencode($name);
+            }
+
             // vless(reality / tls / none)出 vless:// 链接;只带公开参数,私钥绝不进订阅
             if ($n->usesReality() || $n->type === 'vless') {
                 $p = ['encryption' => 'none', 'type' => $n->net ?: 'tcp'];
@@ -418,6 +435,28 @@ class SubscriptionService
                     'public-key' => $node->reality_public_key,
                     'short-id' => ($node->reality_short_ids[0] ?? ''),
                 ],
+            ];
+        }
+
+        // hysteria(实为 hysteria2,UDP/QUIC)
+        //
+        // `[!!]` 三个字段错一个就是"端口在听、客户端连不上、两侧日志都不报错":
+        //   password  `[S]` hysteria 以 password 为身份(agent: hyaccount.Account{Auth: Cred.Password}),
+        //             用的是 users.passwd,【不是 uuid】——填 uuid 会静默认证失败。
+        //   alpn=h3   `[D]` hysteria2 跑在 HTTP/3 之上,TLS 必须协商 h3。
+        //             compatibility/mihomo-client.md 把"ALPN 不设"单列为
+        //             【只能靠端到端发现】的失败之一。
+        //   sni       TLS 要用的服务器名;没配 host 就退回连接地址。
+        if ($node->type === 'hysteria') {
+            return [
+                'name' => $name,
+                'type' => 'hysteria2',
+                'server' => $entry['server'],
+                'port' => $entry['port'],
+                'password' => $user->passwd,
+                'sni' => $node->host !== '' ? $node->host : $entry['server'],
+                'alpn' => ['h3'],
+                'udp' => true,
             ];
         }
 

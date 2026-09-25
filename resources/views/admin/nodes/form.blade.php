@@ -43,10 +43,26 @@
                 <div class="form-group col-md-6"><label>节点名称</label><input name="name" value="{{ old('name', $node->name) }}" class="form-control" placeholder="如：香港01" required></div>
                 <div class="form-group col-md-6"><label>连接地址（中转入口域名/IP）</label><input name="server" value="{{ old('server', $node->server) }}" class="form-control" required></div>
                 <div class="form-group col-md-3"><label>端口</label><input name="port" type="number" value="{{ old('port', $node->port) }}" class="form-control" required></div>
-                <div class="form-group col-md-3"><label>协议</label><select name="type" class="form-control"><option value="vmess" @selected(old('type', $node->type ?? 'vmess') == 'vmess')>VMess</option><option value="vless" @selected(old('type', $node->type) == 'vless')>VLESS</option></select></div>
+                <div class="form-group col-md-3"><label>协议</label><select name="type" class="form-control"><option value="vmess" @selected(old('type', $node->type ?? 'vmess') == 'vmess')>VMess</option><option value="vless" @selected(old('type', $node->type) == 'vless')>VLESS</option><option value="hysteria" @selected(old('type', $node->type) == 'hysteria')>Hysteria2（UDP/QUIC）</option></select></div>
                 <div class="form-group col-md-3"><label>传输</label><select name="net" class="form-control" id="netSel"><option value="tcp" @selected(old('net', $node->net) == 'tcp')>TCP</option><option value="ws" @selected(old('net', $node->net) == 'ws')>WebSocket</option></select></div>
                 <div class="form-group col-md-3"><label>TLS</label><select name="tls" class="form-control"><option value="0" @selected(! old('tls', $node->tls))>关闭</option><option value="1" @selected(old('tls', $node->tls))>开启</option></select></div>
             </div>
+            {{-- `[!!]` Hysteria2 的三条硬约束。写在这里是因为它们不是偏好,而是
+                 agent 会【拒绝启动整个节点】的条件 —— 保存时后端也会拦(见
+                 NodeController),但人先看到解释比先看到报错好。 --}}
+            <div class="row" id="hyNote" style="display:none">
+              <div class="col-md-12">
+                <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:9px;padding:12px 14px;font-size:13px;line-height:1.8;color:#6b5400">
+                  <b>Hysteria2 是 UDP/QUIC 协议，三条必须满足：</b><br>
+                  · <b>传输必须选 TCP</b> —— 它不走 ws/grpc 这套传输层（agent 见到别的值会拒整节点）<br>
+                  · <b>TLS 必须开启</b> —— hysteria2 协议层强制 TLS，不存在明文 hysteria；节点上要有证书<br>
+                  · <b>不能同时配 REALITY</b> —— REALITY 只用于 VLESS<br>
+                  <span style="color:#8d6e00">客户端凭据是<b>用户密码</b>（不是 UUID），订阅里会自动带 <code>alpn=h3</code>
+                  —— 少了它的表现是「端口在听、客户端连不上、两边都不报错」。</span>
+                </div>
+              </div>
+            </div>
+
             <div class="row" id="wsRow">
                 <div class="form-group col-md-6"><label>WS 路径（net=ws 时）</label><input name="path" value="{{ old('path', $node->path) }}" class="form-control" placeholder="/"></div>
                 <div class="form-group col-md-6"><label>Host / SNI（ws Host 或 TLS SNI，选填）</label><input name="host" value="{{ old('host', $node->host) }}" class="form-control"></div>
@@ -271,6 +287,13 @@ destprobe -vps {{ $node->server }} -d 30s -c 6 域名1 域名2 …@endif
     // 直接 querySelector('form') 会拿错,get() 全返回 null,预设/一键 dest 点了没反应。
     // 用节点表单里必有的字段(type)定位到它自己那个 form。
     var typeEl = document.querySelector('[name="type"]');
+    // Hysteria2 的约束说明随协议切换显示
+    if (typeEl) {
+      var hyNote = document.getElementById('hyNote');
+      var syncHy = function () { if (hyNote) { hyNote.style.display = typeEl.value === 'hysteria' ? '' : 'none'; } };
+      typeEl.addEventListener('change', syncHy);
+      syncHy();
+    }
     var f = typeEl ? typeEl.closest('form') : document.querySelector('form');
     var get = function (n) { return f ? f.querySelector('[name="' + n + '"]') : null; };
 
