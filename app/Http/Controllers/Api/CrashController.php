@@ -33,6 +33,22 @@ class CrashController extends Controller
         ]);
 
         $message = Str::limit(trim($data['message']), 490, '');
+
+        // `[!!]` stack 也要截断,而且必须【按字节】。
+        //   crash_logs.stack 是 TEXT(65,535【字节】),而校验写的是 max:20000
+        //   ——那是【字符】数。ASCII 堆栈 20000 字符约 20000 字节,没事;
+        //   但 4 字节字符(emoji 等)顶满就是 80,000 字节,超出 TEXT 上限,
+        //   而 MySQL 开着 STRICT_TRANS_TABLES → 直接抛错 → HTTP 500。
+        //   [D] 2026-09-24 实测:20000 个 🙂(80,000 字节)确实 500。
+        //
+        // `[!]` 崩溃上报是客户端"发了就不管"的遥测:500 意味着那条报告【直接丢失】,
+        //   而丢的正是内容最长的那些。所以和上面 message 一样【截断而不是拒绝】——
+        //   这个做法作者已经用在 message 上了,stack 只是漏了。
+        //   mb_strcut 按字节切且不会把一个字符切成两半。
+        $stack = $data['stack'] ?? null;
+        if ($stack !== null) {
+            $stack = mb_strcut($stack, 0, 60000, 'UTF-8');
+        }
         // 归一化摘要(去掉数字/十六进制/引号内容)后哈希,用于把"同一个 bug"聚合在一起
         $norm = preg_replace(['/0x[0-9a-f]+/i', '/\d+/', '/[\'"][^\'"]*[\'"]/'], ['', '', ''], $message);
         $fingerprint = substr(sha1(($data['platform'] ?? '').'|'.trim((string) $norm)), 0, 40);
@@ -46,7 +62,7 @@ class CrashController extends Controller
             'os_version' => $data['os_version'] ?? '',
             'app_version' => $data['app_version'] ?? '',
             'message' => $message,
-            'stack' => $data['stack'] ?? null,
+            'stack' => $stack,
             'fingerprint' => $fingerprint,
             'ip' => $request->ip() ?? '',
         ]);
