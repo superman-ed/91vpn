@@ -87,9 +87,13 @@ it('券过期之后支付会被拒，折扣不再生效', function () {
     expect((float) $u->fresh()->money)->toBe(1000.0);
 });
 
-// `[!!]` 这一条是整组里最要紧的:网关那边钱【已经收了】,
-//   抛异常只会回滚数据库、退不了那笔钱 —— 结果是用户付了钱而订单失败。
-it('网关回调时券已失效，仍然照常发货并留痕', function () {
+// `[!!]` 网关回调时券已失效,同样【拒绝】—— 与 P0-1 一致:
+//   "已付款但发货失败时,notify 返回 fail(让网关重试),不静默 success"
+//   (见 tests/Feature/P0FixesTest.php)。
+//   `[!]` 2026-09-24 我一度改成"钱已收就照常发货",理由是"抛异常退不了网关
+//   那笔钱"。那【推翻了一条既有的 P0 决定】,已撤回 —— 权衡(返回 fail 让网关
+//   重试 vs 订单卡在 pending)由 owner 定,记在 LAUNCH-CHECKLIST 的待定里。
+it('网关回调时券已失效也拒绝，让网关重试', function () {
     $plan = cpPlan('P3');
     $c = Coupon::create(['code' => 'GONE', 'type' => 'fixed', 'value' => 50,
         'max_use' => 1, 'used' => 0, 'enabled' => true]);
@@ -99,12 +103,10 @@ it('网关回调时券已失效，仍然照常发货并留痕', function () {
     $c->update(['used' => 1]);   // 期间被别人用光
     expect($c->fresh()->isUsable())->toBeFalse();
 
-    // 第四个参数 true = 钱已在网关收到
-    $done = app(BillingService::class)->settleOrder($o->fresh(), 'epay', null, true);
+    expect(fn () => app(BillingService::class)->settleOrder($o->fresh(), 'epay'))
+        ->toThrow(ValidationException::class);
 
-    expect($done)->toBeTrue();
-    expect($o->fresh()->status)->toBeIn(['paid', 'queued'], '网关已收款却没有发货');
-    expect((string) $o->fresh()->refund_reason)->toContain('优惠券已失效');
+    expect($o->fresh()->status)->toBe('pending');
     expect(Coupon::find($c->id)->used)->toBe(1, 'used 被多加了一次');
 });
 

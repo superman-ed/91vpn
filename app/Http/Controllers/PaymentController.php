@@ -56,10 +56,8 @@ class PaymentController extends Controller
         }
 
         try {
-            // `[!!]` 第四个参数 true =「钱已经在网关收了」。结算时若发现优惠券
-            //   已失效,【绝不能抛异常】—— 那只会回滚数据库,网关那笔钱不会退回来,
-            //   结果是用户付了钱而订单失败。照常发货并记进订单备注。
-            $billing->settleOrder($order, (string) ($params['type'] ?? 'epay'), null, true);   // 幂等：重复回调不会重复发货
+            // `[!]` 发货失败时这里会抛 → 下方捕获 → 返回 fail 让网关重试(P0-1 的决定)
+            $billing->settleOrder($order, (string) ($params['type'] ?? 'epay'));   // 幂等：重复回调不会重复发货
         } catch (\Throwable $e) {
             // 已付款但发货失败(如数据库瞬时错误)：返回 fail 让网关重试，避免钱货两空静默卡死
             Log::error('epay settle failed（已付款发货失败，返回fail待重试）', ['order' => $order->id, 'err' => $e->getMessage()]);

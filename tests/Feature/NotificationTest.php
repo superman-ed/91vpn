@@ -12,7 +12,7 @@ it('sends a single notification to a user by email', function () {
     $u = User::factory()->create(['email' => 'target@test.local']);
 
     $this->actingAs(notiAdmin())->post('/admin/notifications', [
-        'mode' => 'single', 'email' => 'target@test.local',
+        'mode' => 'single', 'recipient' => 'target@test.local',
         'title' => '你好', 'content' => '这是一条测试', 'type' => 'system',
     ])->assertRedirect();
 

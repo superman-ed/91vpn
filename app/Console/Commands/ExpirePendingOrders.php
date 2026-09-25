@@ -31,8 +31,7 @@ class ExpirePendingOrders extends Command
                         $paid = $epay->isPaidOnGateway($order->order_no);
                         if ($paid === true) {   // 网关确认已付 → 补发货
                             try {
-                                // `[!]` true = 钱已在网关收到,券失效也不能拒绝。见 PaymentController
-                                if ($billing->settleOrder($order, 'epay', null, true)) {
+                                if ($billing->settleOrder($order, 'epay')) {
                                     system_audit('order.reconciled', sprintf(
                                         '订单 %s 关单前查得网关已付款，自动补发货（金额 ¥%s）',
                                         $order->order_no, number_format((float) $order->amount, 2),

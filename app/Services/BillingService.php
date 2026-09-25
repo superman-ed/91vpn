@@ -73,9 +73,9 @@ class BillingService
      * - 流量包：立即加流量
      * - 普通套餐：当前有效则排队(status=queued, activate_at)，否则立即发货
      */
-    public function completeOrder(Order $order, string $payMethod, bool $moneyAlreadyTaken = false): void
+    public function completeOrder(Order $order, string $payMethod): void
     {
-        DB::transaction(function () use ($order, $payMethod, $moneyAlreadyTaken) {
+        DB::transaction(function () use ($order, $payMethod) {
             // 锁 user 行：串行化同一用户的并发发货，避免两笔订单各自读到旧到期日、互相覆盖时长
             $user = User::whereKey($order->user_id)->lockForUpdate()->first();
 
@@ -87,27 +87,22 @@ class BillingService
             }
             if ($order->coupon_id) {
                 // `[!!]` 券必须在【结算这一刻】复查,不能只靠下单时校验过。
-                //   2026-09-24 实测:券在附加到订单时折了价,之后用尽或过期,
+                //   [D] 2026-09-24 实测:券在附加到订单时折了价,之后用尽或过期,
                 //   支付照样按折后价成交 ——
                 //     限量 1 次的券 → 两单都按 50 成交(原价 100),而 used 只涨到 1
                 //     过期后再支付  → 仍按 50 成交
-                //   原来的原子自增确实防住了"计数被刷穿",但【钱不在计数器上】:
+                //   原来的原子自增防住了"计数被刷穿",但【钱不在计数器上】:
                 //   自增影响 0 行时它不看返回值,订单照样以折后价完成。
+                //
+                // `[!]` 失效就抛,【网关回调也一样】—— 与 P0-1 同口径:
+                //   宁可返回 fail 让网关重试,也不静默按一个已失效的折扣成交。
                 $coupon = \App\Models\Coupon::whereKey($order->coupon_id)->lockForUpdate()->first();
-
-                if ($coupon && $coupon->isUsable()) {
-                    $coupon->increment('used');
-                } elseif (! $moneyAlreadyTaken) {
-                    // 钱还没收 —— 拒绝,整个事务回滚,用户重新下单拿到真实价格
+                if (! $coupon || ! $coupon->isUsable()) {
                     throw ValidationException::withMessages([
                         'coupon' => '优惠券已失效（已用完或已过期），请返回重新下单',
                     ]);
-                } else {
-                    // `[!!]` 钱已经在网关收了 —— 抛异常只会回滚数据库,退不了那笔钱。
-                    //   照常发货,把异常写进订单备注,让对账时看得见。
-                    $order->update(['refund_reason' => trim(($order->refund_reason ?? '')
-                        .' [结算时优惠券已失效，仍按折后价成交]')]);
                 }
+                $coupon->increment('used');
             }
 
             $plan = $order->plan;
@@ -199,18 +194,10 @@ class BillingService
      * - 订单已非 pending → 幂等跳过(返回 false)
      * - 套餐已售罄/下架 → 抛校验错误
      * - $charge：余额支付的扣款闭包(在锁内执行，可抛"余额不足")
-     * - $moneyAlreadyTaken：钱是否【已经在外部收到】(网关回调/对账/超时补结)
-     *
-     * `[!!]` 最后这个参数决定"券失效时怎么办",而两种答案都可能是错的:
-     *   钱还没收(余额/0元/mock/manual) → 拒绝。整个事务回滚,用户重新下单。
-     *   钱已经收了(epay 回调/对账)     → 【绝不能拒绝】。抛异常只会回滚数据库,
-     *                                    网关那边的钱【不会退回来】——
-     *                                    结果是用户付了钱而订单失败。
-     *                                    照常发货,把异常记进备注。
      */
-    public function settleOrder(Order $order, string $method, ?\Closure $charge = null, bool $moneyAlreadyTaken = false): bool
+    public function settleOrder(Order $order, string $method, ?\Closure $charge = null): bool
     {
-        return DB::transaction(function () use ($order, $method, $charge, $moneyAlreadyTaken) {
+        return DB::transaction(function () use ($order, $method, $charge) {
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
             if (! $locked || $locked->status !== 'pending') {
                 return false;   // 并发下已被处理，幂等跳过
@@ -218,33 +205,21 @@ class BillingService
 
             $plan = $locked->plan;
 
-            // 套餐没了就无从发货 —— 两种情形都只能拒。
-            // `[!]` 实际上到不了这里:PlanController::destroy 不允许删除有订单的套餐
-            //   (orders.plan_id 是 cascadeOnDelete,删了会连带抹掉历史订单)。
-            if (! $plan) {
-                throw ValidationException::withMessages(['plan_id' => '该套餐已不存在，无法完成支付']);
-            }
-
-            // `[!!]` 下架/售罄的判断必须看"钱收了没有",与下面优惠券那段同一套道理。
-            //   2026-09-24 实测:用户在网关付完钱,期间管理员按了「下架」
-            //   (或限量套餐被别人买空),回调走到这里【抛异常】——
-            //   订单停在 pending,而钱已经在网关收了。ReconcilePayments 还会
-            //   反复重试、反复抛。
-            //   而"下架"是后台一键按钮、"售罄"是限量套餐的自然结果,都不罕见。
-            if (! $plan->on_sale || $plan->stock === 0) {
-                if (! $moneyAlreadyTaken) {
-                    throw ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架，无法完成支付']);
-                }
-                // 钱已收:照常发货(用户买的就是这个套餐),把异常写进备注供对账
-                $locked->update(['refund_reason' => trim(($locked->refund_reason ?? '')
-                    .' [结算时套餐已下架或售罄，仍按原订单发货]')]);
+            // `[!!]` 下架/售罄就拒绝,【包括网关回调】—— 这是 P0-1 的决定:
+            //   "已付款但发货失败时,notify 返回 fail(让网关重试),不静默 success"
+            //   (见 tests/Feature/P0FixesTest.php)。
+            //   2026-09-24 我一度改成"钱已收就照常发货",那是【推翻了这条决定】,
+            //   已撤回。冲突点记在 LAUNCH-CHECKLIST 的「待定」里:
+            //   返回 fail 让网关重试,与订单卡在 pending 谁更坏,由 owner 定。
+            if (! $plan || ! $plan->on_sale || $plan->stock === 0) {
+                throw ValidationException::withMessages(['plan_id' => '该套餐已售罄或已下架，无法完成支付']);
             }
 
             if ($charge) {
                 $charge($locked);   // 余额扣款，可抛"余额不足"
             }
 
-            $this->completeOrder($locked, $method, $moneyAlreadyTaken);
+            $this->completeOrder($locked, $method);
 
             return true;
         });

@@ -17,7 +17,7 @@ use App\Services\RefundService;
 //   caveats()(那个专门"把做不到的事明说出来"的清单)也一个字都没提。
 // ─────────────────────────────────────────────────────────────────
 
-function rfUser(float $money = 100): User
+function rrmUser(float $money = 100): User
 {
     return User::factory()->create([
         'password' => 'x12345678', 'money' => $money, 'class' => 0,
@@ -25,7 +25,7 @@ function rfUser(float $money = 100): User
     ]);
 }
 
-function rfPlan(): Plan
+function rrmPlan(): Plan
 {
     return Plan::create([
         'name' => '测试月付', 'price' => 30, 'period' => 'month', 'transfer_gb' => 100,
@@ -34,7 +34,7 @@ function rfPlan(): Plan
     ]);
 }
 
-function rfOrder(User $u, Plan $p, string $no): Order
+function rrmOrder(User $u, Plan $p, string $no): Order
 {
     return Order::create([
         'user_id' => $u->id, 'plan_id' => $p->id, 'amount' => 30,
@@ -43,8 +43,8 @@ function rfOrder(User $u, Plan $p, string $no): Order
 }
 
 it('余额支付的订单退款会把钱退回余额', function () {
-    $u = rfUser(100);
-    $o = rfOrder($u, rfPlan(), 'RF-BAL');
+    $u = rrmUser(100);
+    $o = rrmOrder($u, rrmPlan(), 'RF-BAL');
 
     app(BillingService::class)->payWithBalance($o);
     expect((float) $u->fresh()->money)->toBe(70.0);   // 先证明确实扣过
@@ -58,8 +58,8 @@ it('余额支付的订单退款会把钱退回余额', function () {
 // `[!]` P11-D:改余额的每条路径都要在同一事务里写 BalanceLog,
 //   balance_after 取行锁内的值。退款这条也必须守这个规矩。
 it('退款会记一条可对账的退款流水', function () {
-    $u = rfUser(100);
-    $o = rfOrder($u, rfPlan(), 'RF-LOG');
+    $u = rrmUser(100);
+    $o = rrmOrder($u, rrmPlan(), 'RF-LOG');
     app(BillingService::class)->payWithBalance($o);
     app(RefundService::class)->refund($o->fresh(), 30.0, '不好用', false);
 
@@ -75,8 +75,8 @@ it('退款会记一条可对账的退款流水', function () {
 });
 
 it('部分退款只退部分', function () {
-    $u = rfUser(100);
-    $o = rfOrder($u, rfPlan(), 'RF-PART');
+    $u = rrmUser(100);
+    $o = rrmOrder($u, rrmPlan(), 'RF-PART');
     app(BillingService::class)->payWithBalance($o);
 
     app(RefundService::class)->refund($o->fresh(), 10.0, '部分退', false);
@@ -87,8 +87,8 @@ it('部分退款只退部分', function () {
 // `[!!]` 网关支付的钱不在系统内,这里退不了 —— 但必须【说出来】,
 //   否则管理员点完会以为事情办完了。
 it('网关支付不动余额，但明确告诉管理员要去网关退', function () {
-    $u = rfUser(100);
-    $o = rfOrder($u, rfPlan(), 'RF-GW');
+    $u = rrmUser(100);
+    $o = rrmOrder($u, rrmPlan(), 'RF-GW');
     $o->update(['status' => 'paid', 'pay_method' => 'epay', 'paid_at' => now(), 'delivered_at' => now()]);
 
     $r = app(RefundService::class)->refund($o->fresh(), 30.0, '网关退款', false);
@@ -101,12 +101,12 @@ it('网关支付不动余额，但明确告诉管理员要去网关退', functio
 // `[!!]` caveats() 的全部意义就是"把做不到的事明说出来"。
 //   钱这一条排最前面 —— 它是管理员最可能误以为系统会办的事。
 it('退款前的提示第一条就说清钱怎么处理', function () {
-    $u = rfUser(100);
-    $bal = rfOrder($u, rfPlan(), 'RF-C1');
+    $u = rrmUser(100);
+    $bal = rrmOrder($u, rrmPlan(), 'RF-C1');
     $bal->update(['status' => 'paid', 'pay_method' => 'balance', 'delivered_at' => now()]);
     expect(RefundService::caveats($bal->fresh())[0])->toContain('余额支付')->toContain('退回用户余额');
 
-    $gw = rfOrder($u, rfPlan(), 'RF-C2');
+    $gw = rrmOrder($u, rrmPlan(), 'RF-C2');
     $gw->update(['status' => 'paid', 'pay_method' => 'epay', 'delivered_at' => now()]);
     expect(RefundService::caveats($gw->fresh())[0])->toContain('不会')->toContain('支付网关后台');
 });
